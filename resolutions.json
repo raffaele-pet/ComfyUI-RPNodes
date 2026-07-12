@@ -1,0 +1,2576 @@
+{
+  "Boogu-Image-0.1 Base / Edit": {
+    "1K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ],
+    "1.5K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1536,
+        "height": 1536
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 1008,
+        "height": 2352
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1088,
+        "height": 2176
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1200,
+        "height": 2000
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1200,
+        "height": 1920
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1248,
+        "height": 1872
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1280,
+        "height": 1792
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1344,
+        "height": 1792
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1344,
+        "height": 1680
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1680,
+        "height": 1344
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1792,
+        "height": 1344
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1792,
+        "height": 1280
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1872,
+        "height": 1248
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1920,
+        "height": 1200
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2000,
+        "height": 1200
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2176,
+        "height": 1088
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2352,
+        "height": 1008
+      }
+    ],
+    "2K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 1344,
+        "height": 3136
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1456,
+        "height": 2912
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1584,
+        "height": 2816
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1584,
+        "height": 2640
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1600,
+        "height": 2560
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1664,
+        "height": 2496
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1760,
+        "height": 2464
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1776,
+        "height": 2368
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1856,
+        "height": 2320
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 2320,
+        "height": 1856
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 2368,
+        "height": 1776
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 2464,
+        "height": 1760
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 2496,
+        "height": 1664
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 2560,
+        "height": 1600
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2640,
+        "height": 1584
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2816,
+        "height": 1584
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2912,
+        "height": 1456
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 3024,
+        "height": 1296
+      }
+    ]
+  },
+  "Boogu-Image-0.1 Turbo": {
+    "1K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ]
+  },
+  "FireRed-Image-Edit-1.0": {
+    "1K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ]
+  },
+  "FLUX.2 Klein": {
+    "1024": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ],
+    "1536": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1536,
+        "height": 1536
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 1008,
+        "height": 2352
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1088,
+        "height": 2176
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1200,
+        "height": 2000
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1200,
+        "height": 1920
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1248,
+        "height": 1872
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1280,
+        "height": 1792
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1344,
+        "height": 1792
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1344,
+        "height": 1680
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1680,
+        "height": 1344
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1792,
+        "height": 1344
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1792,
+        "height": 1280
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1872,
+        "height": 1248
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1920,
+        "height": 1200
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2000,
+        "height": 1200
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2176,
+        "height": 1088
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2352,
+        "height": 1008
+      }
+    ],
+    "2048": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 1344,
+        "height": 3136
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1456,
+        "height": 2912
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1584,
+        "height": 2816
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1584,
+        "height": 2640
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1600,
+        "height": 2560
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1664,
+        "height": 2496
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1760,
+        "height": 2464
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1776,
+        "height": 2368
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1856,
+        "height": 2320
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 2320,
+        "height": 1856
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 2368,
+        "height": 1776
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 2464,
+        "height": 1760
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 2496,
+        "height": 1664
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 2560,
+        "height": 1600
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2640,
+        "height": 1584
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2816,
+        "height": 1584
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2912,
+        "height": 1456
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 3024,
+        "height": 1296
+      }
+    ]
+  },
+  "HiDream-O1-Image / Dev": {
+    "1K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ],
+    "1.5K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1536,
+        "height": 1536
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 864,
+        "height": 2016
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1024,
+        "height": 2048
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1200,
+        "height": 2000
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1200,
+        "height": 1920
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1248,
+        "height": 1872
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1280,
+        "height": 1792
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1344,
+        "height": 1792
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1344,
+        "height": 1680
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1680,
+        "height": 1344
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1792,
+        "height": 1344
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1792,
+        "height": 1280
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1872,
+        "height": 1248
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1920,
+        "height": 1200
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2000,
+        "height": 1200
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2016,
+        "height": 864
+      }
+    ],
+    "2K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 864,
+        "height": 2016
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1024,
+        "height": 2048
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1200,
+        "height": 2000
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1280,
+        "height": 2048
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1344,
+        "height": 2016
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1440,
+        "height": 2016
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1536,
+        "height": 2048
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1600,
+        "height": 2000
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 2000,
+        "height": 1600
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 2048,
+        "height": 1536
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 2016,
+        "height": 1440
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 2016,
+        "height": 1344
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 2048,
+        "height": 1280
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2000,
+        "height": 1200
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2016,
+        "height": 864
+      }
+    ]
+  },
+  "Ideogram 4": {
+    "1K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ],
+    "1.5K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1536,
+        "height": 1536
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 864,
+        "height": 2016
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1024,
+        "height": 2048
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1200,
+        "height": 2000
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1200,
+        "height": 1920
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1248,
+        "height": 1872
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1280,
+        "height": 1792
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1344,
+        "height": 1792
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1344,
+        "height": 1680
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1680,
+        "height": 1344
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1792,
+        "height": 1344
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1792,
+        "height": 1280
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1872,
+        "height": 1248
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1920,
+        "height": 1200
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2000,
+        "height": 1200
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2016,
+        "height": 864
+      }
+    ],
+    "2K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 864,
+        "height": 2016
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1024,
+        "height": 2048
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1200,
+        "height": 2000
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1280,
+        "height": 2048
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1344,
+        "height": 2016
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1440,
+        "height": 2016
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1536,
+        "height": 2048
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1600,
+        "height": 2000
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 2000,
+        "height": 1600
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 2048,
+        "height": 1536
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 2016,
+        "height": 1440
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 2016,
+        "height": 1344
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 2048,
+        "height": 1280
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2000,
+        "height": 1200
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2048,
+        "height": 1024
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2016,
+        "height": 864
+      }
+    ]
+  },
+  "Krea 2": {
+    "1K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ]
+  },
+  "Qwen-Image-2512": {
+    "1328": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1328,
+        "height": 1328
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 864,
+        "height": 2016
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 944,
+        "height": 1888
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 928,
+        "height": 1664
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1008,
+        "height": 1680
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1040,
+        "height": 1664
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1056,
+        "height": 1584
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1120,
+        "height": 1568
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1104,
+        "height": 1472
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1216,
+        "height": 1520
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1520,
+        "height": 1216
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1472,
+        "height": 1104
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1568,
+        "height": 1120
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1584,
+        "height": 1056
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1664,
+        "height": 1040
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1680,
+        "height": 1008
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1664,
+        "height": 928
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1888,
+        "height": 944
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2016,
+        "height": 864
+      }
+    ]
+  },
+  "Qwen-Image-Edit-2511": {
+    "1K": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ]
+  },
+  "SDXL": {
+    "1024": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ]
+  },
+  "Z-Image-Turbo": {
+    "1024": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1024,
+        "height": 1024
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 672,
+        "height": 1568
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 720,
+        "height": 1440
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 720,
+        "height": 1280
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 816,
+        "height": 1360
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 800,
+        "height": 1280
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 832,
+        "height": 1248
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 880,
+        "height": 1232
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 864,
+        "height": 1152
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 896,
+        "height": 1120
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1120,
+        "height": 896
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1152,
+        "height": 864
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1232,
+        "height": 880
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1248,
+        "height": 832
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1360,
+        "height": 816
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1440,
+        "height": 720
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 1680,
+        "height": 720
+      }
+    ],
+    "1280": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1280,
+        "height": 1280
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 816,
+        "height": 1904
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 912,
+        "height": 1824
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1008,
+        "height": 1792
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1008,
+        "height": 1680
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1040,
+        "height": 1664
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1056,
+        "height": 1584
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1120,
+        "height": 1568
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1104,
+        "height": 1472
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1152,
+        "height": 1440
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1440,
+        "height": 1152
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1472,
+        "height": 1104
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1568,
+        "height": 1120
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1584,
+        "height": 1056
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1664,
+        "height": 1040
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 1680,
+        "height": 1008
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 1792,
+        "height": 1008
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 1824,
+        "height": 912
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2016,
+        "height": 864
+      }
+    ],
+    "1536": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 1536,
+        "height": 1536
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 1008,
+        "height": 2352
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1088,
+        "height": 2176
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1152,
+        "height": 2048
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1200,
+        "height": 2000
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1200,
+        "height": 1920
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1248,
+        "height": 1872
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1280,
+        "height": 1792
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1344,
+        "height": 1792
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1344,
+        "height": 1680
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 1680,
+        "height": 1344
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 1792,
+        "height": 1344
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 1792,
+        "height": 1280
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 1872,
+        "height": 1248
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 1920,
+        "height": 1200
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2000,
+        "height": 1200
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2048,
+        "height": 1152
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2176,
+        "height": 1088
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 2352,
+        "height": 1008
+      }
+    ],
+    "2048": [
+      {
+        "ratio": "1:1",
+        "label": "Square",
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "ratio": "3:7",
+        "label": "Portrait Ultrawide",
+        "width": 1344,
+        "height": 3136
+      },
+      {
+        "ratio": "1:2",
+        "label": "Tall Portrait",
+        "width": 1456,
+        "height": 2912
+      },
+      {
+        "ratio": "9:16",
+        "label": "Portrait Widescreen",
+        "width": 1584,
+        "height": 2816
+      },
+      {
+        "ratio": "3:5",
+        "label": "Portrait Tall Photo",
+        "width": 1584,
+        "height": 2640
+      },
+      {
+        "ratio": "5:8",
+        "label": "Portrait Wide",
+        "width": 1600,
+        "height": 2560
+      },
+      {
+        "ratio": "2:3",
+        "label": "Portrait Photo",
+        "width": 1664,
+        "height": 2496
+      },
+      {
+        "ratio": "5:7",
+        "label": "Portrait Print",
+        "width": 1760,
+        "height": 2464
+      },
+      {
+        "ratio": "3:4",
+        "label": "Portrait Standard",
+        "width": 1776,
+        "height": 2368
+      },
+      {
+        "ratio": "4:5",
+        "label": "Portrait Social",
+        "width": 1856,
+        "height": 2320
+      },
+      {
+        "ratio": "5:4",
+        "label": "Landscape Social",
+        "width": 2320,
+        "height": 1856
+      },
+      {
+        "ratio": "4:3",
+        "label": "Standard",
+        "width": 2368,
+        "height": 1776
+      },
+      {
+        "ratio": "7:5",
+        "label": "Landscape Print",
+        "width": 2464,
+        "height": 1760
+      },
+      {
+        "ratio": "3:2",
+        "label": "Photo",
+        "width": 2496,
+        "height": 1664
+      },
+      {
+        "ratio": "8:5",
+        "label": "Widescreen Photo",
+        "width": 2560,
+        "height": 1600
+      },
+      {
+        "ratio": "5:3",
+        "label": "Wide Landscape",
+        "width": 2640,
+        "height": 1584
+      },
+      {
+        "ratio": "16:9",
+        "label": "Widescreen",
+        "width": 2816,
+        "height": 1584
+      },
+      {
+        "ratio": "2:1",
+        "label": "Panoramic",
+        "width": 2912,
+        "height": 1456
+      },
+      {
+        "ratio": "21:9",
+        "label": "Ultrawide",
+        "width": 3024,
+        "height": 1296
+      }
+    ]
+  }
+}
