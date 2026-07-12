@@ -189,7 +189,7 @@ def _actual_ratio(width, height):
     return f"{ratio.numerator}:{ratio.denominator}"
 
 
-class ImageModelAwareResize:
+class SmartImageResize:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -306,9 +306,9 @@ class ImageModelAwareResize:
 
 
 NODE_CLASS_MAPPINGS = {
-    "ImageModelAwareResize": ImageModelAwareResize,
+    "SmartImageResize": SmartImageResize,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ImageModelAwareResize": "Smart Image Resize",
+    "SmartImageResize": "Smart Image Resize",
 }

@@ -42,7 +42,7 @@ def resolution_output(resolution):
     return str(resolution)
 
 
-class ImageModelResolutionSelector:
+class SmartImageSize:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -92,9 +92,9 @@ except (ImportError, AttributeError):
 
 
 NODE_CLASS_MAPPINGS = {
-    "ImageModelResolutionSelector": ImageModelResolutionSelector,
+    "SmartImageSize": SmartImageSize,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ImageModelResolutionSelector": "Smart Image Size",
+    "SmartImageSize": "Smart Image Size",
 }

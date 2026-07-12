@@ -2,7 +2,7 @@ import { app } from "/scripts/app.js";
 import { api } from "/scripts/api.js";
 
 
-const NODE_CLASSES = new Set(["ImageModelResolutionSelector", "ImageModelAwareResize"]);
+const NODE_CLASSES = new Set(["SmartImageSize", "SmartImageResize"]);
 let dataPromise;
 
 
@@ -123,7 +123,7 @@ function configureMenus(node, data) {
 
 
 app.registerExtension({
-    name: "ImageModelResolutionSelector.DynamicMenus",
+    name: "RPNodes.SmartImage.DynamicMenus",
 
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (!NODE_CLASSES.has(nodeData.name)) return;

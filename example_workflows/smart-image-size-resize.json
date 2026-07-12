@@ -250,7 +250,7 @@
     },
     {
       "id": 8,
-      "type": "ImageModelResolutionSelector",
+      "type": "SmartImageSize",
       "pos": [
         600,
         4030
@@ -297,7 +297,7 @@
       "properties": {
         "aux_id": "raffaele-pet/ComfyUI-RPNodes",
         "ver": "4aedfd70cb70e6243f0232bab41d539b70f0fab1",
-        "Node name for S&R": "ImageModelResolutionSelector",
+        "Node name for S&R": "SmartImageSize",
         "widget_ue_connectable": {}
       },
       "widgets_values": [
@@ -310,7 +310,7 @@
     },
     {
       "id": 10,
-      "type": "ImageModelAwareResize",
+      "type": "SmartImageResize",
       "pos": [
         700,
         4530
@@ -374,7 +374,7 @@
       "properties": {
         "aux_id": "raffaele-pet/ComfyUI-RPNodes",
         "ver": "4aedfd70cb70e6243f0232bab41d539b70f0fab1",
-        "Node name for S&R": "ImageModelAwareResize",
+        "Node name for S&R": "SmartImageResize",
         "widget_ue_connectable": {}
       },
       "widgets_values": [

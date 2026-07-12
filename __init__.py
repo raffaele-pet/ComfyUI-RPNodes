@@ -1,5 +1,5 @@
 from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
-from .aware_resize import (
+from .smart_image_size_resize import (
     NODE_CLASS_MAPPINGS as RESIZE_NODE_CLASS_MAPPINGS,
     NODE_DISPLAY_NAME_MAPPINGS as RESIZE_NODE_DISPLAY_NAME_MAPPINGS,
 )

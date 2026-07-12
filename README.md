@@ -101,7 +101,7 @@ ComfyUI-RPNodes/
 |-- web/js/
 |   `-- image_model_resolution_selector.js
 |-- __init__.py
-|-- aware_resize.py
+|-- smart_image_size_resize.py
 |-- nodes.py
 |-- resolutions.json
 `-- README.md
@@ -113,5 +113,3 @@ ComfyUI-RPNodes/
   practical model-aware dimensions for additional aspect ratios.
 - Very wide or tall formats may be less stable than a model's native training
   ratios.
-- Existing workflow compatibility is preserved through stable internal node
-  identifiers.
