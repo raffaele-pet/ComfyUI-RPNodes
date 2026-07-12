@@ -310,5 +310,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ImageModelAwareResize": "Image Smart Resize",
+    "ImageModelAwareResize": "Smart Image Resize",
 }

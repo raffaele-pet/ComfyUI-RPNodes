@@ -1,156 +1,46 @@
 {
   "id": "fcf270d7-c35a-4fce-8ecd-34cc7e04a41e",
   "revision": 0,
-  "last_node_id": 31,
-  "last_link_id": 22,
+  "last_node_id": 32,
+  "last_link_id": 23,
   "nodes": [
     {
-      "id": 22,
-      "type": "easy showAnything",
+      "id": 32,
+      "type": "PreviewImage",
       "pos": [
         1100,
-        3830
+        4530
       ],
       "size": [
-        210,
-        90
+        300,
+        370
       ],
       "flags": {},
-      "order": 4,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
-          "name": "anything",
-          "shape": 7,
-          "type": "*",
-          "link": 20
+          "name": "images",
+          "type": "IMAGE",
+          "link": 23
         }
       ],
       "outputs": [
         {
-          "name": "output",
-          "type": "*",
+          "name": "images",
+          "type": "IMAGE",
           "links": null
         }
       ],
       "properties": {
-        "Node name for S&R": "easy showAnything",
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3",
+        "Node name for S&R": "PreviewImage",
         "widget_ue_connectable": {}
       },
-      "widgets_values": [
-        "1024"
-      ]
-    },
-    {
-      "id": 5,
-      "type": "easy showAnything",
-      "pos": [
-        1100,
-        4130
-      ],
-      "size": [
-        210,
-        90
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "anything",
-          "shape": 7,
-          "type": "*",
-          "link": 8
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "*",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "easy showAnything",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "1:1"
-      ]
-    },
-    {
-      "id": 23,
-      "type": "easy showAnything",
-      "pos": [
-        1100,
-        3980
-      ],
-      "size": [
-        210,
-        90
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "anything",
-          "shape": 7,
-          "type": "*",
-          "link": 21
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "*",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "easy showAnything",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "1024"
-      ]
-    },
-    {
-      "id": 6,
-      "type": "easy showAnything",
-      "pos": [
-        1100,
-        4280
-      ],
-      "size": [
-        210,
-        90
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "anything",
-          "shape": 7,
-          "type": "*",
-          "link": 9
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "*",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "easy showAnything",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "1024"
-      ]
+      "widgets_values": [],
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 12,
@@ -190,43 +80,173 @@
       "widgets_values": [
         "example.png",
         "image"
-      ]
+      ],
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
-      "id": 13,
-      "type": "PreviewImage",
+      "id": 22,
+      "type": "easy showAnything",
       "pos": [
         1100,
-        4530
+        3830
       ],
       "size": [
-        300,
-        370
+        210,
+        90
       ],
       "flags": {},
-      "order": 8,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 11
+          "name": "anything",
+          "shape": 7,
+          "type": "*",
+          "link": 20
         }
       ],
       "outputs": [
         {
-          "name": "images",
-          "type": "IMAGE",
-          "links": []
+          "name": "output",
+          "type": "*",
+          "links": null
         }
       ],
       "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.27.0",
-        "Node name for S&R": "PreviewImage",
+        "cnr_id": "comfyui-easy-use",
+        "ver": "1.3.6",
+        "Node name for S&R": "easy showAnything",
         "widget_ue_connectable": {}
       },
-      "widgets_values": []
+      "widgets_values": [
+        "1024"
+      ],
+      "color": "#233",
+      "bgcolor": "#355"
+    },
+    {
+      "id": 23,
+      "type": "easy showAnything",
+      "pos": [
+        1100,
+        3980
+      ],
+      "size": [
+        210,
+        90
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "shape": 7,
+          "type": "*",
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "1.3.6",
+        "Node name for S&R": "easy showAnything",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "1024"
+      ],
+      "color": "#233",
+      "bgcolor": "#355"
+    },
+    {
+      "id": 5,
+      "type": "easy showAnything",
+      "pos": [
+        1100,
+        4130
+      ],
+      "size": [
+        210,
+        90
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "shape": 7,
+          "type": "*",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "1.3.6",
+        "Node name for S&R": "easy showAnything",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "1:1"
+      ],
+      "color": "#233",
+      "bgcolor": "#355"
+    },
+    {
+      "id": 6,
+      "type": "easy showAnything",
+      "pos": [
+        1100,
+        4280
+      ],
+      "size": [
+        210,
+        90
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "shape": 7,
+          "type": "*",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "1.3.6",
+        "Node name for S&R": "easy showAnything",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "1024"
+      ],
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 8,
@@ -273,7 +293,10 @@
           ]
         }
       ],
+      "title": "Smart Image Size",
       "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "4aedfd70cb70e6243f0232bab41d539b70f0fab1",
         "Node name for S&R": "ImageModelResolutionSelector",
         "widget_ue_connectable": {}
       },
@@ -281,7 +304,9 @@
         "FLUX.2 Klein",
         "1024",
         "1:1 (Square) - 1024 x 1024"
-      ]
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 10,
@@ -316,7 +341,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            11
+            23
           ]
         },
         {
@@ -345,7 +370,10 @@
           "links": []
         }
       ],
+      "title": "Smart Image Resize",
       "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "4aedfd70cb70e6243f0232bab41d539b70f0fab1",
         "Node name for S&R": "ImageModelAwareResize",
         "widget_ue_connectable": {}
       },
@@ -360,7 +388,9 @@
         "pad_edge_pixel",
         "0, 0, 0",
         "center"
-      ]
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 28,
@@ -382,7 +412,7 @@
         "widget_ue_connectable": {}
       },
       "widgets_values": [
-        "GitHub: https://github.com/raffaele-pet/ComfyUI-RPNodes\n\n\nImage Smart Resolution\n\nEN: Selects the image-generation model, resolution class, and desired format. The menus update automatically according to the selected model. It outputs the width, height, aspect ratio, and numeric resolution of the selected preset.\n\nIT: Seleziona il modello di generazione, la classe di risoluzione e il formato desiderato. I menu si aggiornano automaticamente in base al modello scelto. Restituisce larghezza, altezza, aspect ratio e risoluzione numerica del preset selezionato.\n\n\nImage Smart Resize\n\nEN: Resizes an image, a mask, or both to dimensions suitable for the selected model. Automatic mode chooses the available format with the aspect ratio closest to the input, while manual mode allows direct preset and dimension selection.\n\nIT: Ridimensiona un'immagine, una maschera o entrambe nelle misure adatte al modello selezionato. In modalità automatica sceglie il formato con l'aspect ratio più vicino all'input; in modalità manuale permette di impostare preset e dimensioni."
+        "GitHub: https://github.com/raffaele-pet/ComfyUI-RPNodes\n\n\nSmart Image Size\n\nEN: Selects the image-generation model, resolution class, and desired format. The menus update automatically according to the selected model. It outputs the width, height, aspect ratio, and numeric resolution of the selected preset.\n\nIT: Seleziona il modello di generazione, la classe di risoluzione e il formato desiderato. I menu si aggiornano automaticamente in base al modello scelto. Restituisce larghezza, altezza, aspect ratio e risoluzione numerica del preset selezionato.\n\n\nSmart Image Resize\n\nEN: Resizes an image, a mask, or both to dimensions suitable for the selected model. Automatic mode chooses the available format with the aspect ratio closest to the input, while manual mode allows direct preset and dimension selection.\n\nIT: Ridimensiona un'immagine, una maschera o entrambe nelle misure adatte al modello selezionato. In modalità automatica sceglie il formato con l'aspect ratio più vicino all'input; in modalità manuale permette di impostare preset e dimensioni."
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -414,14 +444,6 @@
       "IMAGE"
     ],
     [
-      11,
-      10,
-      0,
-      13,
-      0,
-      "IMAGE"
-    ],
-    [
       20,
       8,
       0,
@@ -436,6 +458,14 @@
       23,
       0,
       "INT"
+    ],
+    [
+      23,
+      10,
+      0,
+      32,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [],
@@ -444,10 +474,10 @@
     "ue_links": [],
     "links_added_by_ue": [],
     "ds": {
-      "scale": 0.5989500000000009,
+      "scale": 0.7972024500000091,
       "offset": [
-        403.41382246790357,
-        -3732.2954739799948
+        189.6972621702921,
+        -3666.0902469634534
       ]
     },
     "frontendVersion": "1.45.20",

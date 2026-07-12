@@ -96,5 +96,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ImageModelResolutionSelector": "Image Smart Resolution",
+    "ImageModelResolutionSelector": "Smart Image Size",
 }

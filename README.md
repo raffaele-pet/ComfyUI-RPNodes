@@ -6,8 +6,8 @@ image-generation model.
 
 The package provides two nodes:
 
-- **Image Smart Resolution**
-- **Image Smart Resize**
+- **Smart Image Size**
+- **Smart Image Resize**
 
 Both nodes share the same resolution database. Model, resolution, and
 dimensions menus are dependent: changing the model refreshes the available
@@ -28,9 +28,9 @@ ratios and pixel dimensions.
 - SDXL
 - Z-Image-Turbo
 
-## Image Smart Resolution
+## Smart Image Size
 
-![Image Smart Resolution](./images/image-smart-resolution.jpg)
+![Smart Image Size](./images/smart-image-size.jpg)
 
 Selects a model, a supported resolution class, and an aspect-ratio preset. It
 is useful for configuring latent-image nodes, samplers, image generators, and
@@ -43,9 +43,9 @@ other nodes that require explicit width and height values.
 - `aspect_ratio` - selected ratio, such as `16:9`
 - `resolution` - numeric square-side resolution
 
-## Image Smart Resize
+## Smart Image Resize
 
-![Image Smart Resize](./images/image-smart-resize.jpg)
+![Smart Image Resize](./images/smart-image-resize.png)
 
 Accepts an image, a mask, or both and adapts them to dimensions suitable for
 the selected model. When only a mask is connected, the node also creates a
@@ -84,7 +84,7 @@ Restart ComfyUI and refresh the browser. Both nodes are available under the
 The [`example_workflows`](./example_workflows) directory contains a ready-to-use
 workflow demonstrating both nodes:
 
-- [`image-resolution-resize.json`](./example_workflows/image-resolution-resize.json)
+- [`smart-image-size-resize.json`](./example_workflows/smart-image-size-resize.json)
 
 Drag the JSON file onto the ComfyUI canvas or load it through the workflow
 menu.
@@ -94,10 +94,10 @@ menu.
 ```text
 ComfyUI-RPNodes/
 |-- example_workflows/
-|   `-- image-resolution-resize.json
+|   `-- smart-image-size-resize.json
 |-- images/
-|   |-- image-smart-resolution.jpg
-|   `-- image-smart-resize.jpg
+|   |-- smart-image-size.jpg
+|   `-- smart-image-resize.png
 |-- web/js/
 |   `-- image_model_resolution_selector.js
 |-- __init__.py
