@@ -4,7 +4,7 @@ from fractions import Fraction
 import torch
 import torch.nn.functional as F
 
-from .nodes import RESOLUTIONS, dimension_text, unique_dimensions, unique_resolutions
+from .nodes import RESOLUTIONS, dimension_text, resolution_output, unique_dimensions, unique_resolutions
 
 
 try:
@@ -43,6 +43,15 @@ def _closest_dimensions(items, width, height):
         items,
         key=lambda item: abs(math.log(source_ratio / (item["width"] / item["height"]))),
     )
+
+
+def _dimensions_from_longer_side(item, longer_side):
+    longer_side = max(1, int(longer_side))
+    item_width = int(item["width"])
+    item_height = int(item["height"])
+    if item_width >= item_height:
+        return longer_side, max(1, round(longer_side * item_height / item_width))
+    return max(1, round(longer_side * item_width / item_height)), longer_side
 
 
 def _parse_color(text, channels, dtype, device):
@@ -195,7 +204,7 @@ class SmartImageResize:
         return {
             "required": {
                 "model": (list(RESOLUTIONS.keys()), {"default": "FLUX.2 Klein"}),
-                "resolution": (unique_resolutions(),),
+                "resolution_preset": (unique_resolutions(),),
                 "selection_mode": (["automatic", "manual"],),
                 "dimensions": (unique_dimensions(),),
                 "width": ("INT", {"default": 1024, "min": 1, "max": 16384, "step": 1}),
@@ -208,6 +217,13 @@ class SmartImageResize:
             "optional": {
                 "image": ("IMAGE",),
                 "mask": ("MASK",),
+                "resolution": (
+                    "INT",
+                    {
+                        "forceInput": True,
+                        "tooltip": "Optional longer-side resolution override.",
+                    },
+                ),
             },
         }
 
@@ -219,7 +235,7 @@ class SmartImageResize:
     def resize(
         self,
         model,
-        resolution,
+        resolution_preset,
         selection_mode,
         dimensions,
         width,
@@ -230,21 +246,30 @@ class SmartImageResize:
         crop_position,
         image=None,
         mask=None,
+        resolution=None,
     ):
         if image is None and mask is None:
-            raise ValueError("Connect an IMAGE or a MASK to Image Model Aware Resize.")
+            raise ValueError("Connect an IMAGE or a MASK to Smart Image Resize.")
 
         if image is not None:
             source_height, source_width = int(image.shape[1]), int(image.shape[2])
         else:
             source_height, source_width = int(mask.shape[1]), int(mask.shape[2])
 
-        model, resolution, items, selected = _find_dimensions(model, resolution, dimensions)
+        model, resolution_preset, items, selected = _find_dimensions(
+            model, resolution_preset, dimensions
+        )
         if selection_mode == "automatic":
             selected = _closest_dimensions(items, source_width, source_height)
             width, height = int(selected["width"]), int(selected["height"])
         else:
             width, height = max(1, int(width)), max(1, int(height))
+
+        if resolution is not None and int(resolution) > 0:
+            width, height = _dimensions_from_longer_side(selected, resolution)
+            output_resolution = str(int(resolution))
+        else:
+            output_resolution = resolution_output(resolution_preset)
 
         target_device = torch.device("cpu")
 
@@ -300,7 +325,7 @@ class SmartImageResize:
             output_width,
             output_height,
             _actual_ratio(output_width, output_height),
-            resolution,
+            output_resolution,
             output_mask.cpu(),
         )
 

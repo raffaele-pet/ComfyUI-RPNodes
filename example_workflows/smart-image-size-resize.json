@@ -334,6 +334,12 @@
           "shape": 7,
           "type": "MASK",
           "link": null
+        },
+        {
+          "name": "resolution",
+          "shape": 7,
+          "type": "INT",
+          "link": null
         }
       ],
       "outputs": [

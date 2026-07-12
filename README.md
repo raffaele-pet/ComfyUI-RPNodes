@@ -51,6 +51,11 @@ Accepts an image, a mask, or both and adapts them to dimensions suitable for
 the selected model. When only a mask is connected, the node also creates a
 three-channel preview image from that mask.
 
+The optional `resolution` input accepts an integer longer-side value from nodes
+such as `ImageSize (LongerSide)`. When connected, Smart Image Resize preserves
+that longer-side resolution while calculating the other side from the selected
+aspect ratio.
+
 ### Selection modes
 
 - `automatic` - selects the available preset whose aspect ratio is closest to

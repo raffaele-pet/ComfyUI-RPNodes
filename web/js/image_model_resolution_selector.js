@@ -37,7 +37,9 @@ function redraw(node) {
 
 function configureMenus(node, data) {
     const model = node.widgets?.find((widget) => widget.name === "model");
-    const resolution = node.widgets?.find((widget) => widget.name === "resolution");
+    const resolution = node.widgets?.find(
+        (widget) => widget.name === "resolution_preset"
+    ) ?? node.widgets?.find((widget) => widget.name === "resolution");
     const dimensions = node.widgets?.find((widget) => widget.name === "dimensions");
     const width = node.widgets?.find((widget) => widget.name === "width");
     const height = node.widgets?.find((widget) => widget.name === "height");
