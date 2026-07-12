@@ -89,24 +89,6 @@ workflow demonstrating both nodes:
 Drag the JSON file onto the ComfyUI canvas or load it through the workflow
 menu.
 
-## Project structure
-
-```text
-ComfyUI-RPNodes/
-|-- example_workflows/
-|   `-- smart-image-size-resize.json
-|-- images/
-|   |-- smart-image-size.jpg
-|   `-- smart-image-resize.png
-|-- web/js/
-|   `-- image_model_resolution_selector.js
-|-- __init__.py
-|-- smart_image_size_resize.py
-|-- nodes.py
-|-- resolutions.json
-`-- README.md
-```
-
 ## Notes
 
 - The resolution database includes both manufacturer-published presets and
