@@ -1,8 +1,7 @@
 # ComfyUI RPNodes
 
-A focused ComfyUI custom-node package for selecting model-aware image
-resolutions and adapting images or masks to suitable dimensions for a chosen
-image-generation model.
+A collection of ComfyUI utility nodes for model-aware image sizing, image and
+mask resizing, and automatic per-frame video processing.
 
 The package provides four nodes:
 
@@ -11,10 +10,11 @@ The package provides four nodes:
 - **RP Video to Frames**
 - **RP Frames to Video**
 
-The two image nodes share the same resolution database. Model, resolution, and
-dimensions menus are dependent: changing the model refreshes the available
+The image-sizing nodes share the same resolution database. Model, resolution,
+and dimensions menus are dependent: changing the model refreshes the available
 resolution classes, and changing the resolution refreshes the available aspect
-ratios and pixel dimensions.
+ratios and pixel dimensions. The video nodes automate video extraction,
+per-frame processing, persistent frame storage, and final video reconstruction.
 
 ## Supported models
 
@@ -83,8 +83,15 @@ Open a terminal in `ComfyUI/custom_nodes` and run:
 git clone https://github.com/raffaele-pet/ComfyUI-RPNodes.git
 ```
 
-Restart ComfyUI and refresh the browser. Both nodes are available under the
-`image/resolution` category.
+Install the video dependency from the cloned directory:
+
+```bash
+python -m pip install -r ComfyUI-RPNodes/requirements.txt
+```
+
+Restart ComfyUI and refresh the browser. The image-sizing nodes are available
+under `image/resolution`; the video workflow nodes are available under
+`video/RPNodes`.
 
 ## Example workflow
 
@@ -98,6 +105,8 @@ Drag the JSON file onto the ComfyUI canvas or load it through the workflow
 menu.
 
 ## Video frame workflow
+
+![RP Video to Frames to Video workflow](./images/rp-video-to-frames-to-video.png)
 
 `RP Video to Frames` uploads/selects a video, extracts every frame as PNG and
 creates a second persistent folder for processed frames. Relative folder names
