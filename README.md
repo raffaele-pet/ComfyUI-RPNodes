@@ -102,7 +102,10 @@ advances the integrated loop. After the final frame, it rebuilds the MP4 and
 shows the completed video directly inside the node.
 
 When `copy_original_audio` is enabled, the original audio track is included in
-the rebuilt video. A separate loop node and `SaveImage` node are not required.
+the rebuilt video. Existing videos are never overwritten: if the requested
+filename already exists, the node automatically creates names such as
+`processed_video_0001.mp4`, `processed_video_0002.mp4`, and so on. A separate
+loop node and `SaveImage` node are not required.
 
 ### Connecting the pair
 

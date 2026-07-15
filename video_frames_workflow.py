@@ -225,6 +225,22 @@ def _natural_key(path):
     return [int(part) if part.isdigit() else part.lower() for part in re.split(r"(\d+)", path.name)]
 
 
+def _next_available_output_path(directory, filename):
+    """Return a collision-free video path without replacing an earlier render."""
+    requested = directory / filename
+    if not requested.exists():
+        return requested
+
+    stem = requested.stem
+    suffix = requested.suffix
+    counter = 1
+    while True:
+        candidate = directory / f"{stem}_{counter:04d}{suffix}"
+        if not candidate.exists():
+            return candidate
+        counter += 1
+
+
 def _image_files(folder):
     return sorted(
         (path for path in folder.iterdir() if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS),
@@ -466,7 +482,6 @@ class RPFramesToVideo:
                 "video_codec": (["libx264", "libx265"], {"default": "libx264"}),
                 "crf": ("INT", {"default": 19, "min": 0, "max": 51}),
                 "copy_original_audio": ("BOOLEAN", {"default": True}),
-                "overwrite": ("BOOLEAN", {"default": True}),
             },
             "hidden": {
                 "dynprompt": "DYNPROMPT",
@@ -551,9 +566,9 @@ class RPFramesToVideo:
         video_codec,
         crf,
         copy_original_audio,
-        overwrite,
         dynprompt=None,
         unique_id=None,
+        overwrite=None,
     ):
         context = dict(video_context)
         index = int(context["index"])
@@ -584,9 +599,7 @@ class RPFramesToVideo:
             safe_name = "processed_video.mp4"
         if Path(safe_name).suffix.lower() != ".mp4":
             safe_name = f"{Path(safe_name).stem}.mp4"
-        output_path = frames_directory / safe_name
-        if output_path.exists() and not overwrite:
-            raise FileExistsError(f"Output video already exists: {output_path}")
+        output_path = _next_available_output_path(frames_directory, safe_name)
 
         duration = 1.0 / rate
         with tempfile.NamedTemporaryFile(
@@ -607,7 +620,7 @@ class RPFramesToVideo:
             "-hide_banner",
             "-loglevel",
             "error",
-            "-y" if overwrite else "-n",
+            "-n",
             "-f",
             "concat",
             "-safe",

@@ -81,7 +81,6 @@
         "processed_video.mp4",
         "libx264",
         19,
-        true,
         true
       ],
       "color": "#203a43",
