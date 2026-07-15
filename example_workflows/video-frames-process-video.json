@@ -1,0 +1,128 @@
+{
+  "id": "74d306a1-cf5c-4f35-9705-f271139534fd",
+  "revision": 1,
+  "last_node_id": 3,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "RPVideoToFrames",
+      "pos": [300, 300],
+      "size": [390, 390],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "flow", "shape": 5, "type": "FLOW_CONTROL", "links": [1]},
+        {"name": "image", "type": "IMAGE", "links": [2]},
+        {"name": "mask", "type": "MASK", "links": null},
+        {"name": "frame_name", "type": "STRING", "links": null},
+        {"name": "video_context", "type": "RP_VIDEO_CONTEXT", "links": [4]}
+      ],
+      "properties": {
+        "Node name for S&R": "RPVideoToFrames"
+      },
+      "widgets_values": [
+        "",
+        "video_frames/source",
+        "video_frames/processed",
+        false,
+        true
+      ],
+      "color": "#203a43",
+      "bgcolor": "#2c5364"
+    },
+    {
+      "id": 2,
+      "type": "ColorCorrect",
+      "pos": [900, 390],
+      "size": [320, 220],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {"name": "image", "type": "IMAGE", "link": 2}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [3]}
+      ],
+      "properties": {
+        "cnr_id": "comfyui-post-processing-nodes",
+        "Node name for S&R": "ColorCorrect",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [-100, 0, 1, 1, 1, 1],
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 3,
+      "type": "RPFramesToVideo",
+      "pos": [1450, 300],
+      "size": [420, 360],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {"name": "flow", "shape": 5, "type": "FLOW_CONTROL", "link": 1},
+        {"name": "processed_image", "type": "IMAGE", "link": 3},
+        {"name": "video_context", "type": "RP_VIDEO_CONTEXT", "link": 4}
+      ],
+      "outputs": [
+        {"name": "video_path", "type": "STRING", "links": null},
+        {"name": "frame_count", "type": "INT", "links": null},
+        {"name": "fps", "type": "FLOAT", "links": null}
+      ],
+      "properties": {
+        "Node name for S&R": "RPFramesToVideo"
+      },
+      "widgets_values": [
+        "processed_video.mp4",
+        "libx264",
+        19,
+        true,
+        true
+      ],
+      "color": "#203a43",
+      "bgcolor": "#2c5364"
+    }
+  ],
+  "links": [
+    [1, 1, 0, 3, 0, "FLOW_CONTROL"],
+    [2, 1, 1, 2, 0, "IMAGE"],
+    [3, 2, 0, 3, 1, "IMAGE"],
+    [4, 1, 4, 3, 2, "RP_VIDEO_CONTEXT"]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "1 - Video to Frames + Loop Start",
+      "bounding": [230, 210, 530, 540],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "2 - Process a frame (insert your nodes here)",
+      "bounding": [820, 260, 480, 450],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "3 - Save Frame + Loop End + Frames to Video",
+      "bounding": [1370, 210, 570, 550],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8,
+      "offset": [100, 220]
+    }
+  },
+  "version": 0.4
+}

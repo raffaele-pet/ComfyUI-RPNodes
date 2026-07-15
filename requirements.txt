@@ -1,0 +1,2 @@
+# Includes a bundled FFmpeg executable on supported Windows, macOS, and Linux builds.
+imageio-ffmpeg>=0.6.0
