@@ -1,21 +1,14 @@
 # ComfyUI RPNodes
 
-A collection of ComfyUI utility nodes organized into two independent toolsets:
+A collection of utility nodes for ComfyUI:
 
 - **Image sizing and resizing:** `Smart Image Size` and `Smart Image Resize`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 
-Each pair was designed to work in the same field and can be used together in a
-single workflow. The two toolsets remain independent from one another.
-
 ## Image sizing and resizing
 
-`Smart Image Size` and `Smart Image Resize` were created together for
-model-aware image dimensions. They share the same resolution database and use
-dependent model, resolution, aspect-ratio, and dimensions controls.
-
-Changing the model refreshes the available resolution classes. Changing the
-resolution refreshes the available aspect ratios and pixel dimensions.
+Paired nodes for model-aware image dimensions, sharing the same resolution
+database and dependent controls.
 
 ### Supported models
 
@@ -78,61 +71,28 @@ aspect ratio.
 
 ## Video frame processing
 
-`RP Video to Frames` and `RP Frames to Video` were created together to automate
-per-frame video processing. The first node starts the integrated frame loop;
-the second node saves each processed frame, completes the loop, and rebuilds
-the video.
+Paired nodes for extracting, processing, and rebuilding videos frame by frame.
 
 ![RP Video to Frames to Video workflow](./images/rp-video-to-frames-to-video.png)
 
 ### RP Video to Frames
 
-Uploads or selects a video, extracts every frame as PNG, and stores the source
-frames in a persistent user-selected folder. It loads one source frame at a
-time and sends it through the connected image-processing nodes.
-
-The node also creates the persistent folder that will receive the processed
-frames. Its source-video preview automatically preserves the video aspect ratio
-and is capped at 160 pixels high.
+Extracts a video to persistent PNG frames and starts the integrated processing
+loop.
 
 ### RP Frames to Video
 
-Receives the processed image, saves it to the processed-frames folder, and
-advances the integrated loop. After the final frame, it rebuilds the MP4 and
-shows the completed video directly inside the node.
-
-When `copy_original_audio` is enabled, the original audio track is included in
-the rebuilt video. The `overwrite` option is disabled by default so an existing
-video cannot be replaced accidentally. Enable it explicitly when you want to
-reuse the same filename. A separate loop node and `SaveImage` node are not
-required.
+Saves the processed frames and rebuilds the MP4, with optional source audio and
+an in-node preview.
 
 ### Connecting the pair
 
-- Connect `flow` directly to `flow`.
-- Connect `video_context` directly to `video_context`.
-- Send `image` through any image-processing nodes and connect the result to
-  `processed_image`.
+- `flow` to `flow`
+- `video_context` to `video_context`
+- `image` through the processing nodes to `processed_image`
 
-### Frame folders and video output
-
-Relative folder names are created below `ComfyUI/output`. Folder values
-beginning with `output/` or `ComfyUI/output/` are normalized to the same ComfyUI
-output directory instead of being appended twice.
-
-Use a dedicated processed-frame subfolder, such as `video_frames/processed`;
-the output root itself cannot be cleared for safety. The rebuilt MP4 is saved
-inside the processed-frames folder.
-
-`replace_existing_frames` and `clear_processed_frames` are disabled by default
-so that manually edited frame files are not deleted unexpectedly.
-
-### FFmpeg dependency
-
-The video nodes require FFmpeg. On supported Windows, macOS, and Linux systems,
-`imageio-ffmpeg` supplies the FFmpeg executable. The nodes use FFprobe when it
-is available and otherwise read the required FPS and dimensions directly from
-FFmpeg.
+Source and processed frames remain accessible under `ComfyUI/output`. FFmpeg is
+provided through the package requirements.
 
 ## Installation
 
