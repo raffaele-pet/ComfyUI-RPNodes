@@ -249,7 +249,7 @@ class SmartImageResize:
         resolution=None,
     ):
         if image is None and mask is None:
-            raise ValueError("Connect an IMAGE or a MASK to Smart Image Resize.")
+            raise ValueError("Connect an IMAGE or a MASK to RP Smart Image Resize.")
 
         if image is not None:
             source_height, source_width = int(image.shape[1]), int(image.shape[2])
@@ -335,5 +335,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SmartImageResize": "Smart Image Resize",
+    "SmartImageResize": "RP Smart Image Resize",
 }

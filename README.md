@@ -2,13 +2,14 @@
 
 A collection of utility nodes for ComfyUI:
 
-- **Image sizing and resizing:** `Smart Image Size` and `Smart Image Resize`
+- **Image sizing and resizing:** `RP Smart Image Size`, `RP Smart Image Resize`,
+  and `RP Image Minimum 1K`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 
 ## Image sizing and resizing
 
-Paired nodes for model-aware image dimensions, sharing the same resolution
-database and dependent controls.
+`RP Smart Image Size` and `RP Smart Image Resize` share the same model-aware
+resolution database and dependent controls.
 
 ### Supported models
 
@@ -24,9 +25,9 @@ database and dependent controls.
 - SDXL
 - Z-Image-Turbo
 
-### Smart Image Size
+### RP Smart Image Size
 
-![Smart Image Size](./images/smart-image-size.jpg)
+![RP Smart Image Size](./images/smart-image-size.jpg)
 
 Selects a model, a supported resolution class, and an aspect-ratio preset. It
 is useful for configuring latent-image nodes, samplers, image generators, and
@@ -39,16 +40,16 @@ other nodes that require explicit width and height values.
 - `aspect_ratio` - selected ratio, such as `16:9`
 - `resolution` - numeric square-side resolution
 
-### Smart Image Resize
+### RP Smart Image Resize
 
-![Smart Image Resize](./images/smart-image-resize.png)
+![RP Smart Image Resize](./images/smart-image-resize.png)
 
 Accepts an image, a mask, or both and adapts them to dimensions suitable for
 the selected model. When only a mask is connected, the node also creates a
 three-channel preview image from that mask.
 
 The optional `resolution` input accepts an integer longer-side value from nodes
-such as `ImageSize (LongerSide)`. When connected, Smart Image Resize preserves
+such as `ImageSize (LongerSide)`. When connected, RP Smart Image Resize preserves
 that longer-side resolution while calculating the other side from the selected
 aspect ratio.
 
@@ -68,6 +69,11 @@ aspect ratio.
 - `aspect_ratio`
 - `resolution`
 - `mask`
+
+### RP Image Minimum 1K
+
+Upscales images whose longer side is below 1024 px while preserving their
+aspect ratio. Images already at or above 1024 px remain unchanged.
 
 ## Video frame processing
 

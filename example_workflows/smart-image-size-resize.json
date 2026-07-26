@@ -293,7 +293,7 @@
           ]
         }
       ],
-      "title": "Smart Image Size",
+      "title": "RP Smart Image Size",
       "properties": {
         "aux_id": "raffaele-pet/ComfyUI-RPNodes",
         "ver": "4aedfd70cb70e6243f0232bab41d539b70f0fab1",
@@ -376,7 +376,7 @@
           "links": []
         }
       ],
-      "title": "Smart Image Resize",
+      "title": "RP Smart Image Resize",
       "properties": {
         "aux_id": "raffaele-pet/ComfyUI-RPNodes",
         "ver": "4aedfd70cb70e6243f0232bab41d539b70f0fab1",
@@ -418,7 +418,7 @@
         "widget_ue_connectable": {}
       },
       "widgets_values": [
-        "GitHub: https://github.com/raffaele-pet/ComfyUI-RPNodes\n\n\nSmart Image Size\n\nEN: Selects the image-generation model, resolution class, and desired format. The menus update automatically according to the selected model. It outputs the width, height, aspect ratio, and numeric resolution of the selected preset.\n\nIT: Seleziona il modello di generazione, la classe di risoluzione e il formato desiderato. I menu si aggiornano automaticamente in base al modello scelto. Restituisce larghezza, altezza, aspect ratio e risoluzione numerica del preset selezionato.\n\n\nSmart Image Resize\n\nEN: Resizes an image, a mask, or both to dimensions suitable for the selected model. Automatic mode chooses the available format with the aspect ratio closest to the input, while manual mode allows direct preset and dimension selection.\n\nIT: Ridimensiona un'immagine, una maschera o entrambe nelle misure adatte al modello selezionato. In modalità automatica sceglie il formato con l'aspect ratio più vicino all'input; in modalità manuale permette di impostare preset e dimensioni."
+        "GitHub: https://github.com/raffaele-pet/ComfyUI-RPNodes\n\n\nRP Smart Image Size\n\nEN: Selects the image-generation model, resolution class, and desired format. The menus update automatically according to the selected model. It outputs the width, height, aspect ratio, and numeric resolution of the selected preset.\n\nIT: Seleziona il modello di generazione, la classe di risoluzione e il formato desiderato. I menu si aggiornano automaticamente in base al modello scelto. Restituisce larghezza, altezza, aspect ratio e risoluzione numerica del preset selezionato.\n\n\nRP Smart Image Resize\n\nEN: Resizes an image, a mask, or both to dimensions suitable for the selected model. Automatic mode chooses the available format with the aspect ratio closest to the input, while manual mode allows direct preset and dimension selection.\n\nIT: Ridimensiona un'immagine, una maschera o entrambe nelle misure adatte al modello selezionato. In modalità automatica sceglie il formato con l'aspect ratio più vicino all'input; in modalità manuale permette di impostare preset e dimensioni."
       ],
       "color": "#432",
       "bgcolor": "#653"
