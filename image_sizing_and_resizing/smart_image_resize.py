@@ -4,7 +4,13 @@ from fractions import Fraction
 import torch
 import torch.nn.functional as F
 
-from .nodes import RESOLUTIONS, dimension_text, resolution_output, unique_dimensions, unique_resolutions
+from .smart_image_size import (
+    RESOLUTIONS,
+    dimension_text,
+    resolution_output,
+    unique_dimensions,
+    unique_resolutions,
+)
 
 
 try:

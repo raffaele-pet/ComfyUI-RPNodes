@@ -6,6 +6,9 @@ A collection of utility nodes for ComfyUI:
   and `RP Image Minimum 1K`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 
+Python nodes are grouped in `image_sizing_and_resizing` and
+`video_frame_processing`. Example workflows remain in `example_workflows`.
+
 ## Image sizing and resizing
 
 `RP Smart Image Size` and `RP Smart Image Resize` share the same model-aware
@@ -27,7 +30,7 @@ resolution database and dependent controls.
 
 ### RP Smart Image Size
 
-![RP Smart Image Size](./images/smart-image-size.jpg)
+![RP Smart Image Size](./image_sizing_and_resizing/images/smart-image-size.jpg)
 
 Selects a model, a supported resolution class, and an aspect-ratio preset. It
 is useful for configuring latent-image nodes, samplers, image generators, and
@@ -42,7 +45,7 @@ other nodes that require explicit width and height values.
 
 ### RP Smart Image Resize
 
-![RP Smart Image Resize](./images/smart-image-resize.png)
+![RP Smart Image Resize](./image_sizing_and_resizing/images/smart-image-resize.png)
 
 Accepts an image, a mask, or both and adapts them to dimensions suitable for
 the selected model. When only a mask is connected, the node also creates a
@@ -79,7 +82,7 @@ aspect ratio. Images already at or above 1024 px remain unchanged.
 
 Paired nodes for extracting, processing, and rebuilding videos frame by frame.
 
-![RP Video to Frames to Video workflow](./images/rp-video-to-frames-to-video.png)
+![RP Video to Frames to Video workflow](./video_frame_processing/images/rp-video-to-frames-to-video.png)
 
 ### RP Video to Frames
 
