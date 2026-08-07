@@ -501,6 +501,60 @@ def _canonicalize_timeline_cut_markers(body: str) -> str:
     return normalized + ("\n" if trailing_newline else "")
 
 
+def _canonicalize_invalid_ref_cut_times(body: str, duration: float) -> str:
+    """Repair non-positive or unordered Ref2VA cuts deterministically.
+
+    Gemma can preserve the correct shot order while assigning ``00:00.000``
+    to a later shot, including after a repair pass. When any later timestamp is
+    missing or invalid, distribute all later cuts evenly inside the requested
+    duration. This changes only structural timing metadata; shot content and
+    order remain untouched.
+    """
+
+    matches = list(re.finditer(r"\[Shot ([1-9]\d*)\]", body))
+    ids = [int(match.group(1)) for match in matches]
+    if len(matches) < 2 or ids != list(range(1, len(matches) + 1)):
+        return body
+
+    exact_timestamp = re.compile(r"^ At (\d{2}):(\d{2})\.(\d{3}),")
+    timestamps: list[float] = []
+    valid = True
+    for index, match in enumerate(matches[1:], start=1):
+        next_start = matches[index + 1].start() if index + 1 < len(matches) else len(body)
+        segment = body[match.end() : next_start]
+        timestamp_match = exact_timestamp.match(segment)
+        if timestamp_match is None:
+            valid = False
+            break
+        minutes, seconds, millis = (int(value) for value in timestamp_match.groups())
+        timestamp = minutes * 60 + seconds + millis / 1000.0
+        if seconds >= 60 or timestamp <= 0 or timestamp >= duration - 1e-6:
+            valid = False
+            break
+        timestamps.append(timestamp)
+    if valid and timestamps == sorted(timestamps) and len(timestamps) == len(set(timestamps)):
+        return body
+    if duration <= 0:
+        return body
+
+    leading_time = re.compile(
+        r"^\s*(?:(?i:at)\s+)?(?:\d{1,3}:\d{2}(?:\.\d+)?|"
+        r"\d+(?:\.\d+)?\s*(?:s|seconds?))\s*,?\s*"
+    )
+    result = body
+    shot_count = len(matches)
+    for index in range(shot_count - 1, 0, -1):
+        match = matches[index]
+        segment_end = matches[index + 1].start() if index + 1 < shot_count else len(body)
+        description = leading_time.sub("", body[match.end() : segment_end], count=1).strip()
+        cut = duration * index / shot_count
+        replacement = f"{match.group(0)} At {_format_cut_timestamp(cut)},"
+        if description:
+            replacement += " " + description
+        result = result[: match.start()] + replacement + result[segment_end:]
+    return result
+
+
 def _isolate_last_base_schema(text: str, mode: str) -> str:
     """Keep the last complete base schema when Gemma drafts the main field twice."""
 
@@ -985,6 +1039,12 @@ def canonicalize_ref_structure(
             float(requested_duration_seconds),
             effective_duration(length),
         )
+    cut_duration = (
+        float(requested_duration_seconds)
+        if requested_duration_seconds is not None
+        else effective_duration(length)
+    )
+    bodies[3] = _canonicalize_invalid_ref_cut_times(bodies[3], cut_duration)
 
     result = "\n\n".join(f"{field}\n{body}" for field, body in zip(REF_FIELDS, bodies))
     return _canonicalize_speaker_groups(result).strip()

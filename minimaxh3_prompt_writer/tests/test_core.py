@@ -638,6 +638,34 @@ N/A"""
         result = validate_ref_prompt(text, 124, manifest)
         self.assertTrue(result.valid, result.issues)
 
+    def test_ref_zero_time_later_shot_is_canonicalized_inside_duration(self):
+        manifest = ReferenceManifest.from_inputs(ref_image_0=object())
+        generated = """subject_definitions:
+<Subject 1> is the man from <Picture 1>, retaining his face and orange coat.
+
+summary:
+[reference generation] The target shows <Subject 1> speaking and reacting.
+
+retention_analysis:
+<Subject 1>: fully_preserved - the same face and orange coat remain visible.
+<Picture 1>: fully_preserved - its visible identity cues are retained.
+
+detailed_description:
+[Shot 1] A medium shot shows <Subject 1> from <Picture 1> begin speaking.
+[Shot 2] At 00:00.000, a close shot shows the same subject finish and hold.
+
+overall_soundscape:
+Quiet room tone and soft speech.
+
+non_diegetic_music:
+N/A"""
+        canonical = canonicalize_ref_structure(
+            generated, 73, manifest, requested_duration_seconds=3.0
+        )
+        self.assertIn("[Shot 2] At 00:01.500,", canonical)
+        result = validate_ref_prompt(canonical, 73, manifest)
+        self.assertTrue(result.valid, result.issues)
+
     def test_nonexistent_ref_label_is_rejected(self):
         manifest = ReferenceManifest.from_inputs(ref_audio_0=object())
         text = """subject_definitions:
