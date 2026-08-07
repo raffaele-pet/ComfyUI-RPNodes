@@ -666,6 +666,42 @@ N/A"""
         result = validate_ref_prompt(canonical, 73, manifest)
         self.assertTrue(result.valid, result.issues)
 
+    def test_mixed_audio_relationships_synchronize_summary_signature(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_video_0=object(),
+            ref_video_audio_0=object(),
+            ref_audio_0=object(),
+        )
+        generated = """subject_definitions:
+<Video 1> supplies the visible action and camera timing.
+<Audio 1> is the enabled soundtrack of <Video 1>.
+<Audio 2> supplies independent sound-design guidance.
+
+summary:
+[reference generation + audio reference] The target follows <Video 1>, copies <Audio 1>, and uses <Audio 2> as a sound reference.
+
+retention_analysis:
+<Video 1>: weak_reference - its motion and camera timing guide the target.
+<Audio 1>: fully_copy - the enabled soundtrack signal is reused as-is.
+<Audio 2>: reference - its audible properties guide new sound design.
+
+detailed_description:
+[Shot 1] A wide shot follows the action rhythm of <Video 1>, synchronized to copied <Audio 1> while new effects follow <Audio 2>.
+
+overall_soundscape:
+The copied <Audio 1> signal plays with new effects guided by <Audio 2>.
+
+non_diegetic_music:
+N/A"""
+        canonical = canonicalize_ref_structure(
+            generated, 73, manifest, requested_duration_seconds=3.0
+        )
+        self.assertIn(
+            "[reference generation + audio reuse + audio reference]", canonical
+        )
+        result = validate_ref_prompt(canonical, 73, manifest)
+        self.assertTrue(result.valid, result.issues)
+
     def test_nonexistent_ref_label_is_rejected(self):
         manifest = ReferenceManifest.from_inputs(ref_audio_0=object())
         text = """subject_definitions:

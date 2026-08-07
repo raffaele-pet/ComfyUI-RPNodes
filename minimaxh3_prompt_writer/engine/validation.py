@@ -947,6 +947,39 @@ def _canonicalize_ref_retention(
     return "\n".join(line for index, line in enumerate(lines) if index not in removed)
 
 
+def _synchronize_ref_audio_signature(
+    summary: str,
+    retention: str,
+    manifest: ReferenceManifest,
+) -> str:
+    """Make summary audio task types agree with canonical relationships."""
+
+    match = re.match(r"^\[([^\]\n]+)\](?=$|\s)", summary.strip())
+    if match is None or not manifest.audios:
+        return summary
+    signature = [part.strip().lower() for part in match.group(1).split("+")]
+    signature = [
+        item for item in signature if item not in {"audio reuse", "audio reference"}
+    ]
+    markers: list[str] = []
+    for label in manifest.labels("audio"):
+        relation = re.search(
+            rf"(?m)^{re.escape(label)}(?:\s+\([^\n)]*\))?:\s*"
+            r"(fully_copy|partially_copy|reference|weak_reference)\s*-",
+            retention,
+            flags=re.IGNORECASE,
+        )
+        if relation:
+            markers.append(relation.group(1).lower())
+    if any(marker in {"fully_copy", "partially_copy"} for marker in markers):
+        signature.append("audio reuse")
+    if any(marker in {"reference", "weak_reference"} for marker in markers):
+        signature.append("audio reference")
+    prose = summary.strip()[match.end() :].lstrip()
+    canonical_signature = "[" + " + ".join(dict.fromkeys(signature)) + "]"
+    return canonical_signature + (" " + prose if prose else "")
+
+
 def _compact_seconds_value(value: float) -> str:
     return f"{float(value):.6f}".rstrip("0").rstrip(".")
 
@@ -1032,6 +1065,7 @@ def canonicalize_ref_structure(
     bodies[0] = subject_body
     bodies[1] = _canonicalize_ref_summary(bodies[1], manifest)
     bodies[2] = _canonicalize_ref_retention(bodies[2], subject_body, subject_ids, manifest)
+    bodies[1] = _synchronize_ref_audio_signature(bodies[1], bodies[2], manifest)
     bodies[3] = _canonicalize_timeline_cut_markers(bodies[3])
     if requested_duration_seconds is not None:
         bodies[3] = _canonicalize_requested_timeline_tail(
