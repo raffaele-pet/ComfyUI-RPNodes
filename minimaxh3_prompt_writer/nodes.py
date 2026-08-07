@@ -103,16 +103,16 @@ def _common_inputs(*, max_new_tokens: int) -> list[Any]:
         ),
         io.Int.Input(
             "media_analysis_tokens",
-            default=128,
-            min=128,
+            default=256,
+            min=256,
             max=1536,
             step=64,
             advanced=True,
             tooltip=(
-                "Base token budget for compact media analysis. Reference-media "
-                "nodes add only 64 tokens for each extra Picture in the shared "
-                "image pass and for a paired video soundtrack, so every label "
-                "can be described."
+                "Token budget for each connected media asset. Every image, "
+                "video, and audio source is analyzed independently so no input "
+                "can be hidden by another; an incomplete observation is retried "
+                "once automatically."
             ),
         ),
         io.Boolean.Input(
@@ -413,8 +413,8 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
             display_name="RP H3-REF2V Prompt Writer",
             category="RP/MiniMax H3",
             description=(
-                "Batches connected images, analyzes each video with its paired "
-                "audio and standalone audio safely, reproduces native "
+                "Analyzes every connected image, video, paired soundtrack, and "
+                "standalone audio source independently, reproduces native "
                 "Picture/Video/Audio numbering, and "
                 "writes the strict six-section Ref2VA prompt."
             ),
