@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import math
-from typing import Any, Iterable
+from typing import Any
 
 
 def first_image(image: Any) -> Any:
@@ -14,60 +13,6 @@ def first_image(image: Any) -> Any:
     if getattr(image, "ndim", None) != 4 or image.shape[0] < 1:
         raise ValueError("IMAGE inputs must have ComfyUI shape [B, H, W, C].")
     return image[:1, :, :, :3]
-
-
-def letterbox_image_batch(images: Iterable[Any], long_edge: int = 1024) -> Any:
-    """Create one aspect-preserving batch for Gemma's multi-image call.
-
-    Each source uses its first batch element. Gray padding makes differently
-    sized/aspected references batchable without stretching identities.
-    """
-
-    import torch
-    import torch.nn.functional as functional
-
-    prepared = [first_image(image) for image in images]
-    prepared = [image for image in prepared if image is not None]
-    if not prepared:
-        return None
-
-    scaled_shapes: list[tuple[int, int]] = []
-    for image in prepared:
-        height, width = int(image.shape[1]), int(image.shape[2])
-        scale = min(1.0, float(long_edge) / max(height, width))
-        scaled_shapes.append((max(1, round(height * scale)), max(1, round(width * scale))))
-
-    canvas_h = max(height for height, _ in scaled_shapes)
-    canvas_w = max(width for _, width in scaled_shapes)
-    canvas_h = max(16, int(math.ceil(canvas_h / 16.0) * 16))
-    canvas_w = max(16, int(math.ceil(canvas_w / 16.0) * 16))
-
-    batch = []
-    for image in prepared:
-        source = image[0].movedim(-1, 0).unsqueeze(0).float()
-        height, width = int(source.shape[2]), int(source.shape[3])
-        scale = min(canvas_h / height, canvas_w / width, 1.0)
-        target_h = max(1, round(height * scale))
-        target_w = max(1, round(width * scale))
-        if target_h != height or target_w != width:
-            source = functional.interpolate(
-                source,
-                size=(target_h, target_w),
-                mode="bicubic",
-                align_corners=False,
-                antialias=True,
-            )
-        canvas = torch.full(
-            (1, 3, canvas_h, canvas_w),
-            0.5,
-            dtype=source.dtype,
-            device=source.device,
-        )
-        top = (canvas_h - target_h) // 2
-        left = (canvas_w - target_w) // 2
-        canvas[:, :, top : top + target_h, left : left + target_w] = source[:, :3]
-        batch.append(canvas.movedim(1, -1))
-    return torch.cat(batch, dim=0).clamp(0.0, 1.0)
 
 
 def prepare_reference_video(

@@ -1195,11 +1195,20 @@ class _MediaAnalysisRunner:
 
     def generate_media_analysis(self, prompt, **kwargs):
         self.calls.append((prompt, kwargs))
-        return "<Picture 1>: first frame.\n<Picture 2>: final frame."
+        labels = [
+            label
+            for kind in ("Picture", "Video", "Audio")
+            for index in range(1, 5)
+            for label in (f"<{kind} {index}>",)
+            if label in prompt
+        ]
+        return "\n".join(
+            f"{label}: Complete observed media description." for label in labels
+        )
 
 
 class BaseMediaAnalysisTests(unittest.TestCase):
-    def test_first_and_last_frames_share_one_compact_generation(self):
+    def test_first_and_last_frames_are_analyzed_independently(self):
         import torch
 
         runner = _MediaAnalysisRunner()
@@ -1213,17 +1222,23 @@ class BaseMediaAnalysisTests(unittest.TestCase):
             seed=17,
             after_call=lambda: callbacks.append(True),
         )
-        self.assertEqual(len(runner.calls), 1)
-        prompt, kwargs = runner.calls[0]
-        self.assertIn("attached image 1: <Picture 1>", prompt)
-        self.assertIn("attached image 2: <Picture 2>", prompt)
-        self.assertEqual(tuple(kwargs["image"].shape), (2, 64, 48, 3))
-        self.assertEqual(kwargs["max_new_tokens"], 256)
-        self.assertEqual(kwargs["seed"], 17)
-        self.assertEqual(callbacks, [True])
+        self.assertEqual(len(runner.calls), 2)
+        first_prompt, first_kwargs = runner.calls[0]
+        last_prompt, last_kwargs = runner.calls[1]
+        self.assertIn("attached image 1: <Picture 1>", first_prompt)
+        self.assertNotIn("<Picture 2>", first_prompt)
+        self.assertIn("attached image 1: <Picture 2>", last_prompt)
+        self.assertEqual(tuple(first_kwargs["image"].shape), (1, 32, 48, 3))
+        self.assertEqual(tuple(last_kwargs["image"].shape), (1, 64, 32, 3))
+        self.assertEqual([call[1]["max_new_tokens"] for call in runner.calls], [256, 256])
+        self.assertEqual([call[1]["seed"] for call in runner.calls], [17, 18])
+        self.assertEqual(callbacks, [True, True])
         self.assertEqual(
             observations,
-            {"keyframes": "<Picture 1>: first frame.\n<Picture 2>: final frame."},
+            {
+                "first_frame": "<Picture 1>: Complete observed media description.",
+                "last_frame": "<Picture 2>: Complete observed media description.",
+            },
         )
 
     def test_media_cleanup_discards_orphan_reasoning_prefix(self):
@@ -1238,6 +1253,19 @@ class BaseMediaAnalysisTests(unittest.TestCase):
         value = ensure_analysis_records(meta, ["<Video 1>", "<Audio 1>"])
         self.assertIn("<Video 1>: No reliable observation", value)
         self.assertIn("<Audio 1>: No reliable observation", value)
+
+    def test_single_source_record_recovers_gemma_visual_analysis(self):
+        raw = """The user wants me to analyze an image.
+
+**Image Analysis:**
+* **Identity Cues:** A young stylized woman.
+* **Hair:** Bright blue hair in two buns.
+* **Face:** Large purple eyes.
+* **Clothing:** A white T-shirt."""
+        value = ensure_analysis_records(raw, ["<Picture 2>"])
+        self.assertTrue(value.startswith("<Picture 2>: Identity Cues:"))
+        self.assertIn("Bright blue hair in two buns", value)
+        self.assertNotIn("The user wants", value)
 
 
 class ReferenceMediaAnalysisTests(unittest.TestCase):
@@ -1274,37 +1302,54 @@ class ReferenceMediaAnalysisTests(unittest.TestCase):
             **values,
         )
 
-        self.assertEqual(len(runner.calls), 4)
-        image_prompt, image_kwargs = runner.calls[0]
-        self.assertIn("attached image 1: <Picture 1>", image_prompt)
-        self.assertIn("attached image 2: <Picture 2>", image_prompt)
-        self.assertEqual(tuple(image_kwargs["image"].shape), (2, 48, 48, 3))
-        self.assertEqual(image_kwargs["max_new_tokens"], 192)
-        self.assertNotIn("video", image_kwargs)
+        self.assertEqual(len(runner.calls), 6)
+        first_image_prompt, first_image_kwargs = runner.calls[0]
+        second_image_prompt, second_image_kwargs = runner.calls[1]
+        self.assertIn("attached image 1: <Picture 1>", first_image_prompt)
+        self.assertNotIn("<Picture 2>", first_image_prompt)
+        self.assertIn("attached image 1: <Picture 2>", second_image_prompt)
+        self.assertEqual(tuple(first_image_kwargs["image"].shape), (1, 32, 48, 3))
+        self.assertEqual(tuple(second_image_kwargs["image"].shape), (1, 48, 32, 3))
+        self.assertEqual(first_image_kwargs["max_new_tokens"], 256)
+        self.assertEqual(second_image_kwargs["max_new_tokens"], 256)
+        self.assertIsNone(first_image_kwargs["video"])
 
-        _, first_video_kwargs = runner.calls[1]
-        self.assertEqual(first_video_kwargs["max_new_tokens"], 192)
+        _, first_video_kwargs = runner.calls[2]
+        self.assertEqual(first_video_kwargs["max_new_tokens"], 256)
         self.assertEqual(first_video_kwargs["video"].shape[0], 124)
-        self.assertEqual(
-            first_video_kwargs["audio"]["waveform"].shape[-1],
-            round((124 / 24) * sample_rate),
-        )
-        _, second_video_kwargs = runner.calls[2]
-        self.assertEqual(second_video_kwargs["max_new_tokens"], 128)
+        self.assertIsNone(first_video_kwargs["audio"])
+        _, second_video_kwargs = runner.calls[3]
+        self.assertEqual(second_video_kwargs["max_new_tokens"], 256)
         self.assertEqual(second_video_kwargs["video"].shape[0], 39)
         self.assertIsNone(second_video_kwargs["audio"])
 
-        _, standalone_kwargs = runner.calls[3]
-        self.assertEqual(standalone_kwargs["max_new_tokens"], 128)
+        _, paired_audio_kwargs = runner.calls[4]
+        self.assertEqual(paired_audio_kwargs["max_new_tokens"], 256)
+        self.assertEqual(
+            paired_audio_kwargs["audio"]["waveform"].shape[-1],
+            round((124 / 24) * sample_rate),
+        )
+        _, standalone_kwargs = runner.calls[5]
+        self.assertEqual(standalone_kwargs["max_new_tokens"], 256)
         self.assertEqual(
             standalone_kwargs["audio"]["waveform"].shape[-1],
             round((124 / 24) * sample_rate),
         )
-        self.assertEqual([call[1]["seed"] for call in runner.calls], [10, 11, 12, 13])
-        self.assertEqual(callbacks, [True, True, True, True])
+        self.assertEqual(
+            [call[1]["seed"] for call in runner.calls],
+            [10, 11, 12, 13, 14, 15],
+        )
+        self.assertEqual(callbacks, [True, True, True, True, True, True])
         self.assertEqual(
             tuple(observations),
-            ("reference_images", "ref_video_0", "ref_video_1", "ref_audio_0"),
+            (
+                "ref_image_0",
+                "ref_image_2",
+                "ref_video_0",
+                "ref_video_1",
+                "ref_video_audio_0",
+                "ref_audio_0",
+            ),
         )
 
     def test_audio_only_uses_one_analysis_pass(self):

@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-BUNDLE_VERSION = "1.5.0+t2v-prompt-writer.2026-08-07"
+BUNDLE_VERSION = "1.5.1+complete-media-observations.2026-08-07"
 H3_SKILLS_COMMIT = "093f3129a3f7bd27c74928b1cd31a54fbdebe057"
 COMFYUI_REFERENCE_COMMIT = "7972b5ba7f1597f68261be33c912f5e5dba8b9c0"
 FPS = 24

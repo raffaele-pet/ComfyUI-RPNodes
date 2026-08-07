@@ -137,7 +137,9 @@ Picture, Video, and Audio labels consistent.
 All three nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
 loaded as `stable_diffusion`. The native H3 generation node must keep its
 separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
-`prompt`, the H3-compatible `aligned_length`, and an `analysis_report`.
+`prompt`, the H3-compatible `aligned_length`, and an `analysis_report`. Each
+connected image, video, or audio asset is analyzed independently so every input
+has its own traceable observation.
 
 ## Installation
 
