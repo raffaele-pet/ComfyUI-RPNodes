@@ -728,7 +728,7 @@ overall_soundscape:
 An impact sound follows <Audio 2>.
 
 non_diegetic_music:
-Music follows <Audio 1>."""
+<Audio 1> supplies music that is fully copied."""
         canonical = canonicalize_ref_structure(
             generated,
             73,
@@ -738,9 +738,18 @@ Music follows <Audio 1>."""
         )
         self.assertIn("[reference generation + audio reference]", canonical)
         self.assertNotIn("fully_copy", canonical)
+        self.assertNotIn("fully copied", canonical.lower())
+        self.assertIn("used only as a reference", canonical)
         self.assertEqual(canonical.count(": reference -"), 2)
         result = validate_ref_prompt(canonical, 73, manifest)
         self.assertTrue(result.valid, result.issues)
+        contradictory = canonical.replace(
+            "used only as a reference", "fully copied", 1
+        )
+        contradiction_result = validate_ref_prompt(contradictory, 73, manifest)
+        self.assertTrue(
+            any("Audio-copy prose" in issue for issue in contradiction_result.issues)
+        )
 
     def test_explicit_audio_copy_request_preserves_reuse_relationship(self):
         manifest = ReferenceManifest.from_inputs(ref_audio_0=object())

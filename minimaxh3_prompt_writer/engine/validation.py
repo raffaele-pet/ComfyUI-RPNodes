@@ -1018,6 +1018,30 @@ def _default_ref_audio_to_reference(
     return value
 
 
+def _remove_unrequested_audio_copy_prose(
+    body: str,
+    manifest: ReferenceManifest,
+    raw_user_request: str | None,
+) -> str:
+    if (
+        raw_user_request is None
+        or _audio_reuse_is_explicit(raw_user_request)
+        or not manifest.audios
+    ):
+        return body
+    value = body
+    substitutions = (
+        (r"\b(?:fully|partially)\s+copied\b", "used only as a reference"),
+        (r"\b(?:copied|reused)\s+as-is\b", "used only as a reference"),
+        (r"\b(?:copied|reused)\b", "referenced"),
+        (r"\b(?:copy|reuse)\b", "reference"),
+        (r"\b(?:an|the)\s+exact\s+(?:source\s+)?signal\b", "audible reference properties"),
+    )
+    for pattern, replacement in substitutions:
+        value = re.sub(pattern, replacement, value, flags=re.IGNORECASE)
+    return value
+
+
 def _compact_seconds_value(value: float) -> str:
     return f"{float(value):.6f}".rstrip("0").rstrip(".")
 
@@ -1107,6 +1131,10 @@ def canonicalize_ref_structure(
     bodies[2] = _default_ref_audio_to_reference(
         bodies[2], manifest, raw_user_request
     )
+    for index in (0, 1, 3, 4, 5):
+        bodies[index] = _remove_unrequested_audio_copy_prose(
+            bodies[index], manifest, raw_user_request
+        )
     bodies[1] = _synchronize_ref_audio_signature(bodies[1], bodies[2], manifest)
     bodies[3] = _canonicalize_timeline_cut_markers(bodies[3])
     if requested_duration_seconds is not None:
@@ -1594,5 +1622,22 @@ def validate_ref_prompt(
             issues.append("`audio reuse` requires a fully_copy or partially_copy Audio relationship.")
         if "audio reference" in task_types and not has_reference:
             issues.append("`audio reference` requires a reference or weak_reference Audio relationship.")
+        if "audio reuse" not in task_types:
+            music_headers = _header_matches(candidate, REF_FIELDS[5])
+            non_retention = "\n".join(
+                _field_body(candidate, REF_FIELDS[index], REF_FIELDS[index + 1])
+                for index in (0, 1, 3, 4)
+            )
+            if music_headers:
+                non_retention += "\n" + candidate[music_headers[0].end() :]
+            if re.search(
+                r"(?i)\b(?:fully|partially)\s+copied\b|"
+                r"\b(?:copied|reused)\s+as-is\b|"
+                r"\b(?:copy|reuse)\s+(?:the\s+)?(?:source\s+)?(?:audio|soundtrack|signal)\b",
+                non_retention,
+            ):
+                issues.append(
+                    "Audio-copy prose requires `audio reuse` and explicit copy intent."
+                )
 
     return ValidationResult(candidate, tuple(dict.fromkeys(issues)))
