@@ -1,0 +1,784 @@
+{
+  "id": "4b14e0e9-a43d-4329-aaa2-65083643d282",
+  "revision": 0,
+  "last_node_id": 32,
+  "last_link_id": 22,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "ShowText|pysssss",
+      "pos": [
+        1500,
+        430
+      ],
+      "size": [
+        400,
+        470
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "1.2.5",
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\n\nintegrated_multimodal_description:\n[Shot 1] The scene is rendered in a dynamic blend of live-action photography and visible, rough-stroke hand-drawn animation. A young woman, la ragazza, is captured mid-dance, her movements fluid and energetic. The environment behind her is initially subtle, but as the dance progresses, stylized, hand-drawn waves begin to materialize in the background, appearing as thick, textured ink strokes that ripple across the frame. Simultaneously, vibrant, abstract light effects, also rendered with a visible drawn quality, pulse and sweep around the dancer, interacting with the stylized waves. The camera maintains a medium shot, subtly tracking the girl's movements as she spins and moves through the evolving, animated backdrop. The hand-drawn elements—the waves and lights—continuously transform and flow around her body throughout the five seconds, maintaining their rough, tactile texture against the live-action subject.\n\noverall_soundscape:\nThe soundscape is dominated by the rhythmic sounds of the girl's dancing footsteps and the soft rustle of her clothing, overlaid with the ambient whoosh and subtle crackling sounds associated with the animated light effects.\n\nnon_diegetic_music:\nA driving, moderately paced score featuring prominent string sections and percussive elements builds in intensity as the stylized waves become more pronounced."
+      ]
+    },
+    {
+      "id": 1,
+      "type": "CLIPLoader",
+      "pos": [
+        0,
+        430
+      ],
+      "size": [
+        400,
+        110
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "showAdvanced": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "Node name for S&R": "CLIPLoader",
+        "widget_ue_connectable": {},
+        "models": [
+          {
+            "name": "gemma4_e4b_it_fp8_scaled.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_fp8_scaled.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "gemma4_e4b_it_fp8_scaled.safetensors",
+        "stable_diffusion",
+        "default"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [
+        0,
+        630
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 19,
+      "type": "LoadImage",
+      "pos": [
+        500,
+        630
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            17
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 21,
+      "type": "CLIPLoader",
+      "pos": [
+        0,
+        1430
+      ],
+      "size": [
+        400,
+        110
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 2,
+      "showAdvanced": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "Node name for S&R": "CLIPLoader",
+        "widget_ue_connectable": {},
+        "models": [
+          {
+            "name": "gemma4_e4b_it_fp8_scaled.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_fp8_scaled.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "gemma4_e4b_it_fp8_scaled.safetensors",
+        "stable_diffusion",
+        "default"
+      ]
+    },
+    {
+      "id": 24,
+      "type": "LoadImage",
+      "pos": [
+        0,
+        1630
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            21
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 25,
+      "type": "LoadImage",
+      "pos": [
+        500,
+        1630
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            22
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 27,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        0,
+        2130
+      ],
+      "size": [
+        400,
+        540
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "2984ec4c4b93292421888f38db74a5e8802a8ff8",
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "bedroom.mp4",
+        "force_rate": 24,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 0,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "format": "None",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "bedroom.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_rate": 24,
+            "custom_width": 0,
+            "custom_height": 0,
+            "frame_load_cap": 0,
+            "skip_first_frames": 0,
+            "select_every_nth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "ShowText|pysssss",
+      "pos": [
+        1500,
+        1430
+      ],
+      "size": [
+        400,
+        470
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "1.2.5",
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        "subject_definitions:\n<Subject 1> A tiger with orange fur and black stripes, depicted in a close-up profile shot, originating from <Picture 1>.\n<Subject 2> A tiger with orange and black striped fur, depicted in a medium shot lying down in bright green grass, originating from <Picture 2>.\n\nsummary:\n[reference generation] The target video depicts a tiger mother interacting with her cub, using the appearance of the tigers from <Picture 1> and <Picture 2>.\n\nretention_analysis:\n<Subject 1>: fully_preserved - <Picture 1>\n<Subject 2>: fully_preserved - <Picture 2>\n<Picture 1>: fully_preserved - N/A\n<Picture 2>: fully_preserved - N/A\n\ndetailed_description:\nThe scene is rendered with photorealistic fidelity, capturing the natural environment of a grassy habitat.\n[Shot 1] A close-up profile shot of <Subject 1>, the mother tiger, is established in a lush, green, grassy environment under natural lighting. <Subject 1> is positioned in profile, exhibiting the orange fur with black stripes seen in <Picture 1>. The camera holds steady on <Subject 1> as the action begins. The mother tiger slowly turns its head towards the right, its posture suggesting maternal attention. The focus remains sharp on the tiger's features. The scene transitions smoothly to incorporate <Subject 2>.\n[Shot 2] At 00:02.500, the composition widens slightly to include <Subject 2>, the cub, which is lying down in the bright green grass, matching the setting of <Picture 2>. <Subject 2> is positioned near <Subject 1>. <Subject 1> lowers its head towards <Subject 2>. The mother tiger gently nudges the cub with its nose, an act of care. <Subject 2> lifts its head slightly, looking up towards <Subject 1> with its mouth slightly open, mirroring the expression in <Picture 2>. The interaction is tender and protective. The camera maintains a medium shot framing both tigers as they engage in this moment of connection. The final state holds the two tigers in close proximity, the mother attending to the cub, for the remainder of the duration.\n\noverall_soundscape:\nThe soundscape is dominated by natural ambient sounds of the grassy environment.\n\nnon_diegetic_music:\nN/A"
+      ]
+    },
+    {
+      "id": 20,
+      "type": "RPH3REF2VPromptWriter",
+      "pos": [
+        1000,
+        1430
+      ],
+      "size": [
+        400,
+        730
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 18
+        },
+        {
+          "name": "ref_image_0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 21
+        },
+        {
+          "name": "ref_image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 22
+        },
+        {
+          "name": "ref_image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "ref_video_0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "ref_video_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "ref_video_audio_0",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "ref_audio_0",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "links": [
+            19
+          ]
+        },
+        {
+          "name": "aligned_length",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "analysis_report",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPH3REF2VPromptWriter"
+      },
+      "widgets_values": [
+        "Auto — choose the best H3 skill",
+        3,
+        "the girl is dancing",
+        2560,
+        128,
+        false,
+        0.7,
+        64,
+        0.95,
+        0.05,
+        1.05,
+        355405082183944,
+        "randomize",
+        true
+      ]
+    },
+    {
+      "id": 7,
+      "type": "RPH3I2VPromptWriter",
+      "pos": [
+        1000,
+        430
+      ],
+      "size": [
+        400,
+        730
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 6
+        },
+        {
+          "name": "first_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 7
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "links": [
+            8
+          ]
+        },
+        {
+          "name": "aligned_length",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "analysis_report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPH3I2VPromptWriter"
+      },
+      "widgets_values": [
+        "Hand-drawn + Live Action",
+        3,
+        "the girl is dancing",
+        2048,
+        128,
+        false,
+        0.7,
+        64,
+        0.95,
+        0.05,
+        1.05,
+        220129744211402,
+        "randomize",
+        true
+      ]
+    },
+    {
+      "id": 31,
+      "type": "LoadAudio",
+      "pos": [
+        500.26520744446964,
+        2128.382800754559
+      ],
+      "size": [
+        400,
+        140
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "trash-glass.MP3",
+        null,
+        ""
+      ]
+    },
+    {
+      "id": 28,
+      "type": "Fast Groups Muter (rgthree)",
+      "pos": [
+        -700,
+        330
+      ],
+      "size": [
+        500,
+        90
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "OPT_CONNECTION",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "matchColors": "",
+        "matchTitle": "",
+        "showNav": true,
+        "showAllGraphs": true,
+        "sort": "position",
+        "customSortAlphabet": "",
+        "toggleRestriction": "default",
+        "widget_ue_connectable": {}
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 32,
+      "type": "Note",
+      "pos": [
+        -700,
+        530
+      ],
+      "size": [
+        500,
+        170
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "RPNodes",
+      "properties": {},
+      "widgets_values": [
+        "https://github.com/raffaele-pet/ComfyUI-RPNodes"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      6,
+      1,
+      0,
+      7,
+      0,
+      "CLIP"
+    ],
+    [
+      7,
+      2,
+      0,
+      7,
+      1,
+      "IMAGE"
+    ],
+    [
+      8,
+      7,
+      0,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      17,
+      19,
+      0,
+      7,
+      2,
+      "IMAGE"
+    ],
+    [
+      18,
+      21,
+      0,
+      20,
+      0,
+      "CLIP"
+    ],
+    [
+      19,
+      20,
+      0,
+      22,
+      0,
+      "STRING"
+    ],
+    [
+      21,
+      24,
+      0,
+      20,
+      1,
+      "IMAGE"
+    ],
+    [
+      22,
+      25,
+      0,
+      20,
+      2,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "RP H3-I2V Prompt Writer",
+      "bounding": [
+        -100,
+        300,
+        2100,
+        900
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "RP H3-REF2V Prompt Writer",
+      "bounding": [
+        -100,
+        1300,
+        2100,
+        1500
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.2402804854660614,
+      "offset": [
+        889.4491651060451,
+        -206.37303294300324
+      ]
+    },
+    "anomalous_hashes": {},
+    "frontendVersion": "1.48.6",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
