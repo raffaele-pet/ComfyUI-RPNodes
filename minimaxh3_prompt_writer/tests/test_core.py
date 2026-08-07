@@ -1604,6 +1604,9 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("`[Xs-Ys] Shot N: description`", prompt)
         self.assertIn("final\n   range ends at 3", prompt)
         self.assertIn("Never output structured source tags", prompt)
+        self.assertIn("Account for every item", prompt)
+        self.assertIn("Never silently discard an item", prompt)
+        self.assertIn("silently verify that every optional evidence", prompt)
 
     def test_t2v_payload_neutralizes_reference_labels_and_sockets(self):
         manifest = ReferenceManifest.from_inputs(
@@ -1632,6 +1635,7 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("image evidence 1", payload)
         self.assertIn("video evidence 1", payload)
         self.assertIn("audio evidence 1", payload)
+        self.assertIn("Every optional evidence list item must contribute", payload)
 
     def test_auto_profile_requires_explicit_creative_treatment(self):
         prompt = auto_skill_system_prompt()
