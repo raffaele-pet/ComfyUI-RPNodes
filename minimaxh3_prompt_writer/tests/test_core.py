@@ -1267,6 +1267,18 @@ class BaseMediaAnalysisTests(unittest.TestCase):
         self.assertIn("Bright blue hair in two buns", value)
         self.assertNotIn("The user wants", value)
 
+    def test_keyframe_record_recovers_analysis_of_picture_heading(self):
+        raw = """The user wants me to inspect the attached keyframe.
+
+**Analysis of Picture 1:**
+* **Visual Medium/Style:** 3D rendered illustration.
+* **Subjects:** A smiling man with brown hair and a beard.
+* **Clothing:** An orange hooded sweatshirt."""
+        value = ensure_analysis_records(raw, ["<Picture 1>"])
+        self.assertTrue(value.startswith("<Picture 1>: Visual Medium/Style:"))
+        self.assertIn("orange hooded sweatshirt", value)
+        self.assertNotIn("The user wants", value)
+
 
 class ReferenceMediaAnalysisTests(unittest.TestCase):
     def test_images_videos_paired_audio_and_standalone_audio_are_routed_safely(self):

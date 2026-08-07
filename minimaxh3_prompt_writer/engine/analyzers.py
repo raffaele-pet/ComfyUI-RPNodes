@@ -63,8 +63,11 @@ def _recover_single_source_analysis(text: str) -> str:
     value = str(text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
     value = re.sub(r"<think>.*?</think>", "", value, flags=re.DOTALL | re.IGNORECASE).strip()
     heading = re.search(
-        r"(?im)^\s*(?:#{1,6}\s*)?(?:\*\*)?"
-        r"(?:(?:image|visual|video|audio|media)\s+)?analysis\s*:\s*(?:\*\*)?\s*$",
+        r"(?im)^\s*(?:#{1,6}\s*)?(?:\*\*)?(?:"
+        r"(?:(?:image|visual|keyframe|picture|video|audio|media)\s+)?analysis|"
+        r"analysis\s+of\s+(?:(?:the|attached)\s+)?"
+        r"(?:picture|image|keyframe|video|audio|media)(?:\s+\d+)?"
+        r")\s*:\s*(?:\*\*)?\s*$",
         value,
     )
     if not heading:
