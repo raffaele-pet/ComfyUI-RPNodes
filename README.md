@@ -110,82 +110,25 @@ provided through the package requirements.
 ## MiniMax H3 prompt writing
 
 Two Gemma-powered nodes turn a plain-language request and optional media into a
-structured MiniMax H3 prompt. They preserve the official H3 mode contracts,
-media-reference labels, integer-second timeline, audio sections, and 7,000
-character limit.
+structured prompt for MiniMax H3 video generation.
 
 ![MiniMax H3 prompt-writer nodes](./minimaxh3_prompt_writer/images/minimaxh3_prompt_nodes.png)
 
-### Required model and CLIP wiring
-
-Place `gemma4_e4b_it_fp8_scaled.safetensors` in
-`ComfyUI/models/text_encoders`, load it with a dedicated `Load CLIP` node using
-type `stable_diffusion`, and connect that CLIP to the prompt writer.
-
-The prompt writer and the H3 generation node require two different CLIP
-connections:
-
-- Gemma 4 CLIP -> `RP H3-I2V Prompt Writer` or
-  `RP H3-REF2V Prompt Writer`
-- H3 Qwen3-VL CLIP, loaded with type `minimax` -> the native MiniMax H3 node
-
-Do not reuse the H3 Qwen3-VL CLIP for prompt writing or the Gemma CLIP for H3
-generation.
-
 ### RP H3-I2V Prompt Writer
 
-Writes the correct base prompt for the connected keyframes:
-
-| Connected media | H3 mode | Picture mapping |
-| --- | --- | --- |
-| no frame | T2VA | no picture reference |
-| `first_frame` | I2VA | `<Picture 1>` is the first frame |
-| both frames | FL2VA | `<Picture 1>` is first and `<Picture 2>` is last |
-| `last_frame` only | L2VA | `<Picture 1>` is the last frame |
+Creates the appropriate T2VA, I2VA, FL2VA, or L2VA prompt from the text request
+and optional first and last frames.
 
 ### RP H3-REF2V Prompt Writer
 
-Builds the six-section Reference-to-Video prompt from up to three images, two
-video frame batches, one soundtrack paired with `ref_video_0`, and one
-standalone audio reference. Only connected inputs receive native labels, so
-the numbering remains contiguous even when earlier sockets are empty.
+Creates a Reference-to-Video prompt from connected reference images, video
+frame batches, paired video audio, and standalone audio while keeping MiniMax's
+Picture, Video, and Audio labels consistent.
 
-With every input connected, the mapping is:
-
-```text
-ref_image_0       -> <Picture 1>
-ref_image_1       -> <Picture 2>
-ref_image_2       -> <Picture 3>
-ref_video_audio_0 -> <Audio 1>
-ref_video_0       -> <Video 1>
-ref_video_1       -> <Video 2>
-ref_audio_0       -> <Audio 2>
-```
-
-Reference videos are accepted as `IMAGE` frame batches at 24 fps. The paired
-soundtrack is connected separately to `ref_video_audio_0`.
-
-### Shared controls and outputs
-
-- `skill` applies the core H3 contract and optionally one of eight independent
-  production profiles; `Auto` asks Gemma to select a profile only when one
-  clearly fits.
-- `duration_seconds` defaults to `3.0` and accepts whole seconds. The
-  `aligned_length` output applies the official expression
-  `max(5, round(seconds * 24)) + (5 - (max(5, round(seconds * 24)) % 17)) % 17`.
-- `prompt` accepts the raw request in any language. Structural output is
-  English, while requested dialogue, lyrics, and visible text remain verbatim.
-- `strict_validation` checks structure, reference labels, timestamps, required
-  audio fields, and length; it performs one repair pass before failing loudly.
-- Outputs are `prompt`, `aligned_length`, and a JSON `analysis_report` for
-  auditing the selected mode, skill, media mapping, and validation result.
-
-Connect `prompt` and `aligned_length` to the corresponding inputs of the native
-MiniMax H3 node. The implementation has no additional Python dependency beyond
-ComfyUI. Source attribution and licensing details are available in
-[`UPSTREAM_SOURCES.md`](./minimaxh3_prompt_writer/UPSTREAM_SOURCES.md),
-[`THIRD_PARTY_NOTICES.md`](./minimaxh3_prompt_writer/THIRD_PARTY_NOTICES.md),
-and the component [`LICENSE`](./minimaxh3_prompt_writer/LICENSE).
+Both nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP loaded as
+`stable_diffusion`. The native H3 generation node must keep its separate
+Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated `prompt`, the
+H3-compatible `aligned_length`, and an `analysis_report`.
 
 ## Installation
 
@@ -208,7 +151,7 @@ workflows for each node category:
 
 - [`smart-image-size-resize.json`](./example_workflows/smart-image-size-resize.json)
 - [`video-frames-process-video.json`](./example_workflows/video-frames-process-video.json)
-- [`MiniMax H3 Prompt Writer.json`](./example_workflows/MiniMax%20H3%20Prompt%20Writer.json)
+- [`minimax-h3-prompt-writer.json`](./example_workflows/minimax-h3-prompt-writer.json)
 
 Drag a JSON file onto the ComfyUI canvas or load it through the workflow menu.
 
