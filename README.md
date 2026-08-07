@@ -112,7 +112,10 @@ provided through the package requirements.
 Three Gemma-powered nodes turn a plain-language request and optional media into
 a structured prompt for MiniMax H3 video generation.
 
-![MiniMax H3 prompt-writer nodes](./minimaxh3_prompt_writer/images/minimaxh3_prompt_nodes.png)
+![RP H3-T2V, I2V, and REF2V Prompt Writer nodes](./minimaxh3_prompt_writer/images/minimaxh3_prompt_nodes.png)
+
+The bundled workflow presents all three prompt writers side by side and includes
+compact English and Italian Markdown notes with the repository link.
 
 ### RP H3-T2V Prompt Writer
 
