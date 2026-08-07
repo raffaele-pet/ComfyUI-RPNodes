@@ -1279,6 +1279,18 @@ class BaseMediaAnalysisTests(unittest.TestCase):
         self.assertIn("orange hooded sweatshirt", value)
         self.assertNotIn("The user wants", value)
 
+    def test_single_source_record_recovers_field_bullets_without_known_heading(self):
+        raw = """I need to summarize the final-frame evidence.
+
+**Keyframe Details:**
+* **Visual Medium/Style:** Digital cartoon illustration.
+* **Subjects:** A wide-eyed young character with blue hair in a bun.
+* **Clothing:** A white T-shirt."""
+        value = ensure_analysis_records(raw, ["<Picture 2>"])
+        self.assertTrue(value.startswith("<Picture 2>: Visual Medium/Style:"))
+        self.assertIn("blue hair in a bun", value)
+        self.assertNotIn("I need to summarize", value)
+
 
 class ReferenceMediaAnalysisTests(unittest.TestCase):
     def test_images_videos_paired_audio_and_standalone_audio_are_routed_safely(self):

@@ -70,9 +70,22 @@ def _recover_single_source_analysis(text: str) -> str:
         r")\s*:\s*(?:\*\*)?\s*$",
         value,
     )
-    if not heading:
-        return ""
-    value = value[heading.end() :].strip()
+    if heading:
+        value = value[heading.end() :].strip()
+    else:
+        # Keyframe responses are less consistent than reference-image
+        # responses: Gemma may call the section "Keyframe Details" or omit a
+        # heading entirely while still returning a useful structured list.
+        # A field-style bullet is descriptive content, not task paraphrase, so
+        # it is a safe deterministic recovery boundary for a single asset.
+        first_field = re.search(
+            r"(?m)^\s*(?:[-*+]\s+|\d+[.)]\s+)"
+            r"(?:\*\*)?[^:\n]{1,80}:\s*(?:\*\*)?",
+            value,
+        )
+        if not first_field:
+            return ""
+        value = value[first_field.start() :].strip()
     lines: list[str] = []
     for raw_line in value.splitlines():
         line = raw_line.strip()
