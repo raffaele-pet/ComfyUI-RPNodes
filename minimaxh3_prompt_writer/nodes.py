@@ -8,7 +8,11 @@ import comfy.model_management
 from comfy_api.latest import io
 
 from .engine.analyzers import analyze_base_media, analyze_reference_media
-from .engine.composer import compose_base_prompt, compose_ref_prompt
+from .engine.composer import (
+    compose_base_prompt,
+    compose_ref_prompt,
+    compose_t2v_prompt,
+)
 from .engine.constants import SKILL_CHOICES
 from .engine.gemma import GemmaRunner, SamplingConfig
 from .engine.manifests import (
@@ -105,9 +109,10 @@ def _common_inputs(*, max_new_tokens: int) -> list[Any]:
             step=64,
             advanced=True,
             tooltip=(
-                "Base token budget for compact media analysis. REF2V adds only "
-                "64 tokens for each extra Picture in the shared image pass and "
-                "for a paired video soundtrack, so every label can be described."
+                "Base token budget for compact media analysis. Reference-media "
+                "nodes add only 64 tokens for each extra Picture in the shared "
+                "image pass and for a paired video soundtrack, so every label "
+                "can be described."
             ),
         ),
         io.Boolean.Input(
@@ -172,6 +177,30 @@ def _common_inputs(*, max_new_tokens: int) -> list[Any]:
                 "limit; run one repair pass and fail loudly if still invalid."
             ),
         ),
+    ]
+
+
+def _reference_media_inputs() -> list[Any]:
+    return [
+        io.Image.Input("ref_image_0", optional=True),
+        io.Image.Input("ref_image_1", optional=True),
+        io.Image.Input("ref_image_2", optional=True),
+        io.Image.Input(
+            "ref_video_0",
+            optional=True,
+            tooltip="Reference video as an IMAGE frame batch at 24 fps.",
+        ),
+        io.Image.Input(
+            "ref_video_1",
+            optional=True,
+            tooltip="Reference video as an IMAGE frame batch at 24 fps.",
+        ),
+        io.Audio.Input(
+            "ref_video_audio_0",
+            optional=True,
+            tooltip="Enabled soundtrack paired with ref_video_0.",
+        ),
+        io.Audio.Input("ref_audio_0", optional=True),
     ]
 
 
@@ -271,6 +300,111 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         return io.NodeOutput(result.prompt, aligned_length, report)
 
 
+class RPH3T2VPromptWriter(io.ComfyNode):
+    @classmethod
+    def define_schema(cls) -> io.Schema:
+        return io.Schema(
+            node_id="RPH3T2VPromptWriter",
+            display_name="RP H3-T2V Prompt Writer",
+            category="RP/MiniMax H3",
+            description=(
+                "Uses optional images, video frame batches, and audio only as "
+                "internal planning evidence, then writes a self-contained H3 "
+                "text-to-video prompt without reference tags."
+            ),
+            search_aliases=["H3 text to video", "Gemma prompt writer", "T2V prompt"],
+            inputs=_common_inputs(max_new_tokens=2560) + _reference_media_inputs(),
+            outputs=[
+                io.String.Output(display_name="prompt"),
+                io.Int.Output(display_name="aligned_length"),
+                io.String.Output(display_name="analysis_report"),
+            ],
+        )
+
+    @classmethod
+    def execute(
+        cls,
+        clip,
+        skill,
+        duration_seconds,
+        prompt,
+        max_new_tokens,
+        media_analysis_tokens,
+        sampling,
+        temperature,
+        top_k,
+        top_p,
+        min_p,
+        repetition_penalty,
+        seed,
+        strict_validation,
+        ref_image_0=None,
+        ref_image_1=None,
+        ref_image_2=None,
+        ref_video_0=None,
+        ref_video_1=None,
+        ref_video_audio_0=None,
+        ref_audio_0=None,
+    ) -> io.NodeOutput:
+        duration_seconds = validate_whole_duration_seconds(duration_seconds)
+        aligned_length = seconds_to_aligned_frame_count(duration_seconds)
+        manifest = ReferenceManifest.from_inputs(
+            ref_image_0=ref_image_0,
+            ref_image_1=ref_image_1,
+            ref_image_2=ref_image_2,
+            ref_video_0=ref_video_0,
+            ref_video_1=ref_video_1,
+            ref_video_audio_0=ref_video_audio_0,
+            ref_audio_0=ref_audio_0,
+            require_reference=False,
+        )
+        runner = GemmaRunner(clip)
+        observations = analyze_reference_media(
+            runner,
+            manifest=manifest,
+            ref_image_0=ref_image_0,
+            ref_image_1=ref_image_1,
+            ref_image_2=ref_image_2,
+            ref_video_0=ref_video_0,
+            ref_video_1=ref_video_1,
+            ref_video_audio_0=ref_video_audio_0,
+            ref_audio_0=ref_audio_0,
+            target_frame_count=aligned_length,
+            max_new_tokens=media_analysis_tokens,
+            seed=seed,
+            after_call=_check_interrupted,
+        )
+        result = compose_t2v_prompt(
+            runner,
+            raw_prompt=prompt,
+            length=aligned_length,
+            selected_skill_label=skill,
+            observations=observations,
+            manifest=manifest,
+            max_new_tokens=max_new_tokens,
+            sampling=_sampling_config(
+                sampling=sampling,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+                min_p=min_p,
+                repetition_penalty=repetition_penalty,
+                seed=seed,
+            ),
+            requested_duration_seconds=duration_seconds,
+            strict_validation=strict_validation,
+            after_call=_check_interrupted,
+        )
+        report = result.analysis_report(
+            mode="T2V",
+            length=aligned_length,
+            requested_duration_seconds=duration_seconds,
+            observations=observations,
+            manifest=manifest,
+        )
+        return io.NodeOutput(result.prompt, aligned_length, report)
+
+
 class RPH3REF2VPromptWriter(io.ComfyNode):
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -285,28 +419,7 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
                 "writes the strict six-section Ref2VA prompt."
             ),
             search_aliases=["H3 reference prompt", "Gemma prompt writer", "Ref2V prompt"],
-            inputs=_common_inputs(max_new_tokens=2560)
-            + [
-                io.Image.Input("ref_image_0", optional=True),
-                io.Image.Input("ref_image_1", optional=True),
-                io.Image.Input("ref_image_2", optional=True),
-                io.Image.Input(
-                    "ref_video_0",
-                    optional=True,
-                    tooltip="Reference video as an IMAGE frame batch at 24 fps.",
-                ),
-                io.Image.Input(
-                    "ref_video_1",
-                    optional=True,
-                    tooltip="Reference video as an IMAGE frame batch at 24 fps.",
-                ),
-                io.Audio.Input(
-                    "ref_video_audio_0",
-                    optional=True,
-                    tooltip="Enabled soundtrack paired with ref_video_0.",
-                ),
-                io.Audio.Input("ref_audio_0", optional=True),
-            ],
+            inputs=_common_inputs(max_new_tokens=2560) + _reference_media_inputs(),
             outputs=[
                 io.String.Output(display_name="prompt"),
                 io.Int.Output(display_name="aligned_length"),
