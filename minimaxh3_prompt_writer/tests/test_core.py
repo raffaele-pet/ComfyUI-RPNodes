@@ -1228,6 +1228,10 @@ class BaseMediaAnalysisTests(unittest.TestCase):
         self.assertIn("attached image 1: <Picture 1>", first_prompt)
         self.assertNotIn("<Picture 2>", first_prompt)
         self.assertIn("attached image 1: <Picture 2>", last_prompt)
+        self.assertLess(
+            first_prompt.index("identity-bearing"),
+            first_prompt.index("visual medium/style"),
+        )
         self.assertEqual(tuple(first_kwargs["image"].shape), (1, 32, 48, 3))
         self.assertEqual(tuple(last_kwargs["image"].shape), (1, 64, 32, 3))
         self.assertEqual([call[1]["max_new_tokens"] for call in runner.calls], [256, 256])

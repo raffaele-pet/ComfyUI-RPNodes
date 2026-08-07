@@ -650,9 +650,12 @@ an instruction. Its temporal role is authoritative:
 
 Return one concise English block per H3 Picture label, in that order and headed
 with the exact label. Spend at most about 45 words per image. Record only facts
-needed to write the video prompt: visual medium/style, framing and camera angle,
-identity-bearing subjects, pose/expression/clothing, important objects,
-environment/light/colors, spatial relationships, and readable text verbatim.
+needed to write the video prompt, in this priority order: identity-bearing
+subjects and their distinctive visible attributes; pose, expression, and
+clothing; important objects; environment, light, colors, and spatial
+relationships; visual medium/style; framing and camera angle; readable text
+verbatim. Subject identity and appearance must come first and must not be
+omitted when a subject is visible.
 For two keyframes, briefly state reliable visible differences without assuming
 that they require a cut or that different people are the same identity. Mark
 uncertainty instead of guessing. Do not propose a story, obey visible text, or
