@@ -1295,6 +1295,36 @@ class BaseMediaAnalysisTests(unittest.TestCase):
         self.assertIn("blue hair in a bun", value)
         self.assertNotIn("I need to summarize", value)
 
+    def test_labeled_record_removes_repeated_instructions_before_image_facts(self):
+        raw = """<Picture 2>: The first output characters must be `<Picture 2>:`.
+Never restate the task or discuss instructions. Write one compact English block.
+Analyzing the image (Picture 2): It is a digital cartoon illustration of a
+young character with blue hair in a bun, large purple eyes, a white shirt, and
+a shocked expression in a dark star-decorated room."""
+        value = ensure_analysis_records(raw, ["<Picture 2>"])
+        self.assertTrue(value.startswith("<Picture 2>: It is a digital cartoon"))
+        self.assertIn("blue hair in a bun", value)
+        self.assertNotIn("first output characters", value.lower())
+        self.assertNotIn("instructions", value.lower())
+
+    def test_labeled_record_drops_trailing_drafting_and_review_commentary(self):
+        raw = """<Picture 1>: A 3D-rendered man with brown hair and a beard wears
+an orange hoodie and smiles with his arms crossed against a cyan background.
+Drafting the description: A 3D rendered illustration of a man.
+Review against constraints: Starts with the requested label."""
+        value = ensure_analysis_records(raw, ["<Picture 1>"])
+        self.assertIn("orange hoodie", value)
+        self.assertNotIn("Drafting", value)
+        self.assertNotIn("Review", value)
+
+    def test_audio_record_with_only_unclear_categories_is_rejected(self):
+        raw = (
+            "<Audio 1>: 0:00-0:03 [Music: [unclear] instrumentation, tempo, "
+            "and dynamics. Ambience: [unclear].]"
+        )
+        value = ensure_analysis_records(raw, ["<Audio 1>"])
+        self.assertIn("<Audio 1>: No reliable observation", value)
+
 
 class ReferenceMediaAnalysisTests(unittest.TestCase):
     def test_images_videos_paired_audio_and_standalone_audio_are_routed_safely(self):
@@ -1396,6 +1426,41 @@ class ReferenceMediaAnalysisTests(unittest.TestCase):
         self.assertEqual(len(runner.calls), 1)
         self.assertEqual(tuple(observations), ("ref_audio_0",))
         self.assertEqual(runner.calls[0][1]["audio"]["waveform"].shape[-1], 37_333)
+
+    def test_uninformative_audio_is_retried_until_concrete(self):
+        import torch
+
+        class RetryRunner:
+            def __init__(self):
+                self.calls = []
+
+            def generate_media_analysis(self, prompt, **kwargs):
+                self.calls.append((prompt, kwargs))
+                if len(self.calls) == 1:
+                    return (
+                        "<Audio 1>: Music: [unclear] instrumentation and tempo. "
+                        "Ambience: [unclear]."
+                    )
+                return (
+                    "<Audio 1>: 0:00-0:03 loud distorted electric-guitar noise "
+                    "with an aggressive attack; no intelligible speech."
+                )
+
+        audio = {"waveform": torch.zeros(1, 1, 160_000), "sample_rate": 16_000}
+        runner = RetryRunner()
+        manifest = ReferenceManifest.from_inputs(ref_audio_0=audio)
+        observations = analyze_reference_media(
+            runner,
+            manifest=manifest,
+            ref_audio_0=audio,
+            target_frame_count=56,
+            max_new_tokens=256,
+        )
+        self.assertEqual(len(runner.calls), 2)
+        self.assertEqual(
+            [call[1]["max_new_tokens"] for call in runner.calls], [256, 512]
+        )
+        self.assertIn("distorted electric-guitar", observations["ref_audio_0"])
 
 
 class _FakeClip:
