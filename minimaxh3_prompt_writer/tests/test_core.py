@@ -714,7 +714,7 @@ N/A"""
 <Audio 2> supplies impact-sound guidance.
 
 summary:
-[reference generation + audio reuse] The target uses <Video 1>, <Audio 1>, and <Audio 2> as guidance.
+[reference generation] reference generation + audio reuse: The target uses <Video 1>, <Audio 1>, and <Audio 2> as guidance.
 
 retention_analysis:
 <Video 1>: weak_reference - its motion guides the target.
@@ -737,6 +737,9 @@ non_diegetic_music:
             raw_user_request="Use the audio references to guide the new scene.",
         )
         self.assertIn("[reference generation + audio reference]", canonical)
+        self.assertNotIn(
+            "[reference generation + audio reference] reference generation", canonical
+        )
         self.assertNotIn("fully_copy", canonical)
         self.assertNotIn("fully copied", canonical.lower())
         self.assertIn("used only as a reference", canonical)

@@ -976,6 +976,17 @@ def _synchronize_ref_audio_signature(
     if any(marker in {"reference", "weak_reference"} for marker in markers):
         signature.append("audio reference")
     prose = summary.strip()[match.end() :].lstrip()
+    prose = _strip_leading_ref_task_echo(
+        prose,
+        {
+            "keyframe completion",
+            "reference generation",
+            "video editing",
+            "video continuation",
+            "audio reuse",
+            "audio reference",
+        },
+    )
     canonical_signature = "[" + " + ".join(dict.fromkeys(signature)) + "]"
     return canonical_signature + (" " + prose if prose else "")
 
