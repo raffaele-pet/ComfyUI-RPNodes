@@ -980,6 +980,44 @@ def _synchronize_ref_audio_signature(
     return canonical_signature + (" " + prose if prose else "")
 
 
+def _audio_reuse_is_explicit(raw_user_request: str) -> bool:
+    value = str(raw_user_request or "").lower()
+    return bool(
+        re.search(
+            r"\b(?:copy|copies|copied|reuse|reuses|reused|as-is|same signal|"
+            r"retain (?:the )?(?:original )?(?:audio|soundtrack)|"
+            r"keep (?:the )?(?:original )?(?:audio|soundtrack)|"
+            r"copia(?:re)?|riusa(?:re)?|riutilizza(?:re)?|identic[oa]|"
+            r"mantieni (?:l['’])?(?:audio|soundtrack) originale)\b",
+            value,
+        )
+    )
+
+
+def _default_ref_audio_to_reference(
+    retention: str,
+    manifest: ReferenceManifest,
+    raw_user_request: str | None,
+) -> str:
+    """Do not turn generic use/guidance language into signal copying."""
+
+    if raw_user_request is None or _audio_reuse_is_explicit(raw_user_request):
+        return retention
+    value = retention
+    for label in manifest.labels("audio"):
+        value = re.sub(
+            rf"(?m)^{re.escape(label)}(\s+\([^\n)]*\))?:\s*"
+            r"(?:fully_copy|partially_copy)\s*-\s*[^\n]*$",
+            lambda match: (
+                f"{label}{match.group(1) or ''}: reference - its audible properties "
+                "guide the target without copying the source signal."
+            ),
+            value,
+            flags=re.IGNORECASE,
+        )
+    return value
+
+
 def _compact_seconds_value(value: float) -> str:
     return f"{float(value):.6f}".rstrip("0").rstrip(".")
 
@@ -1044,6 +1082,7 @@ def canonicalize_ref_structure(
     length: int,
     manifest: ReferenceManifest,
     requested_duration_seconds: float | None = None,
+    raw_user_request: str | None = None,
 ) -> str:
     """Render deterministic Ref2VA metadata and formatting around model prose."""
 
@@ -1065,6 +1104,9 @@ def canonicalize_ref_structure(
     bodies[0] = subject_body
     bodies[1] = _canonicalize_ref_summary(bodies[1], manifest)
     bodies[2] = _canonicalize_ref_retention(bodies[2], subject_body, subject_ids, manifest)
+    bodies[2] = _default_ref_audio_to_reference(
+        bodies[2], manifest, raw_user_request
+    )
     bodies[1] = _synchronize_ref_audio_signature(bodies[1], bodies[2], manifest)
     bodies[3] = _canonicalize_timeline_cut_markers(bodies[3])
     if requested_duration_seconds is not None:

@@ -702,6 +702,77 @@ N/A"""
         result = validate_ref_prompt(canonical, 73, manifest)
         self.assertTrue(result.valid, result.issues)
 
+    def test_generic_audio_guidance_cannot_become_signal_copying(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_video_0=object(),
+            ref_video_audio_0=object(),
+            ref_audio_0=object(),
+        )
+        generated = """subject_definitions:
+<Video 1> supplies visible action.
+<Audio 1> supplies music guidance.
+<Audio 2> supplies impact-sound guidance.
+
+summary:
+[reference generation + audio reuse] The target uses <Video 1>, <Audio 1>, and <Audio 2> as guidance.
+
+retention_analysis:
+<Video 1>: weak_reference - its motion guides the target.
+<Audio 1>: fully_copy - the soundtrack is reused as-is.
+<Audio 2>: fully_copy - the impact is reused as-is.
+
+detailed_description:
+[Shot 1] A wide shot follows <Video 1>; music follows <Audio 1> and an impact follows <Audio 2>.
+
+overall_soundscape:
+An impact sound follows <Audio 2>.
+
+non_diegetic_music:
+Music follows <Audio 1>."""
+        canonical = canonicalize_ref_structure(
+            generated,
+            73,
+            manifest,
+            requested_duration_seconds=3.0,
+            raw_user_request="Use the audio references to guide the new scene.",
+        )
+        self.assertIn("[reference generation + audio reference]", canonical)
+        self.assertNotIn("fully_copy", canonical)
+        self.assertEqual(canonical.count(": reference -"), 2)
+        result = validate_ref_prompt(canonical, 73, manifest)
+        self.assertTrue(result.valid, result.issues)
+
+    def test_explicit_audio_copy_request_preserves_reuse_relationship(self):
+        manifest = ReferenceManifest.from_inputs(ref_audio_0=object())
+        generated = """subject_definitions:
+<Audio 1> supplies the original soundtrack signal.
+
+summary:
+[audio reuse] The target copies <Audio 1> as-is.
+
+retention_analysis:
+<Audio 1>: fully_copy - the original signal is reused as-is.
+
+detailed_description:
+[Shot 1] A static shot plays copied <Audio 1>.
+
+overall_soundscape:
+<Audio 1> is copied as-is.
+
+non_diegetic_music:
+N/A"""
+        canonical = canonicalize_ref_structure(
+            generated,
+            73,
+            manifest,
+            requested_duration_seconds=3.0,
+            raw_user_request="Copy the original audio as-is.",
+        )
+        self.assertIn("[audio reuse]", canonical)
+        self.assertIn("<Audio 1>: fully_copy -", canonical)
+        result = validate_ref_prompt(canonical, 73, manifest)
+        self.assertTrue(result.valid, result.issues)
+
     def test_nonexistent_ref_label_is_rejected(self):
         manifest = ReferenceManifest.from_inputs(ref_audio_0=object())
         text = """subject_definitions:

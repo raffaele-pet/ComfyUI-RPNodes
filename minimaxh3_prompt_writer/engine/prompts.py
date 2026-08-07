@@ -542,7 +542,11 @@ SECTION RULES
   marker later in that line or embed an Audio verdict inside a Subject line.
   The Audio marker and summary task type must agree: `fully_copy` or
   `partially_copy` requires `audio reuse`; `reference` or `weak_reference`
-  requires `audio reference`. Do not put Speaker identifiers here.
+  requires `audio reference`. Default to `reference`: words such as use, guide,
+  follow, reference, or "from the audio" do not authorize signal copying.
+  Choose `fully_copy` or `partially_copy` only when the raw request explicitly
+  asks to copy, reuse, retain, or keep the source signal or an identified layer
+  as-is. Do not put Speaker identifiers here.
 - `detailed_description` is the main narrative audiovisual body. Begin with one
   or two English sentences establishing target style, then begin playback
   directly with `[Shot 1]`; do not add a `Timeline:` heading and do not require
