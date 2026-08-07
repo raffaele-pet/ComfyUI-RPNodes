@@ -1,14 +1,14 @@
 {
   "id": "4b14e0e9-a43d-4329-aaa2-65083643d282",
   "revision": 0,
-  "last_node_id": 34,
-  "last_link_id": 26,
+  "last_node_id": 40,
+  "last_link_id": 30,
   "nodes": [
     {
       "id": 3,
       "type": "ShowText|pysssss",
       "pos": [
-        1500,
+        3700,
         430
       ],
       "size": [
@@ -16,8 +16,8 @@
         470
       ],
       "flags": {},
-      "order": 12,
-      "mode": 0,
+      "order": 17,
+      "mode": 2,
       "inputs": [
         {
           "name": "text",
@@ -46,7 +46,7 @@
       "id": 1,
       "type": "CLIPLoader",
       "pos": [
-        0,
+        2200,
         430
       ],
       "size": [
@@ -55,7 +55,7 @@
       ],
       "flags": {},
       "order": 0,
-      "mode": 0,
+      "mode": 2,
       "showAdvanced": false,
       "inputs": [],
       "outputs": [
@@ -90,7 +90,7 @@
       "id": 2,
       "type": "LoadImage",
       "pos": [
-        0,
+        2200,
         630
       ],
       "size": [
@@ -99,7 +99,7 @@
       ],
       "flags": {},
       "order": 1,
-      "mode": 0,
+      "mode": 2,
       "inputs": [],
       "outputs": [
         {
@@ -129,7 +129,7 @@
       "id": 19,
       "type": "LoadImage",
       "pos": [
-        500,
+        2700,
         630
       ],
       "size": [
@@ -138,7 +138,7 @@
       ],
       "flags": {},
       "order": 2,
-      "mode": 0,
+      "mode": 2,
       "inputs": [],
       "outputs": [
         {
@@ -185,8 +185,7 @@
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            18,
-            23
+            18
           ]
         }
       ],
@@ -229,8 +228,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            21,
-            24
+            21
           ]
         },
         {
@@ -269,8 +267,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            22,
-            25
+            22
           ]
         },
         {
@@ -298,7 +295,7 @@
       ],
       "size": [
         400,
-        540
+        538
       ],
       "flags": {},
       "order": 6,
@@ -382,7 +379,7 @@
         470
       ],
       "flags": {},
-      "order": 13,
+      "order": 18,
       "mode": 2,
       "inputs": [
         {
@@ -420,7 +417,7 @@
         730
       ],
       "flags": {},
-      "order": 11,
+      "order": 15,
       "mode": 2,
       "inputs": [
         {
@@ -491,6 +488,8 @@
         }
       ],
       "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "062eeddea7a6a500075b31075c746d9f5e817565",
         "Node name for S&R": "RPH3REF2VPromptWriter"
       },
       "widgets_values": [
@@ -511,10 +510,282 @@
       ]
     },
     {
+      "id": 31,
+      "type": "LoadAudio",
+      "pos": [
+        500,
+        2130
+      ],
+      "size": [
+        400,
+        140
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "trash-glass.MP3",
+        null,
+        null
+      ]
+    },
+    {
+      "id": 37,
+      "type": "ShowText|pysssss",
+      "pos": [
+        1500,
+        430
+      ],
+      "size": [
+        400,
+        470
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 30
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "1.2.5",
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 33,
+      "type": "CLIPLoader",
+      "pos": [
+        0,
+        430
+      ],
+      "size": [
+        400,
+        110
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 2,
+      "showAdvanced": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            27
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "Node name for S&R": "CLIPLoader",
+        "widget_ue_connectable": {},
+        "models": [
+          {
+            "name": "gemma4_e4b_it_fp8_scaled.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_fp8_scaled.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "gemma4_e4b_it_fp8_scaled.safetensors",
+        "stable_diffusion",
+        "default"
+      ]
+    },
+    {
+      "id": 34,
+      "type": "LoadImage",
+      "pos": [
+        0,
+        630
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            28
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 35,
+      "type": "LoadImage",
+      "pos": [
+        500,
+        630
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            29
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 28,
+      "type": "Fast Groups Muter (rgthree)",
+      "pos": [
+        -700,
+        330
+      ],
+      "size": [
+        500,
+        106
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "OPT_CONNECTION",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "matchColors": "",
+        "matchTitle": "",
+        "showNav": true,
+        "showAllGraphs": true,
+        "sort": "position",
+        "customSortAlphabet": "",
+        "toggleRestriction": "default",
+        "widget_ue_connectable": {}
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 40,
+      "type": "MarkdownNote",
+      "pos": [
+        -700,
+        530
+      ],
+      "size": [
+        500,
+        470
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# MiniMax H3 Prompt Writers\n\n**Repository:**  \nhttps://github.com/raffaele-pet/ComfyUI-RPNodes\n\nThese three nodes use **Gemma 4** to analyze the request and any connected media, generating optimized prompts for **MiniMax H3**.\n\n## RP H3-T2V Prompt Writer\n\nGenerates a complete **Text-to-Video** prompt. Optional images, videos, and audio are used only as creative guidance during analysis.\n\nThe final prompt is fully self-contained and contains no `Picture`, `Video`, `Audio`, or `Subject` reference tags.\n\n## RP H3-I2V Prompt Writer\n\nGenerates **Image-to-Video** prompts using the first frame, the last frame, or both.\n\nThe prompt structure is automatically adapted to the connected frame combination.\n\n## RP H3-REF2V Prompt Writer\n\nGenerates **Reference-to-Video** prompts from connected images, videos, and audio.\n\nIt preserves the `<Picture N>`, `<Video N>`, `<Audio N>`, and `<Subject N>` tags required by MiniMax H3 to associate each element with its corresponding source."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 39,
+      "type": "MarkdownNote",
+      "pos": [
+        -700,
+        1130
+      ],
+      "size": [
+        500,
+        470
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# MiniMax H3 Prompt Writers\n\n**Repository:**  \nhttps://github.com/raffaele-pet/ComfyUI-RPNodes\n\nQuesti tre nodi utilizzano **Gemma 4** per analizzare la richiesta e gli eventuali contenuti multimediali, generando prompt ottimizzati per **MiniMax H3**.\n\n## RP H3-T2V Prompt Writer\n\nGenera un prompt **Text-to-Video** completo. Immagini, video e audio opzionali vengono utilizzati soltanto come riferimenti creativi durante l’analisi.\n\nIl prompt finale è autonomo e non contiene tag `Picture`, `Video`, `Audio` o `Subject`.\n\n## RP H3-I2V Prompt Writer\n\nGenera prompt **Image-to-Video** utilizzando il primo fotogramma, l’ultimo fotogramma oppure entrambi.\n\nLa struttura del prompt viene adattata automaticamente alla combinazione di frame collegata.\n\n## RP H3-REF2V Prompt Writer\n\nGenera prompt **Reference-to-Video** usando immagini, video e audio.\n\nMantiene i tag `<Picture N>`, `<Video N>`, `<Audio N>` e `<Subject N>` necessari a MiniMax H3 per associare correttamente ogni elemento alla relativa sorgente."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
       "id": 7,
       "type": "RPH3I2VPromptWriter",
       "pos": [
-        1000,
+        3200,
         430
       ],
       "size": [
@@ -522,8 +793,8 @@
         730
       ],
       "flags": {},
-      "order": 10,
-      "mode": 0,
+      "order": 14,
+      "mode": 2,
       "inputs": [
         {
           "name": "clip",
@@ -563,10 +834,12 @@
         }
       ],
       "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "062eeddea7a6a500075b31075c746d9f5e817565",
         "Node name for S&R": "RPH3I2VPromptWriter"
       },
       "widgets_values": [
-        "Hand-drawn + Live Action",
+        "Auto — choose the best H3 skill",
         3,
         "the girl is dancing",
         2048,
@@ -583,36 +856,36 @@
       ]
     },
     {
-      "id": 33,
+      "id": 38,
       "type": "RPH3T2VPromptWriter",
       "pos": [
         1000,
-        2230
+        430
       ],
       "size": [
         400,
         730
       ],
       "flags": {},
-      "order": 14,
+      "order": 16,
       "mode": 2,
       "inputs": [
         {
           "name": "clip",
           "type": "CLIP",
-          "link": 23
+          "link": 27
         },
         {
           "name": "ref_image_0",
           "shape": 7,
           "type": "IMAGE",
-          "link": 24
+          "link": 28
         },
         {
           "name": "ref_image_1",
           "shape": 7,
           "type": "IMAGE",
-          "link": 25
+          "link": 29
         },
         {
           "name": "ref_image_2",
@@ -650,27 +923,29 @@
           "name": "prompt",
           "type": "STRING",
           "links": [
-            26
+            30
           ]
         },
         {
           "name": "aligned_length",
           "type": "INT",
-          "links": []
+          "links": null
         },
         {
           "name": "analysis_report",
           "type": "STRING",
-          "links": []
+          "links": null
         }
       ],
       "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "062eeddea7a6a500075b31075c746d9f5e817565",
         "Node name for S&R": "RPH3T2VPromptWriter"
       },
       "widgets_values": [
-        "Auto â€” choose the best H3 skill",
+        "Auto — choose the best H3 skill",
         3,
-        "A protagonist is chased across rain-soaked rooftops at dusk.",
+        "the girl is dancing",
         2560,
         128,
         false,
@@ -683,136 +958,6 @@
         "randomize",
         true
       ]
-    },
-    {
-      "id": 34,
-      "type": "ShowText|pysssss",
-      "pos": [
-        1500,
-        2230
-      ],
-      "size": [
-        400,
-        470
-      ],
-      "flags": {},
-      "order": 15,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "text",
-          "type": "STRING",
-          "link": 26
-        }
-      ],
-      "outputs": [
-        {
-          "name": "STRING",
-          "shape": 6,
-          "type": "STRING",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui-custom-scripts",
-        "ver": "1.2.5",
-        "Node name for S&R": "ShowText|pysssss"
-      },
-      "widgets_values": [
-        ""
-      ]
-    },
-    {
-      "id": 31,
-      "type": "LoadAudio",
-      "pos": [
-        500.26520744446964,
-        2128.382800754559
-      ],
-      "size": [
-        400,
-        140
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "AUDIO",
-          "type": "AUDIO",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadAudio"
-      },
-      "widgets_values": [
-        "trash-glass.MP3",
-        null,
-        ""
-      ]
-    },
-    {
-      "id": 28,
-      "type": "Fast Groups Muter (rgthree)",
-      "pos": [
-        -700,
-        330
-      ],
-      "size": [
-        500,
-        90
-      ],
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "OPT_CONNECTION",
-          "type": "*",
-          "links": null
-        }
-      ],
-      "properties": {
-        "matchColors": "",
-        "matchTitle": "",
-        "showNav": true,
-        "showAllGraphs": true,
-        "sort": "position",
-        "customSortAlphabet": "",
-        "toggleRestriction": "default",
-        "widget_ue_connectable": {}
-      },
-      "color": "#332922",
-      "bgcolor": "#593930"
-    },
-    {
-      "id": 32,
-      "type": "Note",
-      "pos": [
-        -700,
-        530
-      ],
-      "size": [
-        500,
-        170
-      ],
-      "flags": {},
-      "order": 9,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [],
-      "title": "RPNodes",
-      "properties": {},
-      "widgets_values": [
-        "https://github.com/raffaele-pet/ComfyUI-RPNodes"
-      ],
-      "color": "#432",
-      "bgcolor": "#653"
     }
   ],
   "links": [
@@ -881,34 +1026,34 @@
       "IMAGE"
     ],
     [
-      23,
-      21,
-      0,
+      27,
       33,
+      0,
+      38,
       0,
       "CLIP"
     ],
     [
-      24,
-      24,
+      28,
+      34,
       0,
-      33,
+      38,
       1,
       "IMAGE"
     ],
     [
-      25,
-      25,
+      29,
+      35,
       0,
-      33,
+      38,
       2,
       "IMAGE"
     ],
     [
-      26,
-      33,
+      30,
+      38,
       0,
-      34,
+      37,
       0,
       "STRING"
     ]
@@ -918,7 +1063,7 @@
       "id": 1,
       "title": "RP H3-I2V Prompt Writer",
       "bounding": [
-        -100,
+        2100,
         300,
         2100,
         900
@@ -928,12 +1073,24 @@
     },
     {
       "id": 3,
-      "title": "RP H3-REF2V / T2V Prompt Writers",
+      "title": "RP H3-REF2V Prompt Writer",
       "bounding": [
         -100,
         1300,
         2100,
-        1800
+        1500
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "RP H3-T2V Prompt Writer",
+      "bounding": [
+        -100,
+        300,
+        2100,
+        900
       ],
       "color": "#3f789e",
       "flags": {}
@@ -942,10 +1099,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 1.2402804854660614,
+      "scale": 0.1908439282676212,
       "offset": [
-        889.4491651060451,
-        -206.37303294300324
+        2412.2645635533263,
+        367.9877981488764
       ]
     },
     "anomalous_hashes": {},
