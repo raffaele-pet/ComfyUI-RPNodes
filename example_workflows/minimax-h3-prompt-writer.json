@@ -1,8 +1,8 @@
 {
   "id": "4b14e0e9-a43d-4329-aaa2-65083643d282",
   "revision": 0,
-  "last_node_id": 32,
-  "last_link_id": 22,
+  "last_node_id": 34,
+  "last_link_id": 26,
   "nodes": [
     {
       "id": 3,
@@ -185,7 +185,8 @@
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            18
+            18,
+            23
           ]
         }
       ],
@@ -228,7 +229,8 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            21
+            21,
+            24
           ]
         },
         {
@@ -267,7 +269,8 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            22
+            22,
+            25
           ]
         },
         {
@@ -580,6 +583,146 @@
       ]
     },
     {
+      "id": 33,
+      "type": "RPH3T2VPromptWriter",
+      "pos": [
+        1000,
+        2230
+      ],
+      "size": [
+        400,
+        730
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 23
+        },
+        {
+          "name": "ref_image_0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 24
+        },
+        {
+          "name": "ref_image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 25
+        },
+        {
+          "name": "ref_image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "ref_video_0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "ref_video_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "ref_video_audio_0",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "ref_audio_0",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "links": [
+            26
+          ]
+        },
+        {
+          "name": "aligned_length",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "analysis_report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPH3T2VPromptWriter"
+      },
+      "widgets_values": [
+        "Auto â€” choose the best H3 skill",
+        3,
+        "A protagonist is chased across rain-soaked rooftops at dusk.",
+        2560,
+        128,
+        false,
+        0.7,
+        64,
+        0.95,
+        0.05,
+        1.05,
+        0,
+        "randomize",
+        true
+      ]
+    },
+    {
+      "id": 34,
+      "type": "ShowText|pysssss",
+      "pos": [
+        1500,
+        2230
+      ],
+      "size": [
+        400,
+        470
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "1.2.5",
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
       "id": 31,
       "type": "LoadAudio",
       "pos": [
@@ -736,6 +879,38 @@
       20,
       2,
       "IMAGE"
+    ],
+    [
+      23,
+      21,
+      0,
+      33,
+      0,
+      "CLIP"
+    ],
+    [
+      24,
+      24,
+      0,
+      33,
+      1,
+      "IMAGE"
+    ],
+    [
+      25,
+      25,
+      0,
+      33,
+      2,
+      "IMAGE"
+    ],
+    [
+      26,
+      33,
+      0,
+      34,
+      0,
+      "STRING"
     ]
   ],
   "groups": [
@@ -753,12 +928,12 @@
     },
     {
       "id": 3,
-      "title": "RP H3-REF2V Prompt Writer",
+      "title": "RP H3-REF2V / T2V Prompt Writers",
       "bounding": [
         -100,
         1300,
         2100,
-        1500
+        1800
       ],
       "color": "#3f789e",
       "flags": {}

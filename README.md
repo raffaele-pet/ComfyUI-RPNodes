@@ -5,8 +5,8 @@ A collection of utility nodes for ComfyUI:
 - **Image sizing and resizing:** `RP Smart Image Size`, `RP Smart Image Resize`,
   and `RP Image Minimum 1K`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
-- **MiniMax H3 prompt writing:** `RP H3-I2V Prompt Writer` and
-  `RP H3-REF2V Prompt Writer`
+- **MiniMax H3 prompt writing:** `RP H3-T2V Prompt Writer`,
+  `RP H3-I2V Prompt Writer`, and `RP H3-REF2V Prompt Writer`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
 `video_frame_processing`, with the H3 prompt-writing nodes in
@@ -109,10 +109,16 @@ provided through the package requirements.
 
 ## MiniMax H3 prompt writing
 
-Two Gemma-powered nodes turn a plain-language request and optional media into a
-structured prompt for MiniMax H3 video generation.
+Three Gemma-powered nodes turn a plain-language request and optional media into
+a structured prompt for MiniMax H3 video generation.
 
 ![MiniMax H3 prompt-writer nodes](./minimaxh3_prompt_writer/images/minimaxh3_prompt_nodes.png)
+
+### RP H3-T2V Prompt Writer
+
+Creates a standalone text-to-video prompt. Optional images, video frame batches,
+and audio help Gemma describe appearance, motion, and sound, but the final prompt
+contains no Picture, Video, Audio, Subject, reference, or socket tags.
 
 ### RP H3-I2V Prompt Writer
 
@@ -125,10 +131,10 @@ Creates a Reference-to-Video prompt from connected reference images, video
 frame batches, paired video audio, and standalone audio while keeping MiniMax's
 Picture, Video, and Audio labels consistent.
 
-Both nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP loaded as
-`stable_diffusion`. The native H3 generation node must keep its separate
-Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated `prompt`, the
-H3-compatible `aligned_length`, and an `analysis_report`.
+All three nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
+loaded as `stable_diffusion`. The native H3 generation node must keep its
+separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
+`prompt`, the H3-compatible `aligned_length`, and an `analysis_report`.
 
 ## Installation
 

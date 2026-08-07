@@ -44,7 +44,11 @@ const SKILLS = {
   },
 };
 
-const TARGETS = new Set(["RPH3I2VPromptWriter", "RPH3REF2VPromptWriter"]);
+const TARGETS = new Set([
+  "RPH3T2VPromptWriter",
+  "RPH3I2VPromptWriter",
+  "RPH3REF2VPromptWriter",
+]);
 const STATIC_PANEL_HEIGHT = 112;
 const STATIC_WIDGET_HEIGHT = 136;
 const STATIC_NODE_HEIGHT = 730;

@@ -92,6 +92,7 @@ class ReferenceManifest:
         ref_video_1: Any = None,
         ref_video_audio_0: Any = None,
         ref_audio_0: Any = None,
+        require_reference: bool = True,
     ) -> "ReferenceManifest":
         image_values = (
             ("ref_image_0", ref_image_0),
@@ -173,7 +174,7 @@ class ReferenceManifest:
             audios=tuple(audios),
             presentation_order=tuple(presentation),
         )
-        if not manifest.presentation_order:
+        if require_reference and not manifest.presentation_order:
             raise ValueError(
                 "RP H3-REF2V Prompt Writer needs at least one connected reference "
                 "image, video, video soundtrack, or standalone audio."

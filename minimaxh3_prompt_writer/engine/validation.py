@@ -28,7 +28,9 @@ def _contains_schema_anchor(text: str, mode: str) -> bool:
     """Return whether text already contains the beginning of an H3 draft."""
 
     lowered = text.lower()
-    if mode == "Ref2VA":
+    if mode == "T2V":
+        anchors = ("scene overview:", "storyboard:", "camera:", "audio:")
+    elif mode == "Ref2VA":
         anchors = REF_FIELDS
     elif mode == "I2VA":
         anchors = ("for the target video,",) + BASE_FIELDS
@@ -212,6 +214,140 @@ def _validate_common(text: str, fields: tuple[str, ...]) -> list[str]:
             issues.append("Every <d> block must begin with a non-empty [Language] tag.")
             break
     return issues
+
+
+def canonicalize_t2v_structure(text: str) -> str:
+    """Normalize harmless heading variants in a standalone T2V prompt."""
+
+    value = sanitize_generated_text(text, "T2V")
+    aliases = {
+        "Scene overview:": r"scene[\s_-]*overview",
+        "Storyboard:": r"storyboard(?:[ \t]*\([^\n]*\))?",
+        "Camera:": r"camera",
+        "Audio:": r"audio",
+    }
+    for canonical, alias in aliases.items():
+        value = re.sub(
+            rf"(?im)^[ \t]*(?:\#{{1,6}}[ \t]+)?(?:\*\*|__)?"
+            rf"{alias}(?:[ \t]*:(?:\*\*|__)?|(?:\*\*|__)[ \t]*:)",
+            canonical,
+            value,
+        )
+    return value.strip()
+
+
+def validate_t2v_prompt(
+    text: str,
+    requested_duration_seconds: float,
+) -> ValidationResult:
+    """Validate a self-contained narrative prompt for native H3 T2V."""
+
+    candidate = canonicalize_t2v_structure(text)
+    issues: list[str] = []
+    if not candidate:
+        return ValidationResult(candidate, ("The model returned an empty prompt.",))
+    if len(candidate) > MAX_H3_PROMPT_CHARS:
+        issues.append(
+            f"Prompt has {len(candidate)} characters; maximum is {MAX_H3_PROMPT_CHARS}."
+        )
+    if "```" in candidate:
+        issues.append("Markdown code fences are not allowed.")
+    if re.search(r"</?think>|<\|channel>", candidate, flags=re.IGNORECASE):
+        issues.append("Model reasoning-channel residue is not allowed.")
+    if re.search(r"(?i)(?<![\w\"'])negative_prompt\s*:", candidate):
+        issues.append("A separate negative_prompt field is not allowed.")
+
+    headings = ("Scene overview:", "Storyboard:", "Camera:", "Audio:")
+    matches = {heading: _header_matches(candidate, heading) for heading in headings}
+    for heading in headings:
+        count = len(matches[heading])
+        if count != 1:
+            issues.append(
+                f"Heading `{heading}` must occur exactly once (found {count})."
+            )
+
+    if all(len(matches[heading]) == 1 for heading in headings):
+        positions = [matches[heading][0].start() for heading in headings]
+        if positions != sorted(positions):
+            issues.append("T2V headings are out of order.")
+        style = candidate[: positions[0]].strip()
+        if not style:
+            issues.append("T2V must begin with an unlabelled visual-style paragraph.")
+        elif re.match(
+            r"(?i)^(?:here(?:'s| is)|sure\b|certainly\b|the user wants|final prompt)",
+            style,
+        ):
+            issues.append("T2V must not include an assistant preface.")
+
+        for index, heading in enumerate(headings):
+            body_start = matches[heading][0].end()
+            body_end = positions[index + 1] if index + 1 < len(headings) else len(candidate)
+            if not candidate[body_start:body_end].strip():
+                issues.append(f"Section `{heading}` must have a non-empty body.")
+
+        storyboard_start = matches["Storyboard:"][0].end()
+        storyboard_end = matches["Camera:"][0].start()
+        storyboard = candidate[storyboard_start:storyboard_end].strip()
+        beat_pattern = re.compile(
+            r"^\[(\d+(?:\.\d+)?)s-(\d+(?:\.\d+)?)s\] "
+            r"Shot ([1-9]\d*):\s*(\S.*)$"
+        )
+        beat_lines = [line.strip() for line in storyboard.splitlines() if line.strip()]
+        beats: list[tuple[float, float, int]] = []
+        for line in beat_lines:
+            match = beat_pattern.fullmatch(line)
+            if match is None:
+                issues.append(
+                    "Every Storyboard line must use `[Xs-Ys] Shot N: description`."
+                )
+                continue
+            start, end, shot = match.groups()[:3]
+            beats.append((float(start), float(end), int(shot)))
+
+        if not beats:
+            issues.append("Storyboard must contain at least one timed shot.")
+        else:
+            if beats[0][0] != 0.0:
+                issues.append("The first Storyboard shot must start at 0 seconds.")
+            shot_ids = [shot for _, _, shot in beats]
+            if shot_ids != list(range(1, len(shot_ids) + 1)):
+                issues.append("Storyboard Shot numbers must start at 1 without gaps.")
+            for index, (start, end, _) in enumerate(beats):
+                if end <= start:
+                    issues.append("Every Storyboard range must have positive duration.")
+                if index and abs(start - beats[index - 1][1]) > 1e-6:
+                    issues.append(
+                        "Storyboard ranges must be contiguous without gaps or overlaps."
+                    )
+            requested = float(requested_duration_seconds)
+            if abs(beats[-1][1] - requested) > 1e-6:
+                issues.append(
+                    "The final Storyboard range must end at the requested duration "
+                    f"of {requested:g} seconds."
+                )
+
+    structural_scan = re.sub(r'"[^"\n]*"', "", candidate)
+    if re.search(
+        r"<\s*(?:Picture|Video|Audio|Subject)\b[^<>]*>",
+        structural_scan,
+        flags=re.IGNORECASE,
+    ):
+        issues.append("T2V output must not contain structured media or Subject tags.")
+    if re.search(
+        r"\bref_(?:image|video|audio)(?:_audio)?_\d+\b",
+        structural_scan,
+        flags=re.IGNORECASE,
+    ):
+        issues.append("T2V output must not expose internal media socket names.")
+    if re.search(
+        r"\b(?:connected|provided|input|reference|source)\s+"
+        r"(?:image|video|audio|media|clip|attachment)s?\b",
+        structural_scan,
+        flags=re.IGNORECASE,
+    ):
+        issues.append("T2V output must describe content without source attribution.")
+
+    return ValidationResult(candidate, tuple(dict.fromkeys(issues)))
 
 
 def _field_body(text: str, field: str, next_field: str) -> str:

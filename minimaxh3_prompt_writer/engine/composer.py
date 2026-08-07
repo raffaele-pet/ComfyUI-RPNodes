@@ -26,13 +26,17 @@ from .prompts import (
     ref_user_payload,
     repair_system_prompt,
     repair_user_payload,
+    t2v_system_prompt,
+    t2v_user_payload,
 )
 from .validation import (
     ValidationResult,
     canonicalize_base_structure,
     canonicalize_ref_structure,
+    canonicalize_t2v_structure,
     validate_base_prompt,
     validate_ref_prompt,
+    validate_t2v_prompt,
 )
 
 
@@ -297,6 +301,85 @@ def compose_ref_prompt(
     if strict_validation and not final.valid:
         raise ValueError(
             "Gemma could not produce a structurally valid H3 Ref2VA prompt after one repair pass:\n- "
+            + "\n- ".join(final.issues)
+        )
+    return ComposeResult(final.text, skill, initial, final, repaired)
+
+
+def compose_t2v_prompt(
+    runner: GemmaRunner,
+    *,
+    raw_prompt: str,
+    length: int,
+    selected_skill_label: str,
+    observations: dict[str, str],
+    manifest: ReferenceManifest,
+    max_new_tokens: int,
+    sampling: SamplingConfig,
+    requested_duration_seconds: float | None = None,
+    strict_validation: bool = True,
+    after_call: Callable[[], None] = _noop,
+) -> ComposeResult:
+    """Compose a standalone T2V prompt from text plus optional media evidence."""
+
+    skill = resolve_skill(
+        runner,
+        selected_skill_label,
+        raw_prompt=raw_prompt,
+        observations=observations,
+        seed=sampling.seed,
+        after_call=after_call,
+    )
+    system_prompt = t2v_system_prompt(
+        length,
+        skill,
+        requested_duration_seconds=requested_duration_seconds,
+    )
+    task_payload = t2v_user_payload(
+        raw_prompt=raw_prompt,
+        length=length,
+        skill=skill,
+        manifest=manifest,
+        media_observations=observations,
+        requested_duration_seconds=requested_duration_seconds,
+    )
+    candidate = runner.generate_chat(
+        system_prompt,
+        task_payload,
+        max_new_tokens=max_new_tokens,
+        sampling=sampling,
+    )
+    after_call()
+    requested_duration = (
+        effective_duration(length)
+        if requested_duration_seconds is None
+        else float(requested_duration_seconds)
+    )
+    candidate = canonicalize_t2v_structure(candidate)
+    initial = validate_t2v_prompt(candidate, requested_duration)
+    final = initial
+    repaired = False
+    if not initial.valid:
+        repaired_text = _repair(
+            runner,
+            mode="T2V",
+            length=length,
+            authoritative_system_prompt=system_prompt,
+            original_task_payload=task_payload,
+            candidate=initial.text,
+            validation=initial,
+            max_new_tokens=max_new_tokens,
+            seed=sampling.seed + 10_000,
+            manifest=manifest,
+        )
+        after_call()
+        repaired_text = canonicalize_t2v_structure(repaired_text)
+        final = validate_t2v_prompt(repaired_text, requested_duration)
+        repaired = True
+    if strict_validation and not final.valid:
+        raise ValueError(
+            "Gemma could not produce a valid standalone H3 T2V prompt after one "
+            "repair pass:\n- "
             + "\n- ".join(final.issues)
         )
     return ComposeResult(final.text, skill, initial, final, repaired)

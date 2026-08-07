@@ -9,7 +9,7 @@ from engine.analyzers import (
     ensure_analysis_records,
 )
 from engine.constants import SKILL_CHOICES, SKILL_CORE, get_skill_profile
-from engine.composer import compose_base_prompt, compose_ref_prompt
+from engine.composer import compose_base_prompt, compose_ref_prompt, compose_t2v_prompt
 from engine.gemma import GemmaRunner, SamplingConfig
 from engine.media import prepare_reference_video, trim_audio
 from engine.manifests import (
@@ -26,14 +26,18 @@ from engine.prompts import (
     base_user_payload,
     gemma4_chat,
     ref_system_prompt,
+    t2v_system_prompt,
+    t2v_user_payload,
 )
 from engine.validation import (
     canonicalize_base_alignment,
     canonicalize_base_structure,
     canonicalize_ref_structure,
+    canonicalize_t2v_structure,
     sanitize_generated_text,
     validate_base_prompt,
     validate_ref_prompt,
+    validate_t2v_prompt,
 )
 
 
@@ -115,6 +119,10 @@ class ManifestTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "at least one connected reference"):
             ReferenceManifest.from_inputs()
 
+    def test_empty_reference_is_allowed_for_t2v_evidence(self):
+        manifest = ReferenceManifest.from_inputs(require_reference=False)
+        self.assertEqual(manifest.labels(), ())
+
 
 class _FakeVideo:
     ndim = 4
@@ -190,6 +198,60 @@ class AudioPreparationTests(unittest.TestCase):
         self.assertIsInstance(prepared, dict)
         self.assertEqual(tuple(prepared["waveform"].shape), (1, 2, 30))
         self.assertEqual(prepared["sample_rate"], 10)
+
+
+class T2VValidationTests(unittest.TestCase):
+    def _prompt(self):
+        return """Realistic live-action cinematic look, anamorphic dusk lighting, restrained film grain, and powerful natural movement.
+
+Scene overview:
+A runner crosses rain-dark rooftops while pursuers close in, ending on a committed leap above the city.
+
+Storyboard:
+[0s-1.5s] Shot 1: High side angle, the runner accelerates toward the roof edge as footsteps approach behind him.
+[1.5s-3s] Shot 2: Low wide angle, he launches across the gap and holds a stretched silhouette against the skyline.
+
+Camera:
+Clean hard cut between distinct angles, shallow focus, restrained handheld vibration during the leap.
+
+Audio:
+Wind, rapid footsteps, distant traffic, and a low percussive score that accents the launch."""
+
+    def test_valid_standalone_t2v_prompt(self):
+        result = validate_t2v_prompt(self._prompt(), 3.0)
+        self.assertTrue(result.valid, result.issues)
+
+    def test_storyboard_heading_and_markdown_are_canonicalized(self):
+        generated = self._prompt().replace(
+            "Storyboard:",
+            "**Storyboard (each shot a separate scene):**",
+        )
+        canonical = canonicalize_t2v_structure(generated)
+        self.assertIn("\nStoryboard:\n", canonical)
+        self.assertTrue(validate_t2v_prompt(canonical, 3.0).valid)
+
+    def test_media_tags_and_socket_names_are_rejected(self):
+        tagged = self._prompt().replace(
+            "A runner crosses",
+            "<Picture 1> from ref_image_0 shows a runner crossing",
+        )
+        result = validate_t2v_prompt(tagged, 3.0)
+        self.assertTrue(any("structured media" in issue for issue in result.issues))
+        self.assertTrue(any("socket names" in issue for issue in result.issues))
+
+    def test_source_attribution_is_rejected(self):
+        attributed = self._prompt().replace(
+            "A runner crosses",
+            "The reference video shows a runner crossing",
+        )
+        result = validate_t2v_prompt(attributed, 3.0)
+        self.assertTrue(any("source attribution" in issue for issue in result.issues))
+
+    def test_storyboard_must_cover_requested_duration_contiguously(self):
+        broken = self._prompt().replace("[1.5s-3s]", "[2s-2.5s]")
+        result = validate_t2v_prompt(broken, 3.0)
+        self.assertTrue(any("contiguous" in issue for issue in result.issues))
+        self.assertTrue(any("requested duration" in issue for issue in result.issues))
 
 
 class ValidationTests(unittest.TestCase):
@@ -1392,6 +1454,47 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("<Video 1> <- ref_video_0", prompt)
         self.assertIn("<Audio 2> <- ref_audio_0", prompt)
 
+    def test_t2v_contract_is_standalone_and_uses_storyboard_structure(self):
+        prompt = t2v_system_prompt(
+            73,
+            get_skill_profile(SKILL_CORE),
+            requested_duration_seconds=3.0,
+        )
+        self.assertIn("target H3\nmodel receives text only", prompt)
+        self.assertIn("`Scene overview:`", prompt)
+        self.assertIn("`Storyboard:`", prompt)
+        self.assertIn("`[Xs-Ys] Shot N: description`", prompt)
+        self.assertIn("final\n   range ends at 3", prompt)
+        self.assertIn("Never output structured source tags", prompt)
+
+    def test_t2v_payload_neutralizes_reference_labels_and_sockets(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_image_0=object(),
+            ref_video_0=object(),
+            ref_audio_0=object(),
+        )
+        payload = t2v_user_payload(
+            raw_prompt="Make the athlete run.",
+            length=73,
+            skill=get_skill_profile(SKILL_CORE),
+            manifest=manifest,
+            media_observations={
+                "reference_images": "<Picture 1>: a drawn athlete.",
+                "ref_video_0": "<Video 1>: fast running motion.",
+                "ref_audio_0": "<Audio 1>: rhythmic footfalls.",
+            },
+            requested_duration_seconds=3.0,
+        )
+        self.assertNotIn("Picture 1", payload)
+        self.assertNotIn("Video 1", payload)
+        self.assertNotIn("Audio 1", payload)
+        self.assertNotIn("ref_image_0", payload)
+        self.assertNotIn("ref_video_0", payload)
+        self.assertNotIn("ref_audio_0", payload)
+        self.assertIn("image evidence 1", payload)
+        self.assertIn("video evidence 1", payload)
+        self.assertIn("audio evidence 1", payload)
+
     def test_auto_profile_requires_explicit_creative_treatment(self):
         prompt = auto_skill_system_prompt()
         self.assertIn("raw user request explicitly asks", prompt)
@@ -1488,6 +1591,81 @@ class ComposerRepairTests(unittest.TestCase):
         self.assertIn("You repair one structurally invalid", repair_system)
         self.assertIn("Make the bird lift one wing.", repair_payload)
         self.assertIn("A blue bird on a perch.", repair_payload)
+
+    def test_t2v_uses_media_as_hidden_evidence_without_reference_tags(self):
+        manifest = ReferenceManifest.from_inputs(ref_image_0=object())
+        generated = """Photorealistic action-cinema texture, wet dusk lighting, anamorphic depth, and restrained film grain.
+
+Scene overview:
+An athlete sprints across an empty rooftop and completes a clean leap over a narrow gap.
+
+Storyboard:
+[0s-1.5s] Shot 1: Side tracking view, the athlete accelerates toward the edge as shoes strike wet concrete.
+[1.5s-3s] Shot 2: Low wide view, the athlete clears the gap and lands in a controlled crouch.
+
+Camera:
+One hard cut at the leap, shallow focus, natural tracking motion, and no artificial zoom.
+
+Audio:
+Wind, firm footfalls, fabric movement, and a restrained percussive score with one landing accent."""
+        runner = _ScriptedRunner([generated])
+        result = compose_t2v_prompt(
+            runner,
+            raw_prompt="Show the athlete running and jumping.",
+            length=73,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "reference_images": "<Picture 1>: a hand-drawn athlete in a blue uniform."
+            },
+            manifest=manifest,
+            max_new_tokens=2560,
+            sampling=SamplingConfig(do_sample=False, seed=7),
+            requested_duration_seconds=3.0,
+        )
+        self.assertFalse(result.repaired)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertNotIn("<Picture", result.prompt)
+        system_prompt, task_payload, _ = runner.calls[0]
+        self.assertIn("receives text only", system_prompt)
+        self.assertNotIn("Picture 1", task_payload)
+        self.assertNotIn("ref_image_0", task_payload)
+        self.assertIn("image evidence 1", task_payload)
+
+    def test_t2v_repairs_a_leaked_reference_tag(self):
+        leaked = """Photorealistic cinematic style with natural motion.
+
+Scene overview:
+<Picture 1> supplies the athlete who runs across a rooftop.
+
+Storyboard:
+[0s-3s] Shot 1: The athlete crosses the rooftop and stops at the edge.
+
+Camera:
+A steady lateral tracking shot.
+
+Audio:
+Footsteps, wind, and low percussion."""
+        repaired = leaked.replace(
+            "<Picture 1> supplies the athlete who",
+            "An athlete",
+        )
+        manifest = ReferenceManifest.from_inputs(ref_image_0=object())
+        runner = _ScriptedRunner([leaked, repaired])
+        result = compose_t2v_prompt(
+            runner,
+            raw_prompt="Show the athlete running.",
+            length=73,
+            selected_skill_label=SKILL_CORE,
+            observations={"reference_images": "<Picture 1>: an athlete."},
+            manifest=manifest,
+            max_new_tokens=2560,
+            sampling=SamplingConfig(do_sample=False, seed=7),
+            requested_duration_seconds=3.0,
+        )
+        self.assertTrue(result.repaired)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertNotIn("<Picture", result.prompt)
+        self.assertIn("Remove every Picture, Video, Audio", runner.calls[1][0])
 
     def test_ref_structural_metadata_is_fixed_without_a_generation_repair(self):
         manifest = ReferenceManifest.from_inputs(
