@@ -49,6 +49,84 @@ _FALLBACK_OBSERVATION = (
     "budget; use only the connected source role and explicit user request."
 )
 
+_META_PHRASES = (
+    "first output characters",
+    "restate the task",
+    "discuss instructions",
+    "one compact english block",
+    "write one compact english block",
+    "record only prompt-useful",
+    "starts with `<",
+    "review against constraints",
+)
+
+_LEADING_META_PHRASES = (
+    "first output characters",
+    "restate the task",
+    "discuss instructions",
+    "one compact english block",
+    "write one compact english block",
+    "record only prompt-useful",
+    "start with `<",
+)
+
+
+def _usable_observation_body(body: str) -> bool:
+    lowered = body.lower()
+    if not body.strip() or body.startswith(_FALLBACK_OBSERVATION):
+        return False
+    if any(phrase in lowered for phrase in _META_PHRASES):
+        return False
+    words = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ0-9]+", body)
+    if len(words) < 4:
+        return False
+    if lowered.count("[unclear]") >= 2:
+        return False
+    return True
+
+
+def _normalize_single_labeled_record(text: str, label: str) -> str:
+    match = re.search(
+        rf"(?ms)^{re.escape(label)}:[ \t]*(.*?)"
+        r"(?=^<(?:Picture|Video|Audio) [1-9]\d*>:|\Z)",
+        text,
+    )
+    if not match:
+        return ""
+    body = match.group(1).strip()
+    body = re.sub(rf"^`?{re.escape(label)}`?:\s*", "", body).strip()
+
+    # Gemma occasionally repeats compact task constraints after the correct
+    # label and only then starts describing the asset. Keep the facts after
+    # its explicit analysis marker, never the repeated instructions.
+    if any(phrase in body[:160].lower() for phrase in _LEADING_META_PHRASES):
+        analysis_markers = list(
+            re.finditer(
+                r"(?is)\b(?:analy(?:zing|sis)(?:\s+of)?(?:\s+the)?"
+                r"(?:\s+(?:attached\s+)?(?:picture|image|video|audio))?"
+                r"(?:\s*\([^)]*\))?)\s*:\s*",
+                body,
+            )
+        )
+        if not analysis_markers:
+            return ""
+        body = body[analysis_markers[-1].end() :].strip()
+
+    # Conversely, stop when the model switches from visible/audible facts to
+    # drafting or self-review commentary.
+    trailing_meta = re.search(
+        r"(?is)\b(?:drafting (?:the )?description|review against constraints|"
+        r"checking (?:the )?(?:answer|constraints)|final answer)\s*:",
+        body,
+    )
+    if trailing_meta:
+        body = body[: trailing_meta.start()].strip()
+
+    body = re.sub(r"\s+", " ", body).strip(" `*\n\t")
+    if not _usable_observation_body(body):
+        return ""
+    return f"{label}: {body}"
+
 
 def _recover_single_source_analysis(text: str) -> str:
     """Recover visible/audible facts from Gemma's occasional meta preamble.
@@ -108,17 +186,25 @@ def _has_labeled_record(text: str, label: str) -> bool:
     if not match:
         return False
     body = match.group(1).strip()
-    return bool(body and not body.startswith(_FALLBACK_OBSERVATION))
+    return _usable_observation_body(body)
 
 
 def ensure_analysis_records(text: str, labels: list[str]) -> str:
     """Guarantee traceable, non-hallucinated records for every analyzed label."""
 
     value = clean_analysis_text(text)
-    if len(labels) == 1 and not _has_labeled_record(value, labels[0]):
-        recovered = _recover_single_source_analysis(text)
-        if recovered:
-            value = f"{labels[0]}: {recovered}"
+    if len(labels) == 1:
+        normalized = _normalize_single_labeled_record(value, labels[0])
+        if normalized:
+            value = normalized
+        else:
+            recovered = _recover_single_source_analysis(text)
+            if recovered:
+                value = _normalize_single_labeled_record(
+                    f"{labels[0]}: {recovered}", labels[0]
+                )
+            else:
+                value = ""
     missing = [label for label in labels if not _has_labeled_record(value, label)]
     if missing:
         additions = [f"{label}: {_FALLBACK_OBSERVATION}" for label in missing]

@@ -501,6 +501,60 @@ def _canonicalize_timeline_cut_markers(body: str) -> str:
     return normalized + ("\n" if trailing_newline else "")
 
 
+def _canonicalize_invalid_ref_cut_times(body: str, duration: float) -> str:
+    """Repair non-positive or unordered Ref2VA cuts deterministically.
+
+    Gemma can preserve the correct shot order while assigning ``00:00.000``
+    to a later shot, including after a repair pass. When any later timestamp is
+    missing or invalid, distribute all later cuts evenly inside the requested
+    duration. This changes only structural timing metadata; shot content and
+    order remain untouched.
+    """
+
+    matches = list(re.finditer(r"\[Shot ([1-9]\d*)\]", body))
+    ids = [int(match.group(1)) for match in matches]
+    if len(matches) < 2 or ids != list(range(1, len(matches) + 1)):
+        return body
+
+    exact_timestamp = re.compile(r"^ At (\d{2}):(\d{2})\.(\d{3}),")
+    timestamps: list[float] = []
+    valid = True
+    for index, match in enumerate(matches[1:], start=1):
+        next_start = matches[index + 1].start() if index + 1 < len(matches) else len(body)
+        segment = body[match.end() : next_start]
+        timestamp_match = exact_timestamp.match(segment)
+        if timestamp_match is None:
+            valid = False
+            break
+        minutes, seconds, millis = (int(value) for value in timestamp_match.groups())
+        timestamp = minutes * 60 + seconds + millis / 1000.0
+        if seconds >= 60 or timestamp <= 0 or timestamp >= duration - 1e-6:
+            valid = False
+            break
+        timestamps.append(timestamp)
+    if valid and timestamps == sorted(timestamps) and len(timestamps) == len(set(timestamps)):
+        return body
+    if duration <= 0:
+        return body
+
+    leading_time = re.compile(
+        r"^\s*(?:(?i:at)\s+)?(?:\d{1,3}:\d{2}(?:\.\d+)?|"
+        r"\d+(?:\.\d+)?\s*(?:s|seconds?))\s*,?\s*"
+    )
+    result = body
+    shot_count = len(matches)
+    for index in range(shot_count - 1, 0, -1):
+        match = matches[index]
+        segment_end = matches[index + 1].start() if index + 1 < shot_count else len(body)
+        description = leading_time.sub("", body[match.end() : segment_end], count=1).strip()
+        cut = duration * index / shot_count
+        replacement = f"{match.group(0)} At {_format_cut_timestamp(cut)},"
+        if description:
+            replacement += " " + description
+        result = result[: match.start()] + replacement + result[segment_end:]
+    return result
+
+
 def _isolate_last_base_schema(text: str, mode: str) -> str:
     """Keep the last complete base schema when Gemma drafts the main field twice."""
 
@@ -893,6 +947,112 @@ def _canonicalize_ref_retention(
     return "\n".join(line for index, line in enumerate(lines) if index not in removed)
 
 
+def _synchronize_ref_audio_signature(
+    summary: str,
+    retention: str,
+    manifest: ReferenceManifest,
+) -> str:
+    """Make summary audio task types agree with canonical relationships."""
+
+    match = re.match(r"^\[([^\]\n]+)\](?=$|\s)", summary.strip())
+    if match is None or not manifest.audios:
+        return summary
+    signature = [part.strip().lower() for part in match.group(1).split("+")]
+    signature = [
+        item for item in signature if item not in {"audio reuse", "audio reference"}
+    ]
+    markers: list[str] = []
+    for label in manifest.labels("audio"):
+        relation = re.search(
+            rf"(?m)^{re.escape(label)}(?:\s+\([^\n)]*\))?:\s*"
+            r"(fully_copy|partially_copy|reference|weak_reference)\s*-",
+            retention,
+            flags=re.IGNORECASE,
+        )
+        if relation:
+            markers.append(relation.group(1).lower())
+    if any(marker in {"fully_copy", "partially_copy"} for marker in markers):
+        signature.append("audio reuse")
+    if any(marker in {"reference", "weak_reference"} for marker in markers):
+        signature.append("audio reference")
+    prose = summary.strip()[match.end() :].lstrip()
+    prose = _strip_leading_ref_task_echo(
+        prose,
+        {
+            "keyframe completion",
+            "reference generation",
+            "video editing",
+            "video continuation",
+            "audio reuse",
+            "audio reference",
+        },
+    )
+    canonical_signature = "[" + " + ".join(dict.fromkeys(signature)) + "]"
+    return canonical_signature + (" " + prose if prose else "")
+
+
+def _audio_reuse_is_explicit(raw_user_request: str) -> bool:
+    value = str(raw_user_request or "").lower()
+    return bool(
+        re.search(
+            r"\b(?:copy|copies|copied|reuse|reuses|reused|as-is|same signal|"
+            r"retain (?:the )?(?:original )?(?:audio|soundtrack)|"
+            r"keep (?:the )?(?:original )?(?:audio|soundtrack)|"
+            r"copia(?:re)?|riusa(?:re)?|riutilizza(?:re)?|identic[oa]|"
+            r"mantieni (?:l['’])?(?:audio|soundtrack) originale)\b",
+            value,
+        )
+    )
+
+
+def _default_ref_audio_to_reference(
+    retention: str,
+    manifest: ReferenceManifest,
+    raw_user_request: str | None,
+) -> str:
+    """Do not turn generic use/guidance language into signal copying."""
+
+    if raw_user_request is None or _audio_reuse_is_explicit(raw_user_request):
+        return retention
+    value = retention
+    for label in manifest.labels("audio"):
+        value = re.sub(
+            rf"(?m)^{re.escape(label)}(\s+\([^\n)]*\))?:\s*"
+            r"(?:fully_copy|partially_copy)\s*-\s*[^\n]*$",
+            lambda match: (
+                f"{label}{match.group(1) or ''}: reference - its audible properties "
+                "guide the target without copying the source signal."
+            ),
+            value,
+            flags=re.IGNORECASE,
+        )
+    return value
+
+
+def _remove_unrequested_audio_copy_prose(
+    body: str,
+    manifest: ReferenceManifest,
+    raw_user_request: str | None,
+) -> str:
+    if (
+        raw_user_request is None
+        or _audio_reuse_is_explicit(raw_user_request)
+        or not manifest.audios
+    ):
+        return body
+    value = body
+    substitutions = (
+        (r"\b(?:fully|partially)\s+copied\b", "used only as a reference"),
+        (r"\b(?:copied|reused)\s+as-is\b", "used only as a reference"),
+        (r"\b(?:copied|reused)\b", "referenced"),
+        (r"\b(?:copy|reuse)\b", "reference"),
+        (r"\b(?:an|the)\s+exact\s+(?:source\s+)?signal\b", "audible reference properties"),
+    )
+    for pattern, replacement in substitutions:
+        value = re.sub(pattern, replacement, value, flags=re.IGNORECASE)
+    return value
+
+
 def _compact_seconds_value(value: float) -> str:
     return f"{float(value):.6f}".rstrip("0").rstrip(".")
 
@@ -957,6 +1117,7 @@ def canonicalize_ref_structure(
     length: int,
     manifest: ReferenceManifest,
     requested_duration_seconds: float | None = None,
+    raw_user_request: str | None = None,
 ) -> str:
     """Render deterministic Ref2VA metadata and formatting around model prose."""
 
@@ -978,6 +1139,14 @@ def canonicalize_ref_structure(
     bodies[0] = subject_body
     bodies[1] = _canonicalize_ref_summary(bodies[1], manifest)
     bodies[2] = _canonicalize_ref_retention(bodies[2], subject_body, subject_ids, manifest)
+    bodies[2] = _default_ref_audio_to_reference(
+        bodies[2], manifest, raw_user_request
+    )
+    for index in (0, 1, 3, 4, 5):
+        bodies[index] = _remove_unrequested_audio_copy_prose(
+            bodies[index], manifest, raw_user_request
+        )
+    bodies[1] = _synchronize_ref_audio_signature(bodies[1], bodies[2], manifest)
     bodies[3] = _canonicalize_timeline_cut_markers(bodies[3])
     if requested_duration_seconds is not None:
         bodies[3] = _canonicalize_requested_timeline_tail(
@@ -985,6 +1154,12 @@ def canonicalize_ref_structure(
             float(requested_duration_seconds),
             effective_duration(length),
         )
+    cut_duration = (
+        float(requested_duration_seconds)
+        if requested_duration_seconds is not None
+        else effective_duration(length)
+    )
+    bodies[3] = _canonicalize_invalid_ref_cut_times(bodies[3], cut_duration)
 
     result = "\n\n".join(f"{field}\n{body}" for field, body in zip(REF_FIELDS, bodies))
     return _canonicalize_speaker_groups(result).strip()
@@ -1458,5 +1633,22 @@ def validate_ref_prompt(
             issues.append("`audio reuse` requires a fully_copy or partially_copy Audio relationship.")
         if "audio reference" in task_types and not has_reference:
             issues.append("`audio reference` requires a reference or weak_reference Audio relationship.")
+        if "audio reuse" not in task_types:
+            music_headers = _header_matches(candidate, REF_FIELDS[5])
+            non_retention = "\n".join(
+                _field_body(candidate, REF_FIELDS[index], REF_FIELDS[index + 1])
+                for index in (0, 1, 3, 4)
+            )
+            if music_headers:
+                non_retention += "\n" + candidate[music_headers[0].end() :]
+            if re.search(
+                r"(?i)\b(?:fully|partially)\s+copied\b|"
+                r"\b(?:copied|reused)\s+as-is\b|"
+                r"\b(?:copy|reuse)\s+(?:the\s+)?(?:source\s+)?(?:audio|soundtrack|signal)\b",
+                non_retention,
+            ):
+                issues.append(
+                    "Audio-copy prose requires `audio reuse` and explicit copy intent."
+                )
 
     return ValidationResult(candidate, tuple(dict.fromkeys(issues)))

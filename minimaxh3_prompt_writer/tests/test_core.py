@@ -638,6 +638,153 @@ N/A"""
         result = validate_ref_prompt(text, 124, manifest)
         self.assertTrue(result.valid, result.issues)
 
+    def test_ref_zero_time_later_shot_is_canonicalized_inside_duration(self):
+        manifest = ReferenceManifest.from_inputs(ref_image_0=object())
+        generated = """subject_definitions:
+<Subject 1> is the man from <Picture 1>, retaining his face and orange coat.
+
+summary:
+[reference generation] The target shows <Subject 1> speaking and reacting.
+
+retention_analysis:
+<Subject 1>: fully_preserved - the same face and orange coat remain visible.
+<Picture 1>: fully_preserved - its visible identity cues are retained.
+
+detailed_description:
+[Shot 1] A medium shot shows <Subject 1> from <Picture 1> begin speaking.
+[Shot 2] At 00:00.000, a close shot shows the same subject finish and hold.
+
+overall_soundscape:
+Quiet room tone and soft speech.
+
+non_diegetic_music:
+N/A"""
+        canonical = canonicalize_ref_structure(
+            generated, 73, manifest, requested_duration_seconds=3.0
+        )
+        self.assertIn("[Shot 2] At 00:01.500,", canonical)
+        result = validate_ref_prompt(canonical, 73, manifest)
+        self.assertTrue(result.valid, result.issues)
+
+    def test_mixed_audio_relationships_synchronize_summary_signature(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_video_0=object(),
+            ref_video_audio_0=object(),
+            ref_audio_0=object(),
+        )
+        generated = """subject_definitions:
+<Video 1> supplies the visible action and camera timing.
+<Audio 1> is the enabled soundtrack of <Video 1>.
+<Audio 2> supplies independent sound-design guidance.
+
+summary:
+[reference generation + audio reference] The target follows <Video 1>, copies <Audio 1>, and uses <Audio 2> as a sound reference.
+
+retention_analysis:
+<Video 1>: weak_reference - its motion and camera timing guide the target.
+<Audio 1>: fully_copy - the enabled soundtrack signal is reused as-is.
+<Audio 2>: reference - its audible properties guide new sound design.
+
+detailed_description:
+[Shot 1] A wide shot follows the action rhythm of <Video 1>, synchronized to copied <Audio 1> while new effects follow <Audio 2>.
+
+overall_soundscape:
+The copied <Audio 1> signal plays with new effects guided by <Audio 2>.
+
+non_diegetic_music:
+N/A"""
+        canonical = canonicalize_ref_structure(
+            generated, 73, manifest, requested_duration_seconds=3.0
+        )
+        self.assertIn(
+            "[reference generation + audio reuse + audio reference]", canonical
+        )
+        result = validate_ref_prompt(canonical, 73, manifest)
+        self.assertTrue(result.valid, result.issues)
+
+    def test_generic_audio_guidance_cannot_become_signal_copying(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_video_0=object(),
+            ref_video_audio_0=object(),
+            ref_audio_0=object(),
+        )
+        generated = """subject_definitions:
+<Video 1> supplies visible action.
+<Audio 1> supplies music guidance.
+<Audio 2> supplies impact-sound guidance.
+
+summary:
+[reference generation] reference generation + audio reuse: The target uses <Video 1>, <Audio 1>, and <Audio 2> as guidance.
+
+retention_analysis:
+<Video 1>: weak_reference - its motion guides the target.
+<Audio 1>: fully_copy - the soundtrack is reused as-is.
+<Audio 2>: fully_copy - the impact is reused as-is.
+
+detailed_description:
+[Shot 1] A wide shot follows <Video 1>; music follows <Audio 1> and an impact follows <Audio 2>.
+
+overall_soundscape:
+An impact sound follows <Audio 2>.
+
+non_diegetic_music:
+<Audio 1> supplies music that is fully copied."""
+        canonical = canonicalize_ref_structure(
+            generated,
+            73,
+            manifest,
+            requested_duration_seconds=3.0,
+            raw_user_request="Use the audio references to guide the new scene.",
+        )
+        self.assertIn("[reference generation + audio reference]", canonical)
+        self.assertNotIn(
+            "[reference generation + audio reference] reference generation", canonical
+        )
+        self.assertNotIn("fully_copy", canonical)
+        self.assertNotIn("fully copied", canonical.lower())
+        self.assertIn("used only as a reference", canonical)
+        self.assertEqual(canonical.count(": reference -"), 2)
+        result = validate_ref_prompt(canonical, 73, manifest)
+        self.assertTrue(result.valid, result.issues)
+        contradictory = canonical.replace(
+            "used only as a reference", "fully copied", 1
+        )
+        contradiction_result = validate_ref_prompt(contradictory, 73, manifest)
+        self.assertTrue(
+            any("Audio-copy prose" in issue for issue in contradiction_result.issues)
+        )
+
+    def test_explicit_audio_copy_request_preserves_reuse_relationship(self):
+        manifest = ReferenceManifest.from_inputs(ref_audio_0=object())
+        generated = """subject_definitions:
+<Audio 1> supplies the original soundtrack signal.
+
+summary:
+[audio reuse] The target copies <Audio 1> as-is.
+
+retention_analysis:
+<Audio 1>: fully_copy - the original signal is reused as-is.
+
+detailed_description:
+[Shot 1] A static shot plays copied <Audio 1>.
+
+overall_soundscape:
+<Audio 1> is copied as-is.
+
+non_diegetic_music:
+N/A"""
+        canonical = canonicalize_ref_structure(
+            generated,
+            73,
+            manifest,
+            requested_duration_seconds=3.0,
+            raw_user_request="Copy the original audio as-is.",
+        )
+        self.assertIn("[audio reuse]", canonical)
+        self.assertIn("<Audio 1>: fully_copy -", canonical)
+        result = validate_ref_prompt(canonical, 73, manifest)
+        self.assertTrue(result.valid, result.issues)
+
     def test_nonexistent_ref_label_is_rejected(self):
         manifest = ReferenceManifest.from_inputs(ref_audio_0=object())
         text = """subject_definitions:
@@ -1295,6 +1442,36 @@ class BaseMediaAnalysisTests(unittest.TestCase):
         self.assertIn("blue hair in a bun", value)
         self.assertNotIn("I need to summarize", value)
 
+    def test_labeled_record_removes_repeated_instructions_before_image_facts(self):
+        raw = """<Picture 2>: The first output characters must be `<Picture 2>:`.
+Never restate the task or discuss instructions. Write one compact English block.
+Analyzing the image (Picture 2): It is a digital cartoon illustration of a
+young character with blue hair in a bun, large purple eyes, a white shirt, and
+a shocked expression in a dark star-decorated room."""
+        value = ensure_analysis_records(raw, ["<Picture 2>"])
+        self.assertTrue(value.startswith("<Picture 2>: It is a digital cartoon"))
+        self.assertIn("blue hair in a bun", value)
+        self.assertNotIn("first output characters", value.lower())
+        self.assertNotIn("instructions", value.lower())
+
+    def test_labeled_record_drops_trailing_drafting_and_review_commentary(self):
+        raw = """<Picture 1>: A 3D-rendered man with brown hair and a beard wears
+an orange hoodie and smiles with his arms crossed against a cyan background.
+Drafting the description: A 3D rendered illustration of a man.
+Review against constraints: Starts with the requested label."""
+        value = ensure_analysis_records(raw, ["<Picture 1>"])
+        self.assertIn("orange hoodie", value)
+        self.assertNotIn("Drafting", value)
+        self.assertNotIn("Review", value)
+
+    def test_audio_record_with_only_unclear_categories_is_rejected(self):
+        raw = (
+            "<Audio 1>: 0:00-0:03 [Music: [unclear] instrumentation, tempo, "
+            "and dynamics. Ambience: [unclear].]"
+        )
+        value = ensure_analysis_records(raw, ["<Audio 1>"])
+        self.assertIn("<Audio 1>: No reliable observation", value)
+
 
 class ReferenceMediaAnalysisTests(unittest.TestCase):
     def test_images_videos_paired_audio_and_standalone_audio_are_routed_safely(self):
@@ -1396,6 +1573,41 @@ class ReferenceMediaAnalysisTests(unittest.TestCase):
         self.assertEqual(len(runner.calls), 1)
         self.assertEqual(tuple(observations), ("ref_audio_0",))
         self.assertEqual(runner.calls[0][1]["audio"]["waveform"].shape[-1], 37_333)
+
+    def test_uninformative_audio_is_retried_until_concrete(self):
+        import torch
+
+        class RetryRunner:
+            def __init__(self):
+                self.calls = []
+
+            def generate_media_analysis(self, prompt, **kwargs):
+                self.calls.append((prompt, kwargs))
+                if len(self.calls) == 1:
+                    return (
+                        "<Audio 1>: Music: [unclear] instrumentation and tempo. "
+                        "Ambience: [unclear]."
+                    )
+                return (
+                    "<Audio 1>: 0:00-0:03 loud distorted electric-guitar noise "
+                    "with an aggressive attack; no intelligible speech."
+                )
+
+        audio = {"waveform": torch.zeros(1, 1, 160_000), "sample_rate": 16_000}
+        runner = RetryRunner()
+        manifest = ReferenceManifest.from_inputs(ref_audio_0=audio)
+        observations = analyze_reference_media(
+            runner,
+            manifest=manifest,
+            ref_audio_0=audio,
+            target_frame_count=56,
+            max_new_tokens=256,
+        )
+        self.assertEqual(len(runner.calls), 2)
+        self.assertEqual(
+            [call[1]["max_new_tokens"] for call in runner.calls], [256, 512]
+        )
+        self.assertIn("distorted electric-guitar", observations["ref_audio_0"])
 
 
 class _FakeClip:
@@ -1539,6 +1751,9 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("`[Xs-Ys] Shot N: description`", prompt)
         self.assertIn("final\n   range ends at 3", prompt)
         self.assertIn("Never output structured source tags", prompt)
+        self.assertIn("Account for every item", prompt)
+        self.assertIn("Never silently discard an item", prompt)
+        self.assertIn("silently verify that every optional evidence", prompt)
 
     def test_t2v_payload_neutralizes_reference_labels_and_sockets(self):
         manifest = ReferenceManifest.from_inputs(
@@ -1567,6 +1782,7 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("image evidence 1", payload)
         self.assertIn("video evidence 1", payload)
         self.assertIn("audio evidence 1", payload)
+        self.assertIn("Every optional evidence list item must contribute", payload)
 
     def test_auto_profile_requires_explicit_creative_treatment(self):
         prompt = auto_skill_system_prompt()

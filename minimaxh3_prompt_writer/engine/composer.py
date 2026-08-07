@@ -272,6 +272,7 @@ def compose_ref_prompt(
         length,
         manifest,
         requested_duration_seconds=requested_duration_seconds,
+        raw_user_request=raw_prompt,
     )
     initial = validate_ref_prompt(candidate, length, manifest)
     final = initial
@@ -295,6 +296,7 @@ def compose_ref_prompt(
             length,
             manifest,
             requested_duration_seconds=requested_duration_seconds,
+            raw_user_request=raw_prompt,
         )
         final = validate_ref_prompt(repaired_text, length, manifest)
         repaired = True
