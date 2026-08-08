@@ -1,6 +1,7 @@
 import { app } from "/scripts/app.js";
 
 const TARGETS = new Set(["RPH3T2VPromptWriter", "RPH3REF2VPromptWriter"]);
+const BASE_OUTPUT_COUNT = 3;
 const REFERENCE_PATTERN = /^ref_(?:image_[0-8]|video_[0-2]|video_audio_[0-2]|audio_[0-2])$/;
 const GROUP_ORDER = new Map([
   ["image", 0],
@@ -60,6 +61,42 @@ function graphLink(graph, linkId) {
   return graph?.links?.[linkId] ?? graph?.links?.get?.(linkId);
 }
 
+function legacyReferenceLinkIds(config) {
+  return (config?.outputs || [])
+    .slice(BASE_OUTPUT_COUNT)
+    .filter((output) => REFERENCE_PATTERN.test(output?.name || ""))
+    .flatMap((output) => output.links || []);
+}
+
+function stripLegacyReferenceOutputs(config) {
+  if (Array.isArray(config?.outputs)) {
+    config.outputs = config.outputs.slice(0, BASE_OUTPUT_COUNT);
+  }
+}
+
+function removeGraphLink(graph, linkId) {
+  const link = graphLink(graph, linkId);
+  if (!link) return;
+  if (typeof graph.removeLink === "function") {
+    graph.removeLink(linkId);
+    return;
+  }
+  const target = graph.getNodeById?.(link.target_id);
+  const input = target?.inputs?.[link.target_slot];
+  if (input?.link === linkId) input.link = null;
+  if (typeof graph.links?.delete === "function") graph.links.delete(linkId);
+  else if (graph.links) delete graph.links[linkId];
+}
+
+function stripNodeReferenceOutputs(node, legacyLinkIds) {
+  const linkIds = new Set(legacyLinkIds);
+  for (const output of (node.outputs || []).slice(BASE_OUTPUT_COUNT)) {
+    for (const linkId of output?.links || []) linkIds.add(linkId);
+  }
+  for (const linkId of linkIds) removeGraphLink(node.graph, linkId);
+  node.outputs = (node.outputs || []).slice(0, BASE_OUTPUT_COUNT);
+}
+
 function canonicalizeNodeInputs(node) {
   node.inputs = canonicalInputs(node.inputs);
   node.inputs.forEach((input, index) => {
@@ -77,9 +114,14 @@ app.registerExtension({
 
     const originalConfigure = nodeType.prototype.onConfigure;
     nodeType.prototype.onConfigure = function (config) {
+      const legacyLinkIds = legacyReferenceLinkIds(config);
       canonicalizeConfigInputs(config);
+      stripLegacyReferenceOutputs(config);
       const result = originalConfigure?.apply(this, arguments);
-      queueMicrotask(() => canonicalizeNodeInputs(this));
+      queueMicrotask(() => {
+        stripNodeReferenceOutputs(this, legacyLinkIds);
+        canonicalizeNodeInputs(this);
+      });
       return result;
     };
 
