@@ -121,7 +121,9 @@ compact English and Italian Markdown notes with the repository link.
 
 Creates a standalone text-to-video prompt. Optional images, video frame batches,
 and audio help Gemma describe appearance, motion, and sound, but the final prompt
-contains no Picture, Video, Audio, Subject, reference, or socket tags.
+contains no Picture, Video, Audio, Subject, reference, or socket tags. Reference
+inputs grow automatically up to 9 images, 3 videos, 3 paired soundtracks, and 3
+standalone audio clips.
 
 ### RP H3-I2V Prompt Writer
 
@@ -132,14 +134,17 @@ and optional first and last frames.
 
 Creates a Reference-to-Video prompt from connected reference images, video
 frame batches, paired video audio, and standalone audio while keeping MiniMax's
-Picture, Video, and Audio labels consistent.
+Picture, Video, and Audio labels consistent. Its reference inputs grow to the
+same native H3 limits, and each connected source gets a matching pass-through
+output for direct connection to `MiniMax H3 Reference to Video`.
 
 All three nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
 loaded as `stable_diffusion`. The native H3 generation node must keep its
 separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
 `prompt`, the H3-compatible `aligned_length`, and an `analysis_report`. Each
 connected image, video, or audio asset is analyzed independently so every input
-has its own traceable observation.
+has its own traceable observation. The shared defaults are `max_token_length =
+1024`, `media_analysis_tokens = 256`, and fixed `seed = 42`.
 
 ## Installation
 

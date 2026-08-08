@@ -8,7 +8,7 @@ from typing import Any
 
 from .constants import FPS
 from .gemma import GemmaRunner
-from .manifests import ReferenceManifest
+from .manifests import ReferenceManifest, collect_reference_inputs
 from .media import first_image, prepare_reference_video, trim_audio
 from .prompts import (
     keyframes_analysis_prompt,
@@ -296,49 +296,45 @@ def analyze_reference_media(
     runner: GemmaRunner,
     *,
     manifest: ReferenceManifest,
-    ref_image_0: Any = None,
-    ref_image_1: Any = None,
-    ref_image_2: Any = None,
-    ref_video_0: Any = None,
-    ref_video_1: Any = None,
-    ref_video_audio_0: Any = None,
-    ref_audio_0: Any = None,
+    ref_images: dict[str, Any] | None = None,
+    ref_videos: dict[str, Any] | None = None,
+    ref_video_audios: dict[str, Any] | None = None,
+    ref_audios: dict[str, Any] | None = None,
     target_frame_count: int,
     max_new_tokens: int = 512,
     seed: int = 0,
     after_call: Callable[[], None] = _noop,
+    **individual_inputs: Any,
 ) -> dict[str, str]:
     observations: dict[str, str] = {}
     call_index = 0
     analysis_seconds = float(target_frame_count) / FPS
-    image_values = {
-        "ref_image_0": ref_image_0,
-        "ref_image_1": ref_image_1,
-        "ref_image_2": ref_image_2,
-    }
+    values = collect_reference_inputs(
+        ref_images=ref_images,
+        ref_videos=ref_videos,
+        ref_video_audios=ref_video_audios,
+        ref_audios=ref_audios,
+        **individual_inputs,
+    )
     image_entries = [
         (asset.label, asset.socket)
         for asset in manifest.pictures
-        if image_values.get(asset.socket) is not None
+        if values.get(asset.socket) is not None
     ]
     for label, socket in image_entries:
         observations[socket] = _generate_complete_record(
             runner,
             prompt=reference_images_analysis_prompt([(label, socket)]),
             label=label,
-            image=first_image(image_values[socket]),
+            image=first_image(values[socket]),
             max_new_tokens=max_new_tokens,
             seed=seed + call_index,
             after_call=after_call,
         )
         call_index += 1
 
-    video_values = {
-        "ref_video_0": ref_video_0,
-        "ref_video_1": ref_video_1,
-    }
     for video_asset in manifest.videos:
-        video = video_values[video_asset.socket]
+        video = values[video_asset.socket]
         observations[video_asset.socket] = _generate_complete_record(
             runner,
             prompt=reference_video_analysis_prompt(
@@ -355,37 +351,23 @@ def analyze_reference_media(
         )
         call_index += 1
 
-    if ref_video_audio_0 is not None:
-        audio_asset = manifest.asset_for_socket("ref_video_audio_0")
-        if audio_asset is None:
-            raise RuntimeError("Reference manifest lost the ref_video_audio_0 mapping.")
-        observations["ref_video_audio_0"] = _generate_complete_record(
+    for audio_asset in manifest.audios:
+        audio = values.get(audio_asset.socket)
+        if audio is None:
+            raise RuntimeError(
+                f"Reference manifest lost the {audio_asset.socket} mapping."
+            )
+        observations[audio_asset.socket] = _generate_complete_record(
             runner,
             prompt=reference_audio_analysis_prompt(
                 audio_asset.label, audio_asset.socket
             ),
             label=audio_asset.label,
-            audio=trim_audio(ref_video_audio_0, max_seconds=analysis_seconds),
+            audio=trim_audio(audio, max_seconds=analysis_seconds),
             max_new_tokens=max_new_tokens,
             seed=seed + call_index,
             after_call=after_call,
         )
         call_index += 1
-
-    if ref_audio_0 is not None:
-        audio_asset = manifest.asset_for_socket("ref_audio_0")
-        if audio_asset is None:
-            raise RuntimeError("Reference manifest lost the ref_audio_0 mapping.")
-        observations["ref_audio_0"] = _generate_complete_record(
-            runner,
-            prompt=reference_audio_analysis_prompt(
-                audio_asset.label, audio_asset.socket
-            ),
-            label=audio_asset.label,
-            audio=trim_audio(ref_audio_0, max_seconds=analysis_seconds),
-            max_new_tokens=max_new_tokens,
-            seed=seed + call_index,
-            after_call=after_call,
-        )
 
     return observations

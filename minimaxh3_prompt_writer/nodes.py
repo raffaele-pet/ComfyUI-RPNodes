@@ -17,6 +17,8 @@ from .engine.constants import SKILL_CHOICES
 from .engine.gemma import GemmaRunner, SamplingConfig
 from .engine.manifests import (
     ReferenceManifest,
+    REFERENCE_SOCKET_ORDER,
+    connected_reference_items,
     determine_base_mode,
     seconds_to_aligned_frame_count,
     validate_whole_duration_seconds,
@@ -51,7 +53,7 @@ def _sampling_config(
     )
 
 
-def _common_inputs(*, max_new_tokens: int) -> list[Any]:
+def _common_inputs() -> list[Any]:
     return [
         io.Clip.Input(
             "clip",
@@ -93,8 +95,8 @@ def _common_inputs(*, max_new_tokens: int) -> list[Any]:
             ),
         ),
         io.Int.Input(
-            "max_new_tokens",
-            default=max_new_tokens,
+            "max_token_length",
+            default=1024,
             min=512,
             max=8192,
             step=64,
@@ -162,10 +164,10 @@ def _common_inputs(*, max_new_tokens: int) -> list[Any]:
         ),
         io.Int.Input(
             "seed",
-            default=0,
+            default=42,
             min=0,
             max=MAX_SEED,
-            control_after_generate=True,
+            control_after_generate=io.ControlAfterGenerate.fixed,
             advanced=True,
         ),
         io.Boolean.Input(
@@ -182,25 +184,67 @@ def _common_inputs(*, max_new_tokens: int) -> list[Any]:
 
 def _reference_media_inputs() -> list[Any]:
     return [
-        io.Image.Input("ref_image_0", optional=True),
-        io.Image.Input("ref_image_1", optional=True),
-        io.Image.Input("ref_image_2", optional=True),
-        io.Image.Input(
-            "ref_video_0",
+        io.Autogrow.Input(
+            "ref_images",
             optional=True,
-            tooltip="Reference video as an IMAGE frame batch at 24 fps.",
+            template=io.Autogrow.TemplatePrefix(
+                input=io.Image.Input("ref_image", tooltip="Reference image."),
+                prefix="ref_image_",
+                min=0,
+                max=9,
+            ),
         ),
-        io.Image.Input(
-            "ref_video_1",
+        io.Autogrow.Input(
+            "ref_videos",
             optional=True,
-            tooltip="Reference video as an IMAGE frame batch at 24 fps.",
+            template=io.Autogrow.TemplatePrefix(
+                input=io.Image.Input(
+                    "ref_video",
+                    tooltip="Reference video as an IMAGE frame batch at 24 fps.",
+                ),
+                prefix="ref_video_",
+                min=0,
+                max=3,
+            ),
         ),
-        io.Audio.Input(
-            "ref_video_audio_0",
+        io.Autogrow.Input(
+            "ref_video_audios",
             optional=True,
-            tooltip="Enabled soundtrack paired with ref_video_0.",
+            template=io.Autogrow.TemplatePrefix(
+                input=io.Audio.Input(
+                    "ref_video_audio",
+                    tooltip="Enabled soundtrack paired with the same-numbered video.",
+                ),
+                prefix="ref_video_audio_",
+                min=0,
+                max=3,
+            ),
         ),
-        io.Audio.Input("ref_audio_0", optional=True),
+        io.Autogrow.Input(
+            "ref_audios",
+            optional=True,
+            template=io.Autogrow.TemplatePrefix(
+                input=io.Audio.Input(
+                    "ref_audio",
+                    tooltip="Standalone reference audio.",
+                ),
+                prefix="ref_audio_",
+                min=0,
+                max=3,
+            ),
+        ),
+    ]
+
+
+def _reference_passthrough_outputs() -> list[Any]:
+    """Reserve backend slots used by the REF2V dynamic pass-through UI."""
+
+    return [
+        io.AnyType.Output(
+            id=f"_reference_passthrough_{index}",
+            display_name=socket,
+        )
+        for index, socket in enumerate(REFERENCE_SOCKET_ORDER)
     ]
 
 
@@ -217,7 +261,7 @@ class RPH3I2VPromptWriter(io.ComfyNode):
                 "FL2VA, or L2VA prompt structure."
             ),
             search_aliases=["H3 prompt", "Gemma prompt writer", "I2V prompt"],
-            inputs=_common_inputs(max_new_tokens=2048)
+            inputs=_common_inputs()
             + [
                 io.Image.Input(
                     "first_frame",
@@ -244,7 +288,7 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         skill,
         duration_seconds,
         prompt,
-        max_new_tokens,
+        max_token_length,
         media_analysis_tokens,
         sampling,
         temperature,
@@ -277,7 +321,7 @@ class RPH3I2VPromptWriter(io.ComfyNode):
             length=aligned_length,
             selected_skill_label=skill,
             observations=observations,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=max_token_length,
             sampling=_sampling_config(
                 sampling=sampling,
                 temperature=temperature,
@@ -313,7 +357,7 @@ class RPH3T2VPromptWriter(io.ComfyNode):
                 "text-to-video prompt without reference tags."
             ),
             search_aliases=["H3 text to video", "Gemma prompt writer", "T2V prompt"],
-            inputs=_common_inputs(max_new_tokens=2560) + _reference_media_inputs(),
+            inputs=_common_inputs() + _reference_media_inputs(),
             outputs=[
                 io.String.Output(display_name="prompt"),
                 io.Int.Output(display_name="aligned_length"),
@@ -328,7 +372,7 @@ class RPH3T2VPromptWriter(io.ComfyNode):
         skill,
         duration_seconds,
         prompt,
-        max_new_tokens,
+        max_token_length,
         media_analysis_tokens,
         sampling,
         temperature,
@@ -338,37 +382,28 @@ class RPH3T2VPromptWriter(io.ComfyNode):
         repetition_penalty,
         seed,
         strict_validation,
-        ref_image_0=None,
-        ref_image_1=None,
-        ref_image_2=None,
-        ref_video_0=None,
-        ref_video_1=None,
-        ref_video_audio_0=None,
-        ref_audio_0=None,
+        ref_images=None,
+        ref_videos=None,
+        ref_video_audios=None,
+        ref_audios=None,
     ) -> io.NodeOutput:
         duration_seconds = validate_whole_duration_seconds(duration_seconds)
         aligned_length = seconds_to_aligned_frame_count(duration_seconds)
         manifest = ReferenceManifest.from_inputs(
-            ref_image_0=ref_image_0,
-            ref_image_1=ref_image_1,
-            ref_image_2=ref_image_2,
-            ref_video_0=ref_video_0,
-            ref_video_1=ref_video_1,
-            ref_video_audio_0=ref_video_audio_0,
-            ref_audio_0=ref_audio_0,
+            ref_images=ref_images,
+            ref_videos=ref_videos,
+            ref_video_audios=ref_video_audios,
+            ref_audios=ref_audios,
             require_reference=False,
         )
         runner = GemmaRunner(clip)
         observations = analyze_reference_media(
             runner,
             manifest=manifest,
-            ref_image_0=ref_image_0,
-            ref_image_1=ref_image_1,
-            ref_image_2=ref_image_2,
-            ref_video_0=ref_video_0,
-            ref_video_1=ref_video_1,
-            ref_video_audio_0=ref_video_audio_0,
-            ref_audio_0=ref_audio_0,
+            ref_images=ref_images,
+            ref_videos=ref_videos,
+            ref_video_audios=ref_video_audios,
+            ref_audios=ref_audios,
             target_frame_count=aligned_length,
             max_new_tokens=media_analysis_tokens,
             seed=seed,
@@ -381,7 +416,7 @@ class RPH3T2VPromptWriter(io.ComfyNode):
             selected_skill_label=skill,
             observations=observations,
             manifest=manifest,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=max_token_length,
             sampling=_sampling_config(
                 sampling=sampling,
                 temperature=temperature,
@@ -419,12 +454,13 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
                 "writes the strict six-section Ref2VA prompt."
             ),
             search_aliases=["H3 reference prompt", "Gemma prompt writer", "Ref2V prompt"],
-            inputs=_common_inputs(max_new_tokens=2560) + _reference_media_inputs(),
+            inputs=_common_inputs() + _reference_media_inputs(),
             outputs=[
                 io.String.Output(display_name="prompt"),
                 io.Int.Output(display_name="aligned_length"),
                 io.String.Output(display_name="analysis_report"),
-            ],
+            ]
+            + _reference_passthrough_outputs(),
         )
 
     @classmethod
@@ -434,7 +470,7 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
         skill,
         duration_seconds,
         prompt,
-        max_new_tokens,
+        max_token_length,
         media_analysis_tokens,
         sampling,
         temperature,
@@ -444,36 +480,27 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
         repetition_penalty,
         seed,
         strict_validation,
-        ref_image_0=None,
-        ref_image_1=None,
-        ref_image_2=None,
-        ref_video_0=None,
-        ref_video_1=None,
-        ref_video_audio_0=None,
-        ref_audio_0=None,
+        ref_images=None,
+        ref_videos=None,
+        ref_video_audios=None,
+        ref_audios=None,
     ) -> io.NodeOutput:
         duration_seconds = validate_whole_duration_seconds(duration_seconds)
         aligned_length = seconds_to_aligned_frame_count(duration_seconds)
         manifest = ReferenceManifest.from_inputs(
-            ref_image_0=ref_image_0,
-            ref_image_1=ref_image_1,
-            ref_image_2=ref_image_2,
-            ref_video_0=ref_video_0,
-            ref_video_1=ref_video_1,
-            ref_video_audio_0=ref_video_audio_0,
-            ref_audio_0=ref_audio_0,
+            ref_images=ref_images,
+            ref_videos=ref_videos,
+            ref_video_audios=ref_video_audios,
+            ref_audios=ref_audios,
         )
         runner = GemmaRunner(clip)
         observations = analyze_reference_media(
             runner,
             manifest=manifest,
-            ref_image_0=ref_image_0,
-            ref_image_1=ref_image_1,
-            ref_image_2=ref_image_2,
-            ref_video_0=ref_video_0,
-            ref_video_1=ref_video_1,
-            ref_video_audio_0=ref_video_audio_0,
-            ref_audio_0=ref_audio_0,
+            ref_images=ref_images,
+            ref_videos=ref_videos,
+            ref_video_audios=ref_video_audios,
+            ref_audios=ref_audios,
             target_frame_count=aligned_length,
             max_new_tokens=media_analysis_tokens,
             seed=seed,
@@ -486,7 +513,7 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
             selected_skill_label=skill,
             observations=observations,
             manifest=manifest,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=max_token_length,
             sampling=_sampling_config(
                 sampling=sampling,
                 temperature=temperature,
@@ -507,4 +534,18 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
             observations=observations,
             manifest=manifest,
         )
-        return io.NodeOutput(result.prompt, aligned_length, report)
+        passthrough_values = tuple(
+            value
+            for _, value in connected_reference_items(
+                ref_images=ref_images,
+                ref_videos=ref_videos,
+                ref_video_audios=ref_video_audios,
+                ref_audios=ref_audios,
+            )
+        )
+        return io.NodeOutput(
+            result.prompt,
+            aligned_length,
+            report,
+            *passthrough_values,
+        )

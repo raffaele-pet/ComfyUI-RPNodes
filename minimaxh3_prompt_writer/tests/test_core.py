@@ -15,6 +15,7 @@ from engine.media import prepare_reference_video, trim_audio
 from engine.manifests import (
     ReferenceManifest,
     align_frame_count,
+    connected_reference_items,
     determine_base_mode,
     duration_2dp,
     seconds_to_aligned_frame_count,
@@ -72,6 +73,45 @@ class GridAndModeTests(unittest.TestCase):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_autogrow_dictionaries_cover_native_h3_socket_limits(self):
+        value = object()
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={"ref_image_8": value},
+            ref_videos={"ref_video_2": value},
+            ref_video_audios={"ref_video_audio_2": value},
+            ref_audios={"ref_audio_2": value},
+        )
+        self.assertEqual(manifest.labels("image"), ("<Picture 1>",))
+        self.assertEqual(manifest.labels("video"), ("<Video 1>",))
+        self.assertEqual(manifest.labels("audio"), ("<Audio 1>", "<Audio 2>"))
+        self.assertEqual(
+            [asset.socket for asset in manifest.presentation_order],
+            [
+                "ref_image_8",
+                "ref_video_audio_2",
+                "ref_video_2",
+                "ref_audio_2",
+            ],
+        )
+
+    def test_passthrough_order_is_stable_across_autogrow_groups(self):
+        values = {
+            "ref_images": {"ref_image_8": "image-8", "ref_image_0": "image-0"},
+            "ref_videos": {"ref_video_2": "video-2"},
+            "ref_video_audios": {"ref_video_audio_2": "video-audio-2"},
+            "ref_audios": {"ref_audio_1": "audio-1"},
+        }
+        self.assertEqual(
+            connected_reference_items(**values),
+            (
+                ("ref_image_0", "image-0"),
+                ("ref_image_8", "image-8"),
+                ("ref_video_2", "video-2"),
+                ("ref_video_audio_2", "video-audio-2"),
+                ("ref_audio_1", "audio-1"),
+            ),
+        )
+
     def test_sparse_inputs_are_compacted(self):
         value = object()
         manifest = ReferenceManifest.from_inputs(
@@ -110,6 +150,12 @@ class ManifestTests(unittest.TestCase):
     def test_orphan_soundtrack_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "requires ref_video_0"):
             ReferenceManifest.from_inputs(ref_video_audio_0=object())
+
+    def test_high_index_orphan_soundtrack_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "requires ref_video_2"):
+            ReferenceManifest.from_inputs(
+                ref_video_audios={"ref_video_audio_2": object()}
+            )
 
     def test_audio_only_reference_is_supported(self):
         manifest = ReferenceManifest.from_inputs(ref_audio_0=object())
@@ -1474,6 +1520,36 @@ Review against constraints: Starts with the requested label."""
 
 
 class ReferenceMediaAnalysisTests(unittest.TestCase):
+    def test_high_index_autogrow_media_are_all_analyzed(self):
+        import torch
+
+        runner = _MediaAnalysisRunner()
+        sample_rate = 16_000
+        audio = {
+            "waveform": torch.zeros(1, 1, sample_rate * 4),
+            "sample_rate": sample_rate,
+        }
+        groups = {
+            "ref_images": {"ref_image_8": torch.zeros(1, 24, 24, 3)},
+            "ref_videos": {"ref_video_2": torch.zeros(56, 16, 16, 3)},
+            "ref_video_audios": {"ref_video_audio_2": audio},
+            "ref_audios": {"ref_audio_2": audio},
+        }
+        manifest = ReferenceManifest.from_inputs(**groups)
+        observations = analyze_reference_media(
+            runner,
+            manifest=manifest,
+            target_frame_count=56,
+            max_new_tokens=256,
+            seed=42,
+            **groups,
+        )
+        self.assertEqual(
+            tuple(observations),
+            ("ref_image_8", "ref_video_2", "ref_video_audio_2", "ref_audio_2"),
+        )
+        self.assertEqual([call[1]["seed"] for call in runner.calls], [42, 43, 44, 45])
+
     def test_images_videos_paired_audio_and_standalone_audio_are_routed_safely(self):
         import torch
 

@@ -8,6 +8,80 @@ from typing import Any, Iterable
 from .constants import FPS
 
 
+REF_IMAGE_SOCKETS = tuple(f"ref_image_{index}" for index in range(9))
+REF_VIDEO_SOCKETS = tuple(f"ref_video_{index}" for index in range(3))
+REF_VIDEO_AUDIO_SOCKETS = tuple(f"ref_video_audio_{index}" for index in range(3))
+REF_AUDIO_SOCKETS = tuple(f"ref_audio_{index}" for index in range(3))
+REFERENCE_SOCKET_ORDER = (
+    *REF_IMAGE_SOCKETS,
+    *REF_VIDEO_SOCKETS,
+    *REF_VIDEO_AUDIO_SOCKETS,
+    *REF_AUDIO_SOCKETS,
+)
+
+
+def collect_reference_inputs(
+    *,
+    ref_images: dict[str, Any] | None = None,
+    ref_videos: dict[str, Any] | None = None,
+    ref_video_audios: dict[str, Any] | None = None,
+    ref_audios: dict[str, Any] | None = None,
+    **individual_inputs: Any,
+) -> dict[str, Any]:
+    """Normalize autogrow dictionaries and legacy individual socket values."""
+
+    values: dict[str, Any] = {}
+    groups = (
+        (ref_images, REF_IMAGE_SOCKETS, "ref_images"),
+        (ref_videos, REF_VIDEO_SOCKETS, "ref_videos"),
+        (ref_video_audios, REF_VIDEO_AUDIO_SOCKETS, "ref_video_audios"),
+        (ref_audios, REF_AUDIO_SOCKETS, "ref_audios"),
+    )
+    for supplied, allowed, group_name in groups:
+        if supplied is None:
+            continue
+        if not isinstance(supplied, dict):
+            raise TypeError(f"{group_name} must be an autogrow input dictionary.")
+        unknown = set(supplied) - set(allowed)
+        if unknown:
+            raise ValueError(
+                f"Unsupported {group_name} sockets: {', '.join(sorted(unknown))}."
+            )
+        values.update(supplied)
+
+    unknown = set(individual_inputs) - set(REFERENCE_SOCKET_ORDER)
+    if unknown:
+        raise TypeError(
+            "Unsupported reference inputs: " + ", ".join(sorted(unknown))
+        )
+    values.update(individual_inputs)
+    return values
+
+
+def connected_reference_items(
+    *,
+    ref_images: dict[str, Any] | None = None,
+    ref_videos: dict[str, Any] | None = None,
+    ref_video_audios: dict[str, Any] | None = None,
+    ref_audios: dict[str, Any] | None = None,
+    **individual_inputs: Any,
+) -> tuple[tuple[str, Any], ...]:
+    """Return connected references in the stable pass-through socket order."""
+
+    values = collect_reference_inputs(
+        ref_images=ref_images,
+        ref_videos=ref_videos,
+        ref_video_audios=ref_video_audios,
+        ref_audios=ref_audios,
+        **individual_inputs,
+    )
+    return tuple(
+        (socket, values[socket])
+        for socket in REFERENCE_SOCKET_ORDER
+        if values.get(socket) is not None
+    )
+
+
 def align_frame_count(length: int) -> int:
     """Snap a frame count upward to MiniMax H3's native ``17k + 5`` grid."""
 
@@ -85,30 +159,31 @@ class ReferenceManifest:
     def from_inputs(
         cls,
         *,
-        ref_image_0: Any = None,
-        ref_image_1: Any = None,
-        ref_image_2: Any = None,
-        ref_video_0: Any = None,
-        ref_video_1: Any = None,
-        ref_video_audio_0: Any = None,
-        ref_audio_0: Any = None,
+        ref_images: dict[str, Any] | None = None,
+        ref_videos: dict[str, Any] | None = None,
+        ref_video_audios: dict[str, Any] | None = None,
+        ref_audios: dict[str, Any] | None = None,
         require_reference: bool = True,
+        **individual_inputs: Any,
     ) -> "ReferenceManifest":
-        image_values = (
-            ("ref_image_0", ref_image_0),
-            ("ref_image_1", ref_image_1),
-            ("ref_image_2", ref_image_2),
+        values = collect_reference_inputs(
+            ref_images=ref_images,
+            ref_videos=ref_videos,
+            ref_video_audios=ref_video_audios,
+            ref_audios=ref_audios,
+            **individual_inputs,
         )
-        video_values = (
-            ("ref_video_0", ref_video_0),
-            ("ref_video_1", ref_video_1),
-        )
+        image_values = tuple((socket, values.get(socket)) for socket in REF_IMAGE_SOCKETS)
+        video_values = tuple((socket, values.get(socket)) for socket in REF_VIDEO_SOCKETS)
 
-        if ref_video_audio_0 is not None and ref_video_0 is None:
-            raise ValueError(
-                "ref_video_audio_0 requires ref_video_0. The native H3 node "
-                "ignores an orphan video soundtrack, which would desynchronize labels."
-            )
+        for index in range(3):
+            audio_socket = f"ref_video_audio_{index}"
+            video_socket = f"ref_video_{index}"
+            if values.get(audio_socket) is not None and values.get(video_socket) is None:
+                raise ValueError(
+                    f"{audio_socket} requires {video_socket}. The native H3 node "
+                    "ignores an orphan video soundtrack, which would desynchronize labels."
+                )
 
         pictures: list[AssetRef] = []
         for socket, value in image_values:
@@ -146,21 +221,25 @@ class ReferenceManifest:
             if value is None:
                 continue
             video_asset = video_by_socket[socket]
-            if socket == "ref_video_0" and ref_video_audio_0 is not None:
+            index = socket.rsplit("_", 1)[-1]
+            audio_socket = f"ref_video_audio_{index}"
+            if values.get(audio_socket) is not None:
                 audio_asset = AssetRef(
-                    socket="ref_video_audio_0",
+                    socket=audio_socket,
                     label=f"<Audio {len(audios) + 1}>",
                     kind="audio",
-                    role="enabled soundtrack of ref_video_0",
+                    role=f"enabled soundtrack of {socket}",
                     paired_label=video_asset.label,
                 )
                 audios.append(audio_asset)
                 presentation.append(audio_asset)
             presentation.append(video_asset)
 
-        if ref_audio_0 is not None:
+        for socket in REF_AUDIO_SOCKETS:
+            if values.get(socket) is None:
+                continue
             standalone = AssetRef(
-                socket="ref_audio_0",
+                socket=socket,
                 label=f"<Audio {len(audios) + 1}>",
                 kind="audio",
                 role="standalone reference audio",

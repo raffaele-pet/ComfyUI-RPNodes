@@ -426,43 +426,49 @@
           "link": 18
         },
         {
-          "name": "ref_image_0",
+          "label": "ref_image_0",
+          "localized_name": "ref_images.ref_image_0",
+          "name": "ref_images.ref_image_0",
           "shape": 7,
           "type": "IMAGE",
           "link": 21
         },
         {
-          "name": "ref_image_1",
+          "label": "ref_image_1",
+          "localized_name": "ref_images.ref_image_1",
+          "name": "ref_images.ref_image_1",
           "shape": 7,
           "type": "IMAGE",
           "link": 22
         },
         {
-          "name": "ref_image_2",
+          "label": "ref_image_2",
+          "localized_name": "ref_images.ref_image_2",
+          "name": "ref_images.ref_image_2",
           "shape": 7,
           "type": "IMAGE",
           "link": null
         },
         {
-          "name": "ref_video_0",
+          "label": "ref_video_0",
+          "localized_name": "ref_videos.ref_video_0",
+          "name": "ref_videos.ref_video_0",
           "shape": 7,
           "type": "IMAGE",
           "link": null
         },
         {
-          "name": "ref_video_1",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_video_audio_0",
+          "label": "ref_video_audio_0",
+          "localized_name": "ref_video_audios.ref_video_audio_0",
+          "name": "ref_video_audios.ref_video_audio_0",
           "shape": 7,
           "type": "AUDIO",
           "link": null
         },
         {
-          "name": "ref_audio_0",
+          "label": "ref_audio_0",
+          "localized_name": "ref_audios.ref_audio_0",
+          "name": "ref_audios.ref_audio_0",
           "shape": 7,
           "type": "AUDIO",
           "link": null
@@ -485,6 +491,16 @@
           "name": "analysis_report",
           "type": "STRING",
           "links": null
+        },
+        {
+          "name": "ref_image_0",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "ref_image_1",
+          "type": "IMAGE",
+          "links": null
         }
       ],
       "properties": {
@@ -496,7 +512,7 @@
         "Auto — choose the best H3 skill",
         3,
         "the girl is dancing",
-        2560,
+        1024,
         256,
         false,
         0.7,
@@ -504,8 +520,8 @@
         0.95,
         0.05,
         1.05,
-        355405082183944,
-        "randomize",
+        42,
+        "fixed",
         true
       ]
     },
@@ -842,7 +858,7 @@
         "Auto — choose the best H3 skill",
         3,
         "the girl is dancing",
-        2048,
+        1024,
         256,
         false,
         0.7,
@@ -850,8 +866,8 @@
         0.95,
         0.05,
         1.05,
-        220129744211402,
-        "randomize",
+        42,
+        "fixed",
         true
       ]
     },
@@ -876,43 +892,49 @@
           "link": 27
         },
         {
-          "name": "ref_image_0",
+          "label": "ref_image_0",
+          "localized_name": "ref_images.ref_image_0",
+          "name": "ref_images.ref_image_0",
           "shape": 7,
           "type": "IMAGE",
           "link": 28
         },
         {
-          "name": "ref_image_1",
+          "label": "ref_image_1",
+          "localized_name": "ref_images.ref_image_1",
+          "name": "ref_images.ref_image_1",
           "shape": 7,
           "type": "IMAGE",
           "link": 29
         },
         {
-          "name": "ref_image_2",
+          "label": "ref_image_2",
+          "localized_name": "ref_images.ref_image_2",
+          "name": "ref_images.ref_image_2",
           "shape": 7,
           "type": "IMAGE",
           "link": null
         },
         {
-          "name": "ref_video_0",
+          "label": "ref_video_0",
+          "localized_name": "ref_videos.ref_video_0",
+          "name": "ref_videos.ref_video_0",
           "shape": 7,
           "type": "IMAGE",
           "link": null
         },
         {
-          "name": "ref_video_1",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_video_audio_0",
+          "label": "ref_video_audio_0",
+          "localized_name": "ref_video_audios.ref_video_audio_0",
+          "name": "ref_video_audios.ref_video_audio_0",
           "shape": 7,
           "type": "AUDIO",
           "link": null
         },
         {
-          "name": "ref_audio_0",
+          "label": "ref_audio_0",
+          "localized_name": "ref_audios.ref_audio_0",
+          "name": "ref_audios.ref_audio_0",
           "shape": 7,
           "type": "AUDIO",
           "link": null
@@ -946,7 +968,7 @@
         "Auto — choose the best H3 skill",
         3,
         "the girl is dancing",
-        2560,
+        1024,
         256,
         false,
         0.7,
@@ -954,8 +976,8 @@
         0.95,
         0.05,
         1.05,
-        0,
-        "randomize",
+        42,
+        "fixed",
         true
       ]
     }
