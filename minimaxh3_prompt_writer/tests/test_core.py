@@ -15,7 +15,6 @@ from engine.media import prepare_reference_video, trim_audio
 from engine.manifests import (
     ReferenceManifest,
     align_frame_count,
-    connected_reference_items,
     determine_base_mode,
     duration_2dp,
     seconds_to_aligned_frame_count,
@@ -92,24 +91,6 @@ class ManifestTests(unittest.TestCase):
                 "ref_video_2",
                 "ref_audio_2",
             ],
-        )
-
-    def test_passthrough_order_is_stable_across_autogrow_groups(self):
-        values = {
-            "ref_images": {"ref_image_8": "image-8", "ref_image_0": "image-0"},
-            "ref_videos": {"ref_video_2": "video-2"},
-            "ref_video_audios": {"ref_video_audio_2": "video-audio-2"},
-            "ref_audios": {"ref_audio_1": "audio-1"},
-        }
-        self.assertEqual(
-            connected_reference_items(**values),
-            (
-                ("ref_image_0", "image-0"),
-                ("ref_image_8", "image-8"),
-                ("ref_video_2", "video-2"),
-                ("ref_video_audio_2", "video-audio-2"),
-                ("ref_audio_1", "audio-1"),
-            ),
         )
 
     def test_sparse_inputs_are_compacted(self):

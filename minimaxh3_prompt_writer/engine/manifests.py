@@ -58,30 +58,6 @@ def collect_reference_inputs(
     return values
 
 
-def connected_reference_items(
-    *,
-    ref_images: dict[str, Any] | None = None,
-    ref_videos: dict[str, Any] | None = None,
-    ref_video_audios: dict[str, Any] | None = None,
-    ref_audios: dict[str, Any] | None = None,
-    **individual_inputs: Any,
-) -> tuple[tuple[str, Any], ...]:
-    """Return connected references in the stable pass-through socket order."""
-
-    values = collect_reference_inputs(
-        ref_images=ref_images,
-        ref_videos=ref_videos,
-        ref_video_audios=ref_video_audios,
-        ref_audios=ref_audios,
-        **individual_inputs,
-    )
-    return tuple(
-        (socket, values[socket])
-        for socket in REFERENCE_SOCKET_ORDER
-        if values.get(socket) is not None
-    )
-
-
 def align_frame_count(length: int) -> int:
     """Snap a frame count upward to MiniMax H3's native ``17k + 5`` grid."""
 
