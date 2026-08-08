@@ -278,6 +278,8 @@ class RPH3I2VPromptWriter(io.ComfyNode):
                 io.String.Output(display_name="prompt"),
                 io.Int.Output(display_name="aligned_length"),
                 io.String.Output(display_name="analysis_report"),
+                io.Image.Output(display_name="first_frame"),
+                io.Image.Output(display_name="last_frame"),
             ],
         )
 
@@ -341,7 +343,13 @@ class RPH3I2VPromptWriter(io.ComfyNode):
             requested_duration_seconds=duration_seconds,
             observations=observations,
         )
-        return io.NodeOutput(result.prompt, aligned_length, report)
+        return io.NodeOutput(
+            result.prompt,
+            aligned_length,
+            report,
+            first_frame,
+            last_frame,
+        )
 
 
 class RPH3T2VPromptWriter(io.ComfyNode):
