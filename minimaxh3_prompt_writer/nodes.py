@@ -96,7 +96,7 @@ def _common_inputs() -> list[Any]:
         ),
         io.Int.Input(
             "max_token_length",
-            default=1024,
+            default=2048,
             min=512,
             max=8192,
             step=64,
