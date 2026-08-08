@@ -136,8 +136,9 @@ pass-through outputs.
 Creates a Reference-to-Video prompt from connected reference images, video
 frame batches, paired video audio, and standalone audio while keeping MiniMax's
 Picture, Video, and Audio labels consistent. Its reference inputs grow to the
-same native H3 limits, and each connected source gets a matching pass-through
-output for direct connection to `MiniMax H3 Reference to Video`.
+same native H3 limits and retain their canonical order when nodes are copied or
+pasted. Reference media is not passed through: connect each source separately
+to this writer and to `MiniMax H3 Reference to Video`.
 
 All three nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
 loaded as `stable_diffusion`. The native H3 generation node must keep its

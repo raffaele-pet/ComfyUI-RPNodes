@@ -17,8 +17,6 @@ from .engine.constants import SKILL_CHOICES
 from .engine.gemma import GemmaRunner, SamplingConfig
 from .engine.manifests import (
     ReferenceManifest,
-    REFERENCE_SOCKET_ORDER,
-    connected_reference_items,
     determine_base_mode,
     seconds_to_aligned_frame_count,
     validate_whole_duration_seconds,
@@ -250,18 +248,6 @@ def _reference_media_inputs() -> list[Any]:
     ]
 
 
-def _reference_passthrough_outputs() -> list[Any]:
-    """Reserve backend slots used by the REF2V dynamic pass-through UI."""
-
-    return [
-        io.AnyType.Output(
-            id=f"_reference_passthrough_{index}",
-            display_name=socket,
-        )
-        for index, socket in enumerate(REFERENCE_SOCKET_ORDER)
-    ]
-
-
 class RPH3I2VPromptWriter(io.ComfyNode):
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -485,8 +471,7 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
                 io.String.Output(display_name="prompt"),
                 io.Int.Output(display_name="aligned_length"),
                 io.String.Output(display_name="analysis_report"),
-            ]
-            + _reference_passthrough_outputs(),
+            ],
         )
 
     @classmethod
@@ -560,20 +545,6 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
             observations=observations,
             manifest=manifest,
         )
-        passthrough_values = tuple(
-            value
-            for _, value in connected_reference_items(
-                ref_images=ref_images,
-                ref_videos=ref_videos,
-                ref_video_audios=ref_video_audios,
-                ref_audios=ref_audios,
-            )
-        )
-        node_output = io.NodeOutput(
-            result.prompt,
-            aligned_length,
-            report,
-            *passthrough_values,
-        )
+        node_output = io.NodeOutput(result.prompt, aligned_length, report)
         _release_clip_vram(clip)
         return node_output

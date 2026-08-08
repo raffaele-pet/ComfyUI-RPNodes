@@ -491,16 +491,6 @@
           "name": "analysis_report",
           "type": "STRING",
           "links": null
-        },
-        {
-          "name": "ref_image_0",
-          "type": "IMAGE",
-          "links": null
-        },
-        {
-          "name": "ref_image_1",
-          "type": "IMAGE",
-          "links": null
         }
       ],
       "properties": {
