@@ -146,6 +146,8 @@ separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
 connected image, video, or audio asset is analyzed independently so every input
 has its own traceable observation. The shared defaults are `max_token_length =
 2048`, `media_analysis_tokens = 256`, and fixed `seed = 42`.
+After writing the prompt, the nodes offload their dedicated Gemma CLIP before
+downstream H3 generation to release VRAM.
 
 ## Installation
 

@@ -32,6 +32,20 @@ def _check_interrupted() -> None:
     comfy.model_management.throw_exception_if_processing_interrupted()
 
 
+def _release_clip_vram(clip: Any) -> None:
+    """Offload the prompt-writer CLIP before downstream H3 generation."""
+
+    patcher = getattr(clip, "patcher", None)
+    if patcher is None:
+        return
+    comfy.model_management.unload_model_and_clones(
+        patcher,
+        unload_additional_models=True,
+        all_devices=True,
+    )
+    comfy.model_management.soft_empty_cache()
+
+
 def _sampling_config(
     *,
     sampling: bool,
@@ -343,13 +357,15 @@ class RPH3I2VPromptWriter(io.ComfyNode):
             requested_duration_seconds=duration_seconds,
             observations=observations,
         )
-        return io.NodeOutput(
+        node_output = io.NodeOutput(
             result.prompt,
             aligned_length,
             report,
             first_frame,
             last_frame,
         )
+        _release_clip_vram(clip)
+        return node_output
 
 
 class RPH3T2VPromptWriter(io.ComfyNode):
@@ -445,7 +461,9 @@ class RPH3T2VPromptWriter(io.ComfyNode):
             observations=observations,
             manifest=manifest,
         )
-        return io.NodeOutput(result.prompt, aligned_length, report)
+        node_output = io.NodeOutput(result.prompt, aligned_length, report)
+        _release_clip_vram(clip)
+        return node_output
 
 
 class RPH3REF2VPromptWriter(io.ComfyNode):
@@ -551,9 +569,11 @@ class RPH3REF2VPromptWriter(io.ComfyNode):
                 ref_audios=ref_audios,
             )
         )
-        return io.NodeOutput(
+        node_output = io.NodeOutput(
             result.prompt,
             aligned_length,
             report,
             *passthrough_values,
         )
+        _release_clip_vram(clip)
+        return node_output
