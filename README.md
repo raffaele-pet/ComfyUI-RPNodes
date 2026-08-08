@@ -145,7 +145,7 @@ separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
 `prompt`, the H3-compatible `aligned_length`, and an `analysis_report`. Each
 connected image, video, or audio asset is analyzed independently so every input
 has its own traceable observation. The shared defaults are `max_token_length =
-1024`, `media_analysis_tokens = 256`, and fixed `seed = 42`.
+2048`, `media_analysis_tokens = 256`, and fixed `seed = 42`.
 
 ## Installation
 
