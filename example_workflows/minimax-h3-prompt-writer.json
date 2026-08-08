@@ -847,6 +847,16 @@
           "name": "analysis_report",
           "type": "STRING",
           "links": []
+        },
+        {
+          "name": "first_frame",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": []
         }
       ],
       "properties": {

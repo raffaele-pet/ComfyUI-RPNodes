@@ -128,7 +128,8 @@ standalone audio clips.
 ### RP H3-I2V Prompt Writer
 
 Creates the appropriate T2VA, I2VA, FL2VA, or L2VA prompt from the text request
-and optional first and last frames.
+and optional first and last frames. Both static frame inputs also have matching
+pass-through outputs.
 
 ### RP H3-REF2V Prompt Writer
 
