@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from engine.analyzers import (
     analyze_base_media,
@@ -247,6 +249,37 @@ Wind, rapid footsteps, distant traffic, and a low percussive score that accents 
     def test_valid_standalone_t2v_prompt(self):
         result = validate_t2v_prompt(self._prompt(), 3.0)
         self.assertTrue(result.valid, result.issues)
+
+    def test_assistant_preface_is_removed_without_losing_style_paragraph(self):
+        generated = (
+            "Certainly! Here is the final standalone H3 T2V prompt:\n\n"
+            + self._prompt()
+        )
+        canonical = canonicalize_t2v_structure(generated)
+        self.assertEqual(canonical, self._prompt())
+        self.assertTrue(validate_t2v_prompt(canonical, 3.0).valid)
+
+    def test_reasoning_preface_paragraph_is_removed_from_t2v(self):
+        generated = (
+            "The user wants a cinematic rooftop chase, so I should produce the "
+            "required sections.\n\n" + self._prompt()
+        )
+        canonical = canonicalize_t2v_structure(generated)
+        self.assertEqual(canonical, self._prompt())
+
+    def test_bare_acknowledgement_is_removed_from_t2v_style(self):
+        generated = "Sure, " + self._prompt()
+        canonical = canonicalize_t2v_structure(generated)
+        self.assertEqual(canonical, self._prompt())
+        self.assertTrue(validate_t2v_prompt(canonical, 3.0).valid)
+
+    def test_single_reasoning_line_is_removed_from_t2v(self):
+        generated = (
+            "The user wants a rooftop chase, so I will format it now.\n"
+            + self._prompt()
+        )
+        canonical = canonicalize_t2v_structure(generated)
+        self.assertEqual(canonical, self._prompt())
 
     def test_storyboard_heading_and_markdown_are_canonicalized(self):
         generated = self._prompt().replace(
@@ -1469,6 +1502,26 @@ class BaseMediaAnalysisTests(unittest.TestCase):
         self.assertIn("blue hair in a bun", value)
         self.assertNotIn("I need to summarize", value)
 
+    def test_single_source_record_recovers_plain_descriptive_prose(self):
+        raw = (
+            "The image shows a young woman with curly red hair wearing a pink "
+            "dress in a bright bedroom with pale wood furniture."
+        )
+        value = ensure_analysis_records(raw, ["<Picture 1>"])
+        self.assertTrue(value.startswith("<Picture 1>: The image shows"))
+        self.assertIn("curly red hair", value)
+
+    def test_single_source_plain_prose_skips_a_planning_preamble(self):
+        raw = (
+            "I need to inspect the attached keyframe and summarize useful facts.\n"
+            "The image depicts a bearded white-robed wizard on rocky terrain."
+        )
+        value = ensure_analysis_records(raw, ["<Picture 1>"])
+        self.assertEqual(
+            value,
+            "<Picture 1>: The image depicts a bearded white-robed wizard on rocky terrain.",
+        )
+
     def test_labeled_record_removes_repeated_instructions_before_image_facts(self):
         raw = """<Picture 2>: The first output characters must be `<Picture 2>:`.
 Never restate the task or discuss instructions. Write one compact English block.
@@ -1666,6 +1719,27 @@ class ReferenceMediaAnalysisTests(unittest.TestCase):
         )
         self.assertIn("distorted electric-guitar", observations["ref_audio_0"])
 
+    def test_persistently_unusable_analysis_returns_safe_fallback(self):
+        import torch
+
+        class MetaOnlyRunner:
+            def __init__(self):
+                self.calls = []
+
+            def generate_media_analysis(self, prompt, **kwargs):
+                self.calls.append((prompt, kwargs))
+                return "I need to restate the task and discuss instructions."
+
+        runner = MetaOnlyRunner()
+        observations = analyze_base_media(
+            runner,
+            mode="I2VA",
+            first_frame=torch.zeros(1, 24, 24, 3),
+            max_new_tokens=256,
+        )
+        self.assertEqual(len(runner.calls), 2)
+        self.assertIn("<Picture 1>: No reliable observation", observations["first_frame"])
+
 
 class _FakeClip:
     def __init__(self):
@@ -1686,6 +1760,52 @@ class _FakeClip:
 
 
 class GemmaRunnerTests(unittest.TestCase):
+    def test_generation_temporarily_disables_comfy_cuda_graphs(self):
+        args = SimpleNamespace(disable_cuda_graphs=False)
+        model_management = SimpleNamespace(args=args)
+        clip = _FakeClip()
+        observed = []
+        original_generate = clip.generate
+
+        def generate(tokens, **kwargs):
+            observed.append(args.disable_cuda_graphs)
+            return original_generate(tokens, **kwargs)
+
+        clip.generate = generate
+        with patch(
+            "engine.gemma.importlib.import_module",
+            return_value=model_management,
+        ):
+            GemmaRunner(clip).generate_media_analysis(
+                "inspect",
+                max_new_tokens=128,
+            )
+
+        self.assertEqual(observed, [True])
+        self.assertFalse(args.disable_cuda_graphs)
+
+    def test_cuda_graph_setting_is_restored_when_generation_fails(self):
+        args = SimpleNamespace(disable_cuda_graphs=False)
+        model_management = SimpleNamespace(args=args)
+        clip = _FakeClip()
+
+        def fail_generate(tokens, **kwargs):
+            self.assertTrue(args.disable_cuda_graphs)
+            raise RuntimeError("generation failed")
+
+        clip.generate = fail_generate
+        with patch(
+            "engine.gemma.importlib.import_module",
+            return_value=model_management,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "generation failed"):
+                GemmaRunner(clip).generate_media_analysis(
+                    "inspect",
+                    max_new_tokens=128,
+                )
+
+        self.assertFalse(args.disable_cuda_graphs)
+
     def test_media_uses_default_template(self):
         clip = _FakeClip()
         runner = GemmaRunner(clip)

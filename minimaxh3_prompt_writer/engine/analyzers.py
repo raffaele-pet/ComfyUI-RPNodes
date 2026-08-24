@@ -50,6 +50,11 @@ _FALLBACK_OBSERVATION = (
 )
 
 _META_PHRASES = (
+    "internal compact keyframe-analysis task",
+    "attached image is evidence",
+    "temporal role is authoritative",
+    "return one concise english block",
+    "spend at most about",
     "first output characters",
     "restate the task",
     "discuss instructions",
@@ -144,7 +149,9 @@ def _recover_single_source_analysis(text: str) -> str:
         r"(?im)^\s*(?:#{1,6}\s*)?(?:\*\*)?(?:"
         r"(?:(?:image|visual|keyframe|picture|video|audio|media)\s+)?analysis|"
         r"analysis\s+of\s+(?:(?:the|attached)\s+)?"
-        r"(?:picture|image|keyframe|video|audio|media)(?:\s+\d+)?"
+        r"(?:picture|image|keyframe|video|audio|media)(?:\s+\d+)?|"
+        r"(?:keyframe|image|picture|visual|media)\s+"
+        r"(?:details|description|observations?)"
         r")\s*:\s*(?:\*\*)?\s*$",
         value,
     )
@@ -161,9 +168,24 @@ def _recover_single_source_analysis(text: str) -> str:
             r"(?:\*\*)?[^:\n]{1,80}:\s*(?:\*\*)?",
             value,
         )
-        if not first_field:
-            return ""
-        value = value[first_field.start() :].strip()
+        if first_field:
+            value = value[first_field.start() :].strip()
+        else:
+            # A compact single-image answer is often plain prose rather than
+            # the requested labelled record, for example "The image shows a
+            # woman...".  It is still attributable because this call contains
+            # exactly one media source.  Prefer an explicit descriptive-sentence
+            # boundary when Gemma emitted a short planning preamble.
+            descriptive = re.search(
+                r"(?im)^\s*(?:the|this|attached)\s+"
+                r"(?:image|picture|keyframe|frame|visual|scene)\s+"
+                r"(?:shows|depicts|features|presents|contains|captures|is)\b",
+                value,
+            )
+            if descriptive:
+                value = value[descriptive.start() :].strip()
+            elif not _usable_observation_body(value):
+                return ""
     lines: list[str] = []
     for raw_line in value.splitlines():
         line = raw_line.strip()
@@ -241,11 +263,11 @@ def _generate_complete_record(
         value = ensure_analysis_records(result, [label])
         if _has_labeled_record(value, label):
             return value
-    raise ValueError(
-        f"Gemma could not produce a usable media observation for {label} "
-        f"after {len(budgets)} attempts (up to {budgets[-1]} tokens). "
-        "Check the connected media and Gemma 4 CLIP."
-    )
+    # Media observations guide the prompt writer but are not the actual H3
+    # image/video inputs.  A conservative labelled fallback is safer than
+    # aborting the whole workflow or inventing visual facts when Gemma twice
+    # returns only meta commentary.
+    return ensure_analysis_records("", [label])
 
 
 def analyze_base_media(

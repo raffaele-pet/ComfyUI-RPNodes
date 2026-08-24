@@ -68,6 +68,75 @@ def _strip_orphan_think_closures(value: str, mode: str) -> str:
             result = after
 
 
+def _strip_t2v_assistant_preface(value: str) -> str:
+    """Remove conversational lead-ins while retaining the unlabelled style.
+
+    T2V cannot use a schema anchor to discard everything before its first
+    heading because its required visual-style paragraph is intentionally
+    unlabelled.  Strip only well-known assistant lead-ins and planning
+    paragraphs, leaving cinematic content untouched.
+    """
+
+    result = value.strip()
+    lead_in = re.compile(
+        r"(?is)^\s*(?:(?:sure|certainly|absolutely|of course)\s*[!,.:\-]*\s*)?"
+        r"(?:"
+        r"(?:here(?:'s| is)|below is)\s+(?:(?:the|your|a)\s+)?"
+        r"(?:(?:final|finished|standalone|revised|corrected|requested)\s+)*"
+        r"(?:(?:minimax\s*)?(?:h3|t2v|text[- ]to[- ]video)\s+)*prompt"
+        r"(?:\s+you requested)?"
+        r"|"
+        r"(?:(?:the|your)\s+)?(?:final|finished|standalone|revised|corrected)\s+"
+        r"(?:(?:minimax\s*)?(?:h3|t2v|text[- ]to[- ]video)\s+)*prompt"
+        r")\s*[:.\-]*\s*"
+    )
+    while True:
+        stripped = lead_in.sub("", result, count=1).strip()
+        if stripped == result:
+            break
+        result = stripped
+
+    # Gemma may use a bare acknowledgement directly before the real style
+    # prose instead of naming the prompt explicitly.
+    result = re.sub(
+        r"(?is)^\s*(?:sure|certainly|absolutely|of course)\b\s*[!,.:\-]*\s*",
+        "",
+        result,
+        count=1,
+    ).strip()
+    result = re.sub(
+        r"(?is)^\s*here(?:'s| is)\s+",
+        "",
+        result,
+        count=1,
+    ).strip()
+
+    paragraphs = re.split(r"\n[ \t]*\n", result, maxsplit=1)
+    if (
+        len(paragraphs) == 2
+        and "\n" not in paragraphs[0]
+        and re.match(
+            r"(?i)^(?:the user wants\b|i (?:need|will|should|must)\b|let me\b)",
+            paragraphs[0].strip(),
+        )
+        and _contains_schema_anchor(paragraphs[1], "T2V")
+    ):
+        result = paragraphs[1].strip()
+    else:
+        lines = result.splitlines()
+        if (
+            len(lines) > 1
+            and re.match(
+                r"(?i)^\s*(?:the user wants\b|"
+                r"i (?:need|will|should|must)\b|let me\b)",
+                lines[0],
+            )
+            and _contains_schema_anchor("\n".join(lines[1:]), "T2V")
+        ):
+            result = "\n".join(lines[1:]).strip()
+    return result
+
+
 @dataclass(frozen=True)
 class ValidationResult:
     text: str
@@ -92,7 +161,10 @@ def sanitize_generated_text(text: str, mode: str) -> str:
     value = re.sub(r"^```(?:text|markdown)?\s*\n?", "", value, flags=re.IGNORECASE)
     value = re.sub(r"\n?```\s*$", "", value).strip()
 
-    if mode == "Ref2VA":
+    if mode == "T2V":
+        value = _strip_t2v_assistant_preface(value)
+        starts = []
+    elif mode == "Ref2VA":
         starts = [value.find("subject_definitions:")]
     elif mode == "I2VA":
         starts = [value.find("For the target video,"), value.find(BASE_FIELDS[0])]

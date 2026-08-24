@@ -2,10 +2,45 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
+import importlib
 from typing import Any
 
 from .prompts import gemma4_chat
+
+
+@contextmanager
+def _without_comfy_cuda_graphs():
+    """Avoid unsafe Gemma CUDA-graph reuse across different prompts.
+
+    Recent ComfyUI builds can capture Gemma's token-by-token decode and then
+    replay it for a later generation.  The graph's KV-cache/index state is not
+    safe to reuse when this node switches from media analysis to a differently
+    sized chat prompt, which can trigger a fatal CUDA gather assertion.  Scope
+    the workaround to this node's synchronous generation call and always
+    restore the user's global setting afterwards.
+    """
+
+    try:
+        model_management = importlib.import_module("comfy.model_management")
+    except ImportError:
+        # Keep the wrapper importable in standalone unit tests and with older
+        # ComfyUI layouts that do not expose this module.
+        yield
+        return
+
+    args = getattr(model_management, "args", None)
+    if args is None or not hasattr(args, "disable_cuda_graphs"):
+        yield
+        return
+
+    previous = args.disable_cuda_graphs
+    args.disable_cuda_graphs = True
+    try:
+        yield
+    finally:
+        args.disable_cuda_graphs = previous
 
 
 @dataclass(frozen=True)
@@ -59,18 +94,19 @@ class GemmaRunner:
         max_new_tokens: int,
         sampling: SamplingConfig,
     ) -> Any:
-        return self.clip.generate(
-            tokens,
-            do_sample=bool(sampling.do_sample),
-            max_length=int(max_new_tokens),
-            temperature=float(sampling.temperature),
-            top_k=int(sampling.top_k),
-            top_p=float(sampling.top_p),
-            min_p=float(sampling.min_p),
-            repetition_penalty=float(sampling.repetition_penalty),
-            presence_penalty=float(sampling.presence_penalty),
-            seed=int(sampling.seed),
-        )
+        with _without_comfy_cuda_graphs():
+            return self.clip.generate(
+                tokens,
+                do_sample=bool(sampling.do_sample),
+                max_length=int(max_new_tokens),
+                temperature=float(sampling.temperature),
+                top_k=int(sampling.top_k),
+                top_p=float(sampling.top_p),
+                min_p=float(sampling.min_p),
+                repetition_penalty=float(sampling.repetition_penalty),
+                presence_penalty=float(sampling.presence_penalty),
+                seed=int(sampling.seed),
+            )
 
     def generate_media_analysis(
         self,
