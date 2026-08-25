@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-BUNDLE_VERSION = "1.7.0+stable-reference-inputs.2026-08-08"
+BUNDLE_VERSION = "1.8.0+complete-untimed-evidence.2026-08-25"
 H3_SKILLS_COMMIT = "093f3129a3f7bd27c74928b1cd31a54fbdebe057"
 COMFYUI_REFERENCE_COMMIT = "7972b5ba7f1597f68261be33c912f5e5dba8b9c0"
 FPS = 24
