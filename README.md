@@ -123,8 +123,8 @@ Creates a standalone text-to-video prompt. Optional images, video frame batches,
 and audio help Gemma describe appearance, motion, and sound, but the final prompt
 contains no Picture, Video, Audio, Subject, reference, or socket tags. Reference
 inputs grow automatically up to 9 images, 3 videos, 3 paired soundtracks, and 3
-standalone audio clips. Every visual input receives a corresponding untimed
-`[Shot N]` contribution in the finished prompt.
+standalone audio clips. Every visual input receives a corresponding timed
+Storyboard contribution in the finished prompt.
 
 ### RP H3-I2V Prompt Writer
 
@@ -142,8 +142,9 @@ pasted. Reference media is not passed through: connect each source separately
 to this writer and to `MiniMax H3 Reference to Video`. Every connected source
 must contribute in the narrative or sound sections, not only in metadata.
 
-T2V and REF2V keep shots in sequence without timestamps or second-based ranges;
-`duration_seconds` is used only to calculate the H3-compatible `aligned_length`.
+T2V uses contiguous second-based Storyboard ranges; REF2V timestamps later
+shots. `duration_seconds` drives both prompt timing and the H3-compatible
+`aligned_length`.
 
 All three nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
 loaded as `stable_diffusion`. The native H3 generation node must keep its

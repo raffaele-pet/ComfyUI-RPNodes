@@ -305,18 +305,12 @@ def canonicalize_t2v_structure(text: str) -> str:
             canonical,
             value,
         )
-    value = _strip_numeric_prompt_timing(value)
-    value = re.sub(
-        r"(?im)^[ \t]*Shot[ \t]+([1-9]\d*)[ \t]*:[ \t]*",
-        lambda match: f"[Shot {int(match.group(1))}] ",
-        value,
-    )
     return value.strip()
 
 
 def validate_t2v_prompt(
     text: str,
-    requested_duration_seconds: float | None = None,
+    requested_duration_seconds: float,
     *,
     minimum_storyboard_shots: int = 1,
 ) -> ValidationResult:
@@ -368,23 +362,43 @@ def validate_t2v_prompt(
         storyboard_start = matches["Storyboard:"][0].end()
         storyboard_end = matches["Camera:"][0].start()
         storyboard = candidate[storyboard_start:storyboard_end].strip()
-        beat_pattern = re.compile(r"^\[Shot ([1-9]\d*)\]\s+(\S.*)$")
+        beat_pattern = re.compile(
+            r"^\[(\d+(?:\.\d+)?)s-(\d+(?:\.\d+)?)s\] "
+            r"Shot ([1-9]\d*):\s*(\S.*)$"
+        )
         beat_lines = [line.strip() for line in storyboard.splitlines() if line.strip()]
-        beats: list[int] = []
+        beats: list[tuple[float, float, int]] = []
         for line in beat_lines:
             match = beat_pattern.fullmatch(line)
             if match is None:
                 issues.append(
-                    "Every Storyboard line must use `[Shot N] description` without timing."
+                    "Every Storyboard line must use `[Xs-Ys] Shot N: description`."
                 )
                 continue
-            beats.append(int(match.group(1)))
+            start, end, shot = match.groups()[:3]
+            beats.append((float(start), float(end), int(shot)))
 
         if not beats:
-            issues.append("Storyboard must contain at least one shot.")
+            issues.append("Storyboard must contain at least one timed shot.")
         else:
-            if beats != list(range(1, len(beats) + 1)):
+            if beats[0][0] != 0.0:
+                issues.append("The first Storyboard shot must start at 0 seconds.")
+            shot_ids = [shot for _, _, shot in beats]
+            if shot_ids != list(range(1, len(shot_ids) + 1)):
                 issues.append("Storyboard Shot numbers must start at 1 without gaps.")
+            for index, (start, end, _) in enumerate(beats):
+                if end <= start:
+                    issues.append("Every Storyboard range must have positive duration.")
+                if index and abs(start - beats[index - 1][1]) > 1e-6:
+                    issues.append(
+                        "Storyboard ranges must be contiguous without gaps or overlaps."
+                    )
+            requested = float(requested_duration_seconds)
+            if abs(beats[-1][1] - requested) > 1e-6:
+                issues.append(
+                    "The final Storyboard range must end at the requested duration "
+                    f"of {requested:g} seconds."
+                )
             required_shots = max(1, int(minimum_storyboard_shots))
             if len(beats) < required_shots:
                 issues.append(
@@ -412,11 +426,6 @@ def validate_t2v_prompt(
         flags=re.IGNORECASE,
     ):
         issues.append("T2V output must describe content without source attribution.")
-    if _contains_numeric_prompt_timing(structural_scan):
-        issues.append(
-            "T2V output must not contain timestamps, seconds-based ranges, or duration claims."
-        )
-
     return ValidationResult(candidate, tuple(dict.fromkeys(issues)))
 
 
@@ -428,46 +437,11 @@ def _field_body(text: str, field: str, next_field: str) -> str:
     return text[starts[0].end() : ends[0].start()].strip()
 
 
-def _strip_numeric_prompt_timing(text: str) -> str:
-    """Remove model-authored timing syntax from T2V/Ref2VA narrative prose."""
-
-    value = re.sub(r"(?i)\bTimeline:[ \t]*", "", str(text or ""))
-    value = re.sub(
-        r"(?i)\[\d+(?:\.\d+)?s-\d+(?:\.\d+)?s\][ \t]*",
-        "",
-        value,
-    )
-    value = re.sub(
-        r"(\[Shot [1-9]\d*\])[ \t]+(?:At[ \t]+)?"
-        r"(?:\d{1,3}:\d{2}(?:\.\d+)?|\d+(?:\.\d+)?[ \t]*(?:s|seconds?))"
-        r"[ \t]*,[ \t]*",
-        r"\1 ",
-        value,
-        flags=re.IGNORECASE,
-    )
-    return value
-
-
-def _contains_numeric_prompt_timing(text: str) -> bool:
-    return bool(
-        re.search(
-            r"(?im)^[ \t]*Timeline:|"
-            r"\[\d+(?:\.\d+)?s-\d+(?:\.\d+)?s\]|"
-            r"\b\d{1,3}:\d{2}(?:\.\d+)?\b|"
-            r"\b(?:at|after|before|by|from|until|through)\s+"
-            r"\d+(?:\.\d+)?\s*(?:s|seconds?)\b|"
-            r"\b\d+(?:\.\d+)?[- ]second\b",
-            text,
-        )
-    )
-
-
 def _validate_shot_timeline(
     body: str,
     duration: float,
     *,
     shot_one_must_start_body: bool,
-    require_timestamps: bool = True,
 ) -> list[str]:
     """Validate only the chronological field, not cross-section Shot citations."""
 
@@ -496,19 +470,6 @@ def _validate_shot_timeline(
     first_tail = body[matches[0].end() :]
     if re.match(r"\s*(?i:at)\s+\d{2}:\d{2}\.\d{3}\b", first_tail):
         issues.append("[Shot 1] must not have a timestamp.")
-
-    if not require_timestamps:
-        for index, match in enumerate(matches):
-            segment_end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
-            segment = body[match.end() : segment_end]
-            if not re.search(r"[A-Za-z0-9<\"']", segment):
-                issues.append(f"[Shot {index + 1}] must contain a concrete description.")
-        if _contains_numeric_prompt_timing(body):
-            issues.append(
-                "Ref2VA detailed_description must not contain timestamps, "
-                "seconds-based ranges, or a Timeline heading."
-            )
-        return issues
 
     timestamps: list[float] = []
     for index, match in enumerate(matches):
@@ -1270,7 +1231,19 @@ def canonicalize_ref_structure(
             bodies[index], manifest, raw_user_request
         )
     bodies[1] = _synchronize_ref_audio_signature(bodies[1], bodies[2], manifest)
-    bodies[3] = _strip_numeric_prompt_timing(bodies[3])
+    bodies[3] = _canonicalize_timeline_cut_markers(bodies[3])
+    if requested_duration_seconds is not None:
+        bodies[3] = _canonicalize_requested_timeline_tail(
+            bodies[3],
+            float(requested_duration_seconds),
+            effective_duration(length),
+        )
+    cut_duration = (
+        float(requested_duration_seconds)
+        if requested_duration_seconds is not None
+        else effective_duration(length)
+    )
+    bodies[3] = _canonicalize_invalid_ref_cut_times(bodies[3], cut_duration)
 
     result = "\n\n".join(f"{field}\n{body}" for field, body in zip(REF_FIELDS, bodies))
     return _canonicalize_speaker_groups(result).strip()
@@ -1530,7 +1503,6 @@ def validate_ref_prompt(
             detail_body,
             duration,
             shot_one_must_start_body=False,
-            require_timestamps=False,
         )
     )
 

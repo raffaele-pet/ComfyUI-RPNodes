@@ -352,10 +352,16 @@ def compose_t2v_prompt(
         sampling=sampling,
     )
     after_call()
+    requested_duration = (
+        effective_duration(length)
+        if requested_duration_seconds is None
+        else float(requested_duration_seconds)
+    )
     minimum_visual_shots = max(1, len(manifest.pictures) + len(manifest.videos))
     candidate = canonicalize_t2v_structure(candidate)
     initial = validate_t2v_prompt(
         candidate,
+        requested_duration,
         minimum_storyboard_shots=minimum_visual_shots,
     )
     final = initial
@@ -377,6 +383,7 @@ def compose_t2v_prompt(
         repaired_text = canonicalize_t2v_structure(repaired_text)
         final = validate_t2v_prompt(
             repaired_text,
+            requested_duration,
             minimum_storyboard_shots=minimum_visual_shots,
         )
         repaired = True

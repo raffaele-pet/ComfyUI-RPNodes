@@ -238,8 +238,8 @@ Scene overview:
 A runner crosses rain-dark rooftops while pursuers close in, ending on a committed leap above the city.
 
 Storyboard:
-[Shot 1] High side angle, the runner accelerates toward the roof edge as footsteps approach behind him.
-[Shot 2] Low wide angle, he launches across the gap and holds a stretched silhouette against the skyline.
+[0s-1.5s] Shot 1: High side angle, the runner accelerates toward the roof edge as footsteps approach behind him.
+[1.5s-3s] Shot 2: Low wide angle, he launches across the gap and holds a stretched silhouette against the skyline.
 
 Camera:
 Clean hard cut between distinct angles, shallow focus, restrained handheld vibration during the leap.
@@ -311,21 +311,16 @@ Wind, rapid footsteps, distant traffic, and a low percussive score that accents 
     def test_storyboard_requires_one_shot_per_visual_evidence_item(self):
         result = validate_t2v_prompt(
             self._prompt(),
+            3.0,
             minimum_storyboard_shots=3,
         )
         self.assertTrue(any("visual evidence item" in issue for issue in result.issues))
 
-    def test_timed_storyboard_is_canonicalized_without_seconds(self):
-        timed = self._prompt().replace(
-            "[Shot 1]",
-            "[0s-1.5s] Shot 1:",
-        ).replace(
-            "[Shot 2]",
-            "[1.5s-3s] Shot 2:",
-        )
-        canonical = canonicalize_t2v_structure(timed)
-        self.assertEqual(canonical, self._prompt())
-        self.assertNotIn("seconds", canonical)
+    def test_storyboard_must_cover_requested_duration_contiguously(self):
+        invalid = self._prompt().replace("[1.5s-3s]", "[2s-2.5s]")
+        result = validate_t2v_prompt(invalid, 3.0)
+        self.assertTrue(any("contiguous" in issue for issue in result.issues))
+        self.assertTrue(any("requested duration" in issue for issue in result.issues))
 
 
 class ValidationTests(unittest.TestCase):
@@ -718,8 +713,7 @@ N/A"""
         )
         labels = ", ".join(f"<Picture {index}>" for index in range(1, 9))
         first_seven = " ".join(
-            f"[Shot {index}] The next visible pose and action from <Picture {index}> "
-            "is enacted clearly."
+            f"The next visible pose and action from <Picture {index}> is enacted clearly."
             for index in range(1, 8)
         )
         candidate = f"""subject_definitions:
@@ -733,7 +727,7 @@ retention_analysis:
 
 detailed_description:
 Stylized 3D animation with bright neutral lighting.
-{first_seven}
+[Shot 1] {first_seven}
 
 overall_soundscape:
 Natural movement sounds.
@@ -749,7 +743,7 @@ N/A"""
 
         complete = candidate.replace(
             "\n\noverall_soundscape:",
-            "\n[Shot 8] The final action and composition from <Picture 8> are "
+            " The final action and composition from <Picture 8> are "
             "shown clearly.\n\noverall_soundscape:",
         )
         self.assertTrue(validate_ref_prompt(complete, 362, manifest).valid)
@@ -780,7 +774,7 @@ N/A"""
         self.assertNotIn("N/A", canonical.split("summary:", 1)[0])
         self.assertTrue(validate_ref_prompt(canonical, 73, manifest).valid)
 
-    def test_ref_later_shot_timestamp_is_removed(self):
+    def test_ref_zero_time_later_shot_is_canonicalized_inside_duration(self):
         manifest = ReferenceManifest.from_inputs(ref_image_0=object())
         generated = """subject_definitions:
 <Subject 1> is the man from <Picture 1>, retaining his face and orange coat.
@@ -804,8 +798,7 @@ N/A"""
         canonical = canonicalize_ref_structure(
             generated, 73, manifest, requested_duration_seconds=3.0
         )
-        self.assertIn("[Shot 2] a close shot", canonical)
-        self.assertNotIn("00:00.000", canonical)
+        self.assertIn("[Shot 2] At 00:01.500,", canonical)
         result = validate_ref_prompt(canonical, 73, manifest)
         self.assertTrue(result.valid, result.issues)
 
@@ -1406,7 +1399,7 @@ N/A</think>"""
         self.assertNotIn("</think>", canonical)
         self.assertTrue(result.valid, result.issues)
 
-    def test_ref_canonicalizer_removes_timeline_ranges_and_aligned_tail(self):
+    def test_ref_canonicalizer_folds_aligned_padding_beat_after_requested_duration(self):
         manifest = ReferenceManifest.from_inputs(ref_image_0=object())
         generated = """subject_definitions:
 <Subject 1> is a tiger from <Picture 1>.
@@ -1435,16 +1428,12 @@ N/A"""
             manifest,
             requested_duration_seconds=5.0,
         )
-        self.assertNotIn("Timeline:", canonical)
-        self.assertNotIn("[0s-2s]", canonical)
-        self.assertNotIn("[2s-5s]", canonical)
         self.assertNotIn("[5s-5.166667s]", canonical)
-        self.assertIn("<Subject 1> crosses the grass.", canonical)
-        self.assertIn("<Subject 1> stops beside the cub.", canonical)
-        self.assertNotIn("aligned render tail", canonical)
+        self.assertIn("[2s-5s] <Subject 1> crosses the grass. <Subject 1> stops", canonical)
+        self.assertIn("5.166667-second aligned render tail", canonical)
         self.assertTrue(validate_ref_prompt(canonical, 124, manifest).valid)
 
-    def test_ref_canonicalizer_removes_inline_timeline_and_duration(self):
+    def test_ref_canonicalizer_folds_inline_timeline_to_requested_duration(self):
         manifest = ReferenceManifest.from_inputs(
             ref_image_0=object(),
             ref_video_0=object(),
@@ -1473,10 +1462,9 @@ N/A"""
             manifest,
             requested_duration_seconds=5.0,
         )
-        self.assertNotIn("Timeline:", canonical)
+        self.assertIn("Timeline:\n[0s-5s]", canonical)
         self.assertNotIn("[0s-5.166667s]", canonical)
-        self.assertIn("[Shot 1] <Subject 1> from <Picture 1> performs", canonical)
-        self.assertNotIn("aligned render tail", canonical)
+        self.assertIn("5.166667-second aligned render tail", canonical)
         self.assertTrue(validate_ref_prompt(canonical, 124, manifest).valid)
 
 
@@ -1979,7 +1967,7 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("Later real cuts begin exactly `[Shot N] At", prompt)
         self.assertIn("tail ending at 5.166667s", prompt)
 
-    def test_ref_contract_is_explicit_and_untimed(self):
+    def test_ref_contract_is_explicit_and_duration_scaled(self):
         manifest = ReferenceManifest.from_inputs(
             ref_video_0=object(),
             ref_video_audio_0=object(),
@@ -1994,8 +1982,8 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("Do not rename,\ntranslate, capitalize, decorate, omit, or repeat", prompt)
         self.assertIn("350–500 English", prompt)
         self.assertIn("do not add a `Timeline:` heading", prompt)
-        self.assertIn("Do not calculate or mention numeric timing", prompt)
-        self.assertNotIn("Requested creative duration", prompt)
+        self.assertIn("Requested creative duration: 5 seconds", prompt)
+        self.assertIn("Later real cuts start `[Shot N] At MM:SS.mmm", prompt)
         self.assertIn("Audio marker and summary task type must agree", prompt)
         self.assertIn(
             "uses a Video only for movement or timing\n    is reference generation",
@@ -2015,9 +2003,9 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("target H3\nmodel receives text only", prompt)
         self.assertIn("`Scene overview:`", prompt)
         self.assertIn("`Storyboard:`", prompt)
-        self.assertIn("Every line begins exactly\n   `[Shot N]`", prompt)
-        self.assertIn("Do not calculate or mention numeric timing", prompt)
-        self.assertNotIn("Requested creative duration", prompt)
+        self.assertIn("`[Xs-Ys] Shot N: description`", prompt)
+        self.assertIn("final\n   range ends at 3", prompt)
+        self.assertIn("Requested creative duration: 3 seconds", prompt)
         self.assertIn("Never output structured source tags", prompt)
         self.assertIn("Account for every item", prompt)
         self.assertIn("Never silently discard an item", prompt)
@@ -2051,11 +2039,11 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("video evidence 1", payload)
         self.assertIn("audio evidence 1", payload)
         self.assertIn('"required_storyboard_shots_for_visual_evidence": 2', payload)
-        self.assertNotIn("requested_duration_seconds", payload)
-        self.assertNotIn("effective_duration_seconds", payload)
+        self.assertIn('"requested_duration_seconds": 3.0', payload)
+        self.assertIn('"effective_duration_seconds": 3.0416666666666665', payload)
         self.assertIn("Every optional evidence list item must contribute", payload)
 
-    def test_ref_payload_does_not_expose_duration_to_gemma(self):
+    def test_ref_payload_exposes_requested_and_aligned_duration(self):
         manifest = ReferenceManifest.from_inputs(ref_image_0=object())
         payload = ref_user_payload(
             raw_prompt="The person waves.",
@@ -2065,9 +2053,9 @@ class GemmaRunnerTests(unittest.TestCase):
             media_observations={"ref_image_0": "<Picture 1>: a waving person."},
             requested_duration_seconds=15.0,
         )
-        self.assertNotIn("requested_duration_seconds", payload)
-        self.assertNotIn("effective_duration_seconds", payload)
-        self.assertNotIn("aligned_length_frames", payload)
+        self.assertIn('"requested_duration_seconds": 15.0', payload)
+        self.assertIn('"effective_duration_seconds": 15.083333333333334', payload)
+        self.assertIn('"aligned_length_frames": 362', payload)
 
     def test_auto_profile_requires_explicit_creative_treatment(self):
         prompt = auto_skill_system_prompt()
@@ -2248,8 +2236,8 @@ Scene overview:
 A character performs a sequence of gestures and reactions before presenting a sign.
 
 Storyboard:
-[Shot 1] The character greets the viewer and lifts a mug.
-[Shot 2] The character reacts with surprise and presents a sign.
+[0s-7.5s] Shot 1: The character greets the viewer and lifts a mug.
+[7.5s-15s] Shot 2: The character reacts with surprise and presents a sign.
 
 Camera:
 Stable medium framing followed by a clean close view.
@@ -2257,9 +2245,11 @@ Stable medium framing followed by a clean close view.
 Audio:
 Natural movement sounds and a light musical accent."""
         three_shots = two_shots.replace(
-            "[Shot 2] The character reacts",
-            "[Shot 2] A small robot enters and the character looks annoyed.\n"
-            "[Shot 3] The character reacts",
+            "[0s-7.5s] Shot 1: The character greets the viewer and lifts a mug.\n"
+            "[7.5s-15s] Shot 2: The character reacts with surprise and presents a sign.",
+            "[0s-5s] Shot 1: The character greets the viewer and lifts a mug.\n"
+            "[5s-10s] Shot 2: A small robot enters and the character looks annoyed.\n"
+            "[10s-15s] Shot 3: The character reacts with surprise and presents a sign.",
         )
         manifest = ReferenceManifest.from_inputs(
             ref_image_0=object(),
@@ -2284,17 +2274,15 @@ Natural movement sounds and a light musical accent."""
         )
         self.assertTrue(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
-        self.assertIn("[Shot 3]", result.prompt)
-        self.assertNotRegex(result.prompt, r"\d+(?:\.\d+)?s")
+        self.assertIn("[10s-15s] Shot 3:", result.prompt)
 
     def test_ref_repairs_picture_used_only_in_metadata(self):
         manifest = ReferenceManifest.from_inputs(
             **{f"ref_image_{index}": object() for index in range(8)}
         )
         labels = ", ".join(f"<Picture {index}>" for index in range(1, 9))
-        first_seven = "\n".join(
-            f"[Shot {index}] <Subject 1> enacts the pose or action from "
-            f"<Picture {index}>."
+        first_seven = " ".join(
+            f"<Subject 1> enacts the pose or action from <Picture {index}>."
             for index in range(1, 8)
         )
         base = f"""subject_definitions:
@@ -2308,7 +2296,7 @@ retention_analysis:
 
 detailed_description:
 Stylized 3D animation with bright neutral lighting.
-{first_seven}
+[Shot 1] {first_seven}
 {{picture_eight}}
 
 overall_soundscape:
@@ -2319,7 +2307,7 @@ N/A"""
         incomplete = base.format(picture_eight="")
         repaired = base.format(
             picture_eight=(
-                "[Shot 8] <Subject 1> completes the final action and composition "
+                "<Subject 1> completes the final action and composition "
                 "from <Picture 8>."
             )
         )
@@ -2341,7 +2329,6 @@ N/A"""
         self.assertTrue(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         self.assertIn("<Picture 8>", result.prompt.split("overall_soundscape:", 1)[0])
-        self.assertNotIn("At 00:", result.prompt)
 
     def test_ref_structural_metadata_is_fixed_without_a_generation_repair(self):
         manifest = ReferenceManifest.from_inputs(
