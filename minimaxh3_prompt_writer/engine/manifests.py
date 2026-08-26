@@ -132,29 +132,6 @@ class ReferenceManifest:
     presentation_order: tuple[AssetRef, ...]
 
     @classmethod
-    def from_ordered_frames(cls, frame_count: int) -> "ReferenceManifest":
-        """Build the same authoritative Picture inventory for Frames2VA."""
-
-        count = int(frame_count)
-        if not 1 <= count <= 9:
-            raise ValueError("Frames2VA requires between 1 and 9 ordered frames.")
-        pictures = tuple(
-            AssetRef(
-                socket=f"frame_{index}",
-                label=f"<Picture {index}>",
-                kind="image",
-                role=f"ordered temporal keyframe {index} of {count}",
-            )
-            for index in range(1, count + 1)
-        )
-        return cls(
-            pictures=pictures,
-            videos=(),
-            audios=(),
-            presentation_order=pictures,
-        )
-
-    @classmethod
     def from_inputs(
         cls,
         *,

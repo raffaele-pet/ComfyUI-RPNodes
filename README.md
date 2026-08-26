@@ -140,16 +140,15 @@ pass-through outputs.
 Creates an I2V prompt from an ordered sequence of up to nine frame images. The
 node initially shows `frame_1`; connecting it reveals `frame_2`, and the inputs
 continue growing in the same way through `frame_9`. Every connected frame is
-analyzed independently and represented by its matching Picture label in the
-finished prompt. Before the chronological `integrated_multimodal_description`,
-the prompt includes `subject_definitions`, `summary`, and `retention_analysis`
-sections that lock recurring subjects and state explicitly which visible
-properties of every Picture must be preserved. These sections use the same
-manifest-driven composition, canonicalization, repair, and validation pipeline
-as `RP H3-REF2V Prompt Writer`; only the chronological body keeps the I2V field
-name `integrated_multimodal_description`. The node outputs only `prompt`,
-`aligned_length`, and `analysis_report`; it does not pass the frame images
-through.
+mapped internally to the native REF2V image sockets and represented by its
+matching Picture label. The node then uses the same manifest, media analysis,
+payload, composition, canonicalization, repair, and validation path as
+`RP H3-REF2V Prompt Writer`. Its six output sections are therefore unchanged,
+including the field name `detailed_description`; only that field's writing
+rules follow `RP H3-I2V Prompt Writer`, beginning directly with `[Shot 1]` and
+developing the action in target-video playback order. The node outputs only
+`prompt`, `aligned_length`, and `analysis_report`; it does not pass the frame
+images through.
 
 ### RP H3-REF2V Prompt Writer
 

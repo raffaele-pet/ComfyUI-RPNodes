@@ -9,12 +9,10 @@ from comfy_api.latest import io
 
 from .engine.analyzers import (
     analyze_base_media,
-    analyze_frames_media,
     analyze_reference_media,
 )
 from .engine.composer import (
     compose_base_prompt,
-    compose_frames_prompt,
     compose_ref_prompt,
     compose_t2v_prompt,
 )
@@ -452,16 +450,23 @@ class RPH3I2VFramesPromptWriter(io.ComfyNode):
             )
         duration_seconds = validate_whole_duration_seconds(duration_seconds)
         aligned_length = seconds_to_aligned_frame_count(duration_seconds)
+        # Keep the REF2V implementation intact internally. The public frame_n
+        # sockets are mapped to its native image sockets before all processing.
+        ref_images = {
+            f"ref_image_{slot - 1}": image for slot, image in connected
+        }
+        manifest = ReferenceManifest.from_inputs(ref_images=ref_images)
         runner = GemmaRunner(clip)
-        observations = analyze_frames_media(
+        observations = analyze_reference_media(
             runner,
-            frames=connected,
+            manifest=manifest,
+            ref_images=ref_images,
+            target_frame_count=aligned_length,
             max_new_tokens=media_analysis_tokens,
             seed=seed,
             after_call=_check_interrupted,
         )
-        manifest = ReferenceManifest.from_ordered_frames(len(connected))
-        result = compose_frames_prompt(
+        result = compose_ref_prompt(
             runner,
             raw_prompt=prompt,
             length=aligned_length,
@@ -481,6 +486,7 @@ class RPH3I2VFramesPromptWriter(io.ComfyNode):
             requested_duration_seconds=duration_seconds,
             strict_validation=strict_validation,
             after_call=_check_interrupted,
+            i2v_detailed_description=True,
         )
         report = result.analysis_report(
             mode="Frames2VA",

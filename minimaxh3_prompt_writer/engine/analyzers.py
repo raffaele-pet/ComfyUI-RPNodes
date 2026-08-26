@@ -314,41 +314,6 @@ def analyze_base_media(
     return observations
 
 
-def analyze_frames_media(
-    runner: GemmaRunner,
-    *,
-    frames: list[tuple[int, Any]],
-    max_new_tokens: int = 512,
-    seed: int = 0,
-    after_call: Callable[[], None] = _noop,
-) -> dict[str, str]:
-    """Analyze an ordered sequence of I2V keyframes independently."""
-
-    observations: dict[str, str] = {}
-    frame_count = len(frames)
-    for call_index, (slot, image) in enumerate(frames):
-        label = f"<Picture {slot}>"
-        socket = f"frame_{slot}"
-        if frame_count == 1:
-            temporal_role = "literal first frame at 0.00 seconds"
-        elif slot == 1:
-            temporal_role = f"opening keyframe 1 of {frame_count}"
-        elif slot == frame_count:
-            temporal_role = f"ending keyframe {slot} of {frame_count}"
-        else:
-            temporal_role = f"intermediate keyframe {slot} of {frame_count}"
-        observations[socket] = _generate_complete_record(
-            runner,
-            prompt=keyframes_analysis_prompt([(label, socket, temporal_role)]),
-            label=label,
-            image=first_image(image),
-            max_new_tokens=max_new_tokens,
-            seed=seed + call_index,
-            after_call=after_call,
-        )
-    return observations
-
-
 def analyze_reference_media(
     runner: GemmaRunner,
     *,

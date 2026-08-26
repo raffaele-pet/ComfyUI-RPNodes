@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 from engine.analyzers import (
     analyze_base_media,
-    analyze_frames_media,
     analyze_reference_media,
     clean_analysis_text,
     ensure_analysis_records,
@@ -14,7 +13,6 @@ from engine.analyzers import (
 from engine.constants import SKILL_CHOICES, SKILL_CORE, get_skill_profile
 from engine.composer import (
     compose_base_prompt,
-    compose_frames_prompt,
     compose_ref_prompt,
     compose_t2v_prompt,
 )
@@ -32,8 +30,7 @@ from engine.prompts import (
     auto_skill_system_prompt,
     base_system_prompt,
     base_user_payload,
-    frames_system_prompt,
-    frames_user_payload,
+    ref_system_prompt_with_i2v_description,
     gemma4_chat,
     ref_system_prompt,
     ref_user_payload,
@@ -43,12 +40,10 @@ from engine.prompts import (
 from engine.validation import (
     canonicalize_base_alignment,
     canonicalize_base_structure,
-    canonicalize_frames_structure,
     canonicalize_ref_structure,
     canonicalize_t2v_structure,
     sanitize_generated_text,
     validate_base_prompt,
-    validate_frames_prompt,
     validate_ref_prompt,
     validate_t2v_prompt,
 )
@@ -83,17 +78,19 @@ class GridAndModeTests(unittest.TestCase):
         self.assertEqual(determine_base_mode(last_frame=frame), "L2VA")
         self.assertEqual(determine_base_mode(frame, frame), "FL2VA")
 
-    def test_ordered_frames_manifest_matches_frame_sockets(self):
-        manifest = ReferenceManifest.from_ordered_frames(3)
+    def test_frame_inputs_are_mapped_to_native_ref_image_sockets(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
         self.assertEqual(
             manifest.labels("image"),
             ("<Picture 1>", "<Picture 2>", "<Picture 3>"),
         )
         self.assertEqual(
             [asset.socket for asset in manifest.pictures],
-            ["frame_1", "frame_2", "frame_3"],
+            ["ref_image_0", "ref_image_1", "ref_image_2"],
         )
-        self.assertIn("ordered temporal keyframe 3 of 3", manifest.inventory_text())
+        self.assertIn("<Picture 3> <- ref_image_2", manifest.inventory_text())
 
 
 class ManifestTests(unittest.TestCase):
@@ -366,7 +363,7 @@ class ValidationTests(unittest.TestCase):
         result = validate_base_prompt(text, "I2VA", 124)
         self.assertTrue(result.valid, result.issues)
 
-    def test_valid_frames2va_requires_every_connected_picture(self):
+    def test_frames_node_uses_ref_validation_for_every_connected_picture(self):
         text = (
             "subject_definitions:\n"
             "<Subject 1> A consistent person established by <Picture 1>, "
@@ -384,11 +381,16 @@ class ValidationTests(unittest.TestCase):
                 "<Picture 3>",
             )
         )
-        manifest = ReferenceManifest.from_ordered_frames(3)
-        result = validate_frames_prompt(text, 124, manifest)
+        text = text.replace(
+            "integrated_multimodal_description:", "detailed_description:"
+        )
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
+        result = validate_ref_prompt(text, 124, manifest)
         self.assertTrue(result.valid, result.issues)
 
-        missing = validate_frames_prompt(
+        missing = validate_ref_prompt(
             text.replace(
                 "leads into <Picture 2>, then",
                 "leads through the intermediate state, then",
@@ -399,7 +401,7 @@ class ValidationTests(unittest.TestCase):
         self.assertFalse(missing.valid)
         self.assertTrue(any("<Picture 2>" in issue for issue in missing.issues))
 
-    def test_frames2va_repair_keeps_only_last_implicit_prefix_draft(self):
+    def test_frames_node_ref_repair_keeps_only_last_implicit_prefix_draft(self):
         first_draft = (
             "subject_definitions:\n"
             "<Subject 1> The first discarded bird from <Picture 1>.\n\n"
@@ -408,7 +410,7 @@ class ValidationTests(unittest.TestCase):
             "<Subject 1>: fully_preserved - Discarded identity.\n"
             "<Picture 1>: fully_preserved - Discarded opening.\n"
             "<Picture 2>: fully_preserved - Discarded ending.\n\n"
-            "integrated_multimodal_description:\n"
+            "detailed_description:\n"
             "[Shot 1] Discarded <Subject 1> moves from <Picture 1> to "
             "<Picture 2>.\n\n"
             "overall_soundscape:\nDiscarded room tone.\n\n"
@@ -422,14 +424,16 @@ class ValidationTests(unittest.TestCase):
             "<Subject 1>: fully_preserved - Blue plumage remains stable.\n"
             "<Picture 1>: fully_preserved - The opening pose remains exact.\n"
             "<Picture 2>: fully_preserved - The raised-wing pose remains exact.\n\n"
-            "integrated_multimodal_description:\n"
+            "detailed_description:\n"
             "[Shot 1] <Subject 1> starts in <Picture 1>, raises one wing, and "
             "settles into <Picture 2>.\n\n"
             "overall_soundscape:\nQuiet room tone and a feather rustle.\n\n"
             "non_diegetic_music:\nN/A"
         )
-        manifest = ReferenceManifest.from_ordered_frames(2)
-        canonical = canonicalize_frames_structure(
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={"ref_image_0": object(), "ref_image_1": object()}
+        )
+        canonical = canonicalize_ref_structure(
             first_draft + corrected_without_repeated_prefix,
             124,
             manifest,
@@ -438,7 +442,7 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(canonical.count("summary:"), 1)
         self.assertNotIn("Discard this first draft", canonical)
         self.assertIn("The final blue bird", canonical)
-        result = validate_frames_prompt(canonical, 124, manifest)
+        result = validate_ref_prompt(canonical, 124, manifest)
         self.assertTrue(result.valid, result.issues)
 
     def test_valid_fl2va(self):
@@ -1625,29 +1629,6 @@ class BaseMediaAnalysisTests(unittest.TestCase):
             },
         )
 
-    def test_ordered_frames_are_analyzed_independently(self):
-        import torch
-
-        runner = _MediaAnalysisRunner()
-        observations = analyze_frames_media(
-            runner,
-            frames=[
-                (1, torch.zeros(1, 24, 32, 3)),
-                (2, torch.ones(1, 24, 32, 3)),
-                (3, torch.full((1, 24, 32, 3), 2.0)),
-            ],
-            max_new_tokens=192,
-            seed=21,
-        )
-        self.assertEqual(len(runner.calls), 3)
-        self.assertEqual(list(observations), ["frame_1", "frame_2", "frame_3"])
-        self.assertIn("opening keyframe 1 of 3", runner.calls[0][0])
-        self.assertIn("intermediate keyframe 2 of 3", runner.calls[1][0])
-        self.assertIn("ending keyframe 3 of 3", runner.calls[2][0])
-        self.assertEqual(
-            [call[1]["seed"] for call in runner.calls], [21, 22, 23]
-        )
-
     def test_media_cleanup_discards_orphan_reasoning_prefix(self):
         value = clean_analysis_text(
             "I should restate the task first.</think><Picture 1>: A tiger in grass."
@@ -2087,26 +2068,31 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("Later real cuts begin exactly `[Shot N] At", prompt)
         self.assertIn("tail ending at 5.166667s", prompt)
 
-    def test_frames_contract_maps_all_ordered_inputs(self):
+    def test_frames_contract_is_ref_contract_with_i2v_detailed_description(self):
         skill = get_skill_profile(SKILL_CORE)
-        manifest = ReferenceManifest.from_ordered_frames(3)
-        system = frames_system_prompt(
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
+        system = ref_system_prompt_with_i2v_description(
             124, skill, manifest
         )
-        payload = frames_user_payload(
+        payload = ref_user_payload(
             raw_prompt="Animate the sequence.",
             length=124,
             skill=skill,
             manifest=manifest,
             media_observations={},
         )
-        self.assertIn("ordered temporal keyframe 3 of 3", system)
-        self.assertIn("integrated_multimodal_description:", system)
+        self.assertIn("<Picture 3> <- ref_image_2", system)
+        self.assertIn("detailed_description:", system)
+        self.assertNotIn("integrated_multimodal_description:", system)
         self.assertIn("keep each meaning\n  stable in every section", system)
-        self.assertIn("Metadata-only use in subject_definitions", system)
+        self.assertIn("Begin its body directly with\n  `[Shot 1]`", system)
         self.assertNotIn("Begin with one\n  or two English sentences", system)
+        self.assertNotIn("350–500 English", system)
         self.assertIn(r'\u003cPicture 3>', payload)
-        self.assertIn('"socket": "frame_3"', payload)
+        self.assertIn('"socket": "ref_image_2"', payload)
+        self.assertIn('"mode": "Ref2VA"', payload)
 
     def test_ref_contract_is_explicit_and_duration_scaled(self):
         manifest = ReferenceManifest.from_inputs(
@@ -2219,7 +2205,7 @@ class _ScriptedRunner:
 
 
 class ComposerRepairTests(unittest.TestCase):
-    def test_frames2va_keeps_i2v_body_and_adds_fidelity_sections(self):
+    def test_frames_node_composes_through_ref_with_i2v_detailed_body(self):
         candidate = (
             "subject_definitions:\n"
             "<Subject 1> A blue bird established by <Picture 1> and "
@@ -2230,82 +2216,37 @@ class ComposerRepairTests(unittest.TestCase):
             "<Subject 1>: fully_preserved - Blue plumage and identity remain stable.\n"
             "<Picture 1>: fully_preserved - The opening pose remains exact.\n"
             "<Picture 2>: fully_preserved - The final pose remains exact.\n\n"
-            "integrated_multimodal_description:\n"
+            "detailed_description:\n"
             "[Shot 1] <Subject 1> begins as in <Picture 1>, raises one wing, "
             "and settles into <Picture 2>.\n\n"
             "overall_soundscape:\nQuiet room tone and one feather rustle.\n\n"
             "non_diegetic_music:\nN/A"
         )
         runner = _ScriptedRunner([candidate])
-        result = compose_frames_prompt(
+        result = compose_ref_prompt(
             runner,
             raw_prompt="Make the bird lift one wing.",
             length=124,
             selected_skill_label=SKILL_CORE,
             observations={
-                "frame_1": "<Picture 1>: A blue bird.",
-                "frame_2": "<Picture 2>: The same bird with one wing raised.",
+                "ref_image_0": "<Picture 1>: A blue bird.",
+                "ref_image_1": "<Picture 2>: The same bird with one wing raised.",
             },
-            manifest=ReferenceManifest.from_ordered_frames(2),
+            manifest=ReferenceManifest.from_inputs(
+                ref_images={"ref_image_0": object(), "ref_image_1": object()}
+            ),
             max_new_tokens=2048,
             sampling=SamplingConfig(do_sample=False, seed=7),
+            i2v_detailed_description=True,
         )
         self.assertFalse(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         self.assertTrue(result.prompt.startswith("subject_definitions:\n"))
-        self.assertIn("integrated_multimodal_description:\n[Shot 1]", result.prompt)
+        self.assertIn("detailed_description:\n[Shot 1]", result.prompt)
+        self.assertNotIn("integrated_multimodal_description:", result.prompt)
         self.assertEqual(
             runner.calls[0][2]["assistant_prefix"], "subject_definitions:\n"
         )
-
-    def test_frames_repair_cannot_discard_better_picture_coverage(self):
-        initial = (
-            "subject_definitions:\n"
-            "<Subject 1> A blue bird from <Picture 1> and <Picture 2>.\n\n"
-            "summary:\n[keyframe completion] The bird raises one wing.\n\n"
-            "retention_analysis:\n"
-            "<Subject 1>: fully_preserved - Blue plumage remains stable.\n"
-            "<Picture 1>: fully_preserved - Opening pose remains exact.\n"
-            "<Picture 2>: fully_preserved - Final pose remains exact.\n\n"
-            "integrated_multimodal_description:\n"
-            "[Shot 1] <Subject 1> begins in <Picture 1>, performs the original "
-            "continuous wing motion, and reaches <Picture 2>.\n\n"
-            "overall_soundscape:\nQuiet room tone.\n\n"
-            "non_diegetic_music:\nN/A\n\n"
-            "forbidden_field:\nThis forces the repair pass."
-        )
-        repaired_with_worse_main = (
-            "subject_definitions:\n"
-            "<Subject 1> A blue bird from <Picture 1> and <Picture 2>.\n\n"
-            "summary:\n[keyframe completion] The bird raises one wing.\n\n"
-            "retention_analysis:\n"
-            "<Subject 1>: fully_preserved - Blue plumage remains stable.\n"
-            "<Picture 1>: fully_preserved - Opening pose remains exact.\n"
-            "<Picture 2>: fully_preserved - Final pose remains exact.\n\n"
-            "integrated_multimodal_description:\n"
-            "[Shot 1] <Subject 1> appears only in <Picture 1>.\n\n"
-            "overall_soundscape:\nQuiet room tone.\n\n"
-            "non_diegetic_music:\nN/A"
-        )
-        runner = _ScriptedRunner([initial, repaired_with_worse_main])
-        result = compose_frames_prompt(
-            runner,
-            raw_prompt="Make the bird lift one wing.",
-            length=124,
-            selected_skill_label=SKILL_CORE,
-            observations={
-                "frame_1": "<Picture 1>: A blue bird.",
-                "frame_2": "<Picture 2>: The same bird with one wing raised.",
-            },
-            manifest=ReferenceManifest.from_ordered_frames(2),
-            max_new_tokens=2048,
-            sampling=SamplingConfig(do_sample=False, seed=7),
-        )
-        self.assertTrue(result.repaired)
-        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
-        self.assertIn("original continuous wing motion", result.prompt)
-        self.assertIn("<Picture 2>", result.prompt.split("overall_soundscape:", 1)[0])
-        self.assertNotIn("forbidden_field:", result.prompt)
 
     def test_repair_output_section_separators_are_canonicalized(self):
         repaired = (
