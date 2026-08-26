@@ -662,6 +662,67 @@ def _isolate_last_base_schema(text: str, mode: str) -> str:
     return candidate[eligible[-1].start() :].strip()
 
 
+def _isolate_last_frames_schema(text: str) -> str:
+    """Keep the final Frames2VA draft, including an implicit first header.
+
+    Gemma may echo the invalid draft before writing its correction during the
+    repair pass. Because ``subject_definitions:`` is supplied as an assistant
+    prefix, a second draft can also begin directly with Subject lines followed
+    by ``summary:``. Select that final attempt and restore the implicit header
+    instead of validating both concatenated drafts as one prompt.
+    """
+
+    candidate = sanitize_generated_text(text, "Frames2VA")
+    summaries = _header_matches(candidate, FRAMES_BASE_FIELDS[1])
+    if len(summaries) <= 1:
+        return candidate
+
+    summary = summaries[-1]
+    previous_music = [
+        match
+        for match in _header_matches(candidate, FRAMES_BASE_FIELDS[-1])
+        if match.start() < summary.start()
+    ]
+    attempt_start = previous_music[-1].end() if previous_music else 0
+    subject_headers = [
+        match
+        for match in _header_matches(candidate, FRAMES_BASE_FIELDS[0])
+        if attempt_start <= match.start() < summary.start()
+    ]
+    if subject_headers:
+        candidate = candidate[subject_headers[-1].start() :].strip()
+    else:
+        prefix = candidate[attempt_start : summary.start()].strip()
+        first_subject = re.search(r"(?m)^<Subject [1-9]\d*>\s+", prefix)
+        if first_subject:
+            prefix = prefix[first_subject.start() :].strip()
+        else:
+            paragraphs = re.split(r"\n[ \t]*\n", prefix)
+            prefix = paragraphs[-1].strip() if paragraphs else prefix
+        candidate = (prefix + "\n\n" + candidate[summary.start() :]).strip()
+
+        remaining = [
+            _header_matches(candidate, field)
+            for field in FRAMES_BASE_FIELDS[1:]
+        ]
+        if (
+            all(len(matches) == 1 for matches in remaining)
+            and [matches[0].start() for matches in remaining]
+            == sorted(matches[0].start() for matches in remaining)
+        ):
+            summary_start = remaining[0][0].start()
+            prefix = candidate[:summary_start].strip()
+            prefix_lines = prefix.splitlines()
+            if prefix_lines and re.match(
+                r"(?i)^(?:here is|final|corrected|frames2va prompt\b)",
+                prefix_lines[0].strip(" *_#:-"),
+            ):
+                prefix = "\n".join(prefix_lines[1:]).strip()
+            suffix = candidate[summary_start:]
+            candidate = "subject_definitions:\n" + prefix + "\n\n" + suffix
+    return candidate.strip()
+
+
 def _canonicalize_speaker_groups(text: str) -> str:
     pattern = re.compile(
         r"\(\s*[sS]\s*([1-9]\d*)(?:\s*,\s*[sS]\s*([1-9]\d*))*\s*\)"
@@ -1323,7 +1384,7 @@ def canonicalize_base_structure(text: str, mode: str, length: int) -> str:
     """
 
     if mode == "Frames2VA":
-        candidate = sanitize_generated_text(text, mode)
+        candidate = _isolate_last_frames_schema(text)
         matches = [
             _header_matches(candidate, field) for field in FRAMES_BASE_FIELDS
         ]

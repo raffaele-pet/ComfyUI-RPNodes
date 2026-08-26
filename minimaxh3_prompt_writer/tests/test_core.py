@@ -397,6 +397,49 @@ class ValidationTests(unittest.TestCase):
             )
         )
 
+    def test_frames2va_repair_keeps_only_last_implicit_prefix_draft(self):
+        first_draft = (
+            "subject_definitions:\n"
+            "<Subject 1> The first discarded bird from <Picture 1>.\n\n"
+            "summary:\n[keyframe completion] Discard this first draft.\n\n"
+            "retention_analysis:\n"
+            "<Subject 1>: fully_preserved - Discarded identity.\n"
+            "<Picture 1>: fully_preserved - Discarded opening.\n"
+            "<Picture 2>: fully_preserved - Discarded ending.\n\n"
+            "integrated_multimodal_description:\n"
+            "[Shot 1] Discarded <Subject 1> moves from <Picture 1> to "
+            "<Picture 2>.\n\n"
+            "overall_soundscape:\nDiscarded room tone.\n\n"
+            "non_diegetic_music:\nN/A\n"
+        )
+        corrected_without_repeated_prefix = (
+            "<Subject 1> The final blue bird established by <Picture 1> and "
+            "<Picture 2>.\n\n"
+            "summary:\n[keyframe completion] The blue bird raises one wing.\n\n"
+            "retention_analysis:\n"
+            "<Subject 1>: fully_preserved - Blue plumage remains stable.\n"
+            "<Picture 1>: fully_preserved - The opening pose remains exact.\n"
+            "<Picture 2>: fully_preserved - The raised-wing pose remains exact.\n\n"
+            "integrated_multimodal_description:\n"
+            "[Shot 1] <Subject 1> starts in <Picture 1>, raises one wing, and "
+            "settles into <Picture 2>.\n\n"
+            "overall_soundscape:\nQuiet room tone and a feather rustle.\n\n"
+            "non_diegetic_music:\nN/A"
+        )
+        canonical = canonicalize_base_structure(
+            first_draft + corrected_without_repeated_prefix,
+            "Frames2VA",
+            124,
+        )
+        self.assertEqual(canonical.count("subject_definitions:"), 1)
+        self.assertEqual(canonical.count("summary:"), 1)
+        self.assertNotIn("Discard this first draft", canonical)
+        self.assertIn("The final blue bird", canonical)
+        result = validate_base_prompt(
+            canonical, "Frames2VA", 124, picture_count=2
+        )
+        self.assertTrue(result.valid, result.issues)
+
     def test_valid_fl2va(self):
         text = (
             "How the reference pictures align with the target video — Picture 1 "
