@@ -2205,6 +2205,52 @@ class _ScriptedRunner:
 
 
 class ComposerRepairTests(unittest.TestCase):
+    def test_ref_composer_deterministically_repairs_missing_picture_and_language(self):
+        ref_images = {f"ref_image_{index}": object() for index in range(6)}
+        manifest = ReferenceManifest.from_inputs(ref_images=ref_images)
+        labels = [f"<Picture {index}>" for index in range(1, 7)]
+        candidate = (
+            "subject_definitions:\n"
+            f"<Subject 1> A consistent performer established by {', '.join(labels)}.\n\n"
+            "summary:\n"
+            "[keyframe completion] The performer completes one continuous action.\n\n"
+            "retention_analysis:\n"
+            "<Subject 1>: fully_preserved - Identity and appearance remain stable.\n"
+            + "\n".join(
+                f"{label}: fully_preserved - Its visible state remains exact."
+                for label in labels
+            )
+            + "\n\ndetailed_description:\n"
+            "[Shot 1] <Subject 1> moves continuously through <Picture 1>, "
+            "<Picture 2>, <Picture 3>, <Picture 4>, and <Picture 5>, then says "
+            "<d>Hello</d>.\n\noverall_soundscape:\nQuiet room tone.\n\n"
+            "non_diegetic_music:\nN/A"
+        )
+        observations = {
+            f"ref_image_{index}": f"<Picture {index + 1}>: observed state {index + 1}"
+            for index in range(6)
+        }
+        runner = _ScriptedRunner([candidate])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt="The performer says hello in English.",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations=observations,
+            manifest=manifest,
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=7),
+            i2v_detailed_description=True,
+        )
+        self.assertFalse(result.repaired)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertIn("<d>[English] Hello</d>", result.prompt)
+        detail = result.prompt.split("detailed_description:\n", 1)[1].split(
+            "\n\noverall_soundscape:", 1
+        )[0]
+        self.assertIn("<Picture 6> contributes", detail)
+        self.assertIn("observed state 6", detail)
+
     def test_frames_node_composes_through_ref_with_i2v_detailed_body(self):
         candidate = (
             "subject_definitions:\n"
@@ -2446,7 +2492,7 @@ Natural movement sounds and a light musical accent."""
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         self.assertIn("[10s-15s] Shot 3:", result.prompt)
 
-    def test_ref_repairs_picture_used_only_in_metadata(self):
+    def test_ref_restores_picture_used_only_in_metadata_without_generation_repair(self):
         manifest = ReferenceManifest.from_inputs(
             **{f"ref_image_{index}": object() for index in range(8)}
         )
@@ -2475,13 +2521,7 @@ Natural movement sounds.
 non_diegetic_music:
 N/A"""
         incomplete = base.format(picture_eight="")
-        repaired = base.format(
-            picture_eight=(
-                "<Subject 1> completes the final action and composition "
-                "from <Picture 8>."
-            )
-        )
-        runner = _ScriptedRunner([incomplete, repaired])
+        runner = _ScriptedRunner([incomplete])
         result = compose_ref_prompt(
             runner,
             raw_prompt="Animate every connected pose and action in order.",
@@ -2496,9 +2536,10 @@ N/A"""
             sampling=SamplingConfig(do_sample=False, seed=42),
             requested_duration_seconds=15.0,
         )
-        self.assertTrue(result.repaired)
+        self.assertFalse(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         self.assertIn("<Picture 8>", result.prompt.split("overall_soundscape:", 1)[0])
+        self.assertIn("action 8", result.prompt.split("overall_soundscape:", 1)[0])
 
     def test_ref_structural_metadata_is_fixed_without_a_generation_repair(self):
         manifest = ReferenceManifest.from_inputs(

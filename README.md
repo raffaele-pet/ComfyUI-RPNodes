@@ -148,7 +148,10 @@ including the field name `detailed_description`; only that field's writing
 rules follow `RP H3-I2V Prompt Writer`, beginning directly with `[Shot 1]` and
 developing the action in target-video playback order. The node outputs only
 `prompt`, `aligned_length`, and `analysis_report`; it does not pass the frame
-images through.
+images through. The shared REF2V composition pass also supplies a missing
+dialogue language tag without changing the spoken text and restores any
+Picture omitted from `detailed_description` using that image's analyzed visual
+facts before deciding whether a model repair is necessary.
 
 ### RP H3-REF2V Prompt Writer
 

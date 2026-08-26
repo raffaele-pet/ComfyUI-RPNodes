@@ -45,6 +45,133 @@ def _noop() -> None:
     return None
 
 
+def _dialogue_language(content: str, raw_prompt: str) -> str:
+    """Infer a conservative language tag without altering dialogue text."""
+
+    if re.search(r"[\u3040-\u30ff]", content):
+        return "Japanese"
+    if re.search(r"[\uac00-\ud7af]", content):
+        return "Korean"
+    if re.search(r"[\u4e00-\u9fff]", content):
+        return "Chinese"
+    if re.search(r"[\u0400-\u04ff]", content):
+        return "Russian"
+    if re.search(r"[\u0600-\u06ff]", content):
+        return "Arabic"
+    if re.search(r"[\u0900-\u097f]", content):
+        return "Hindi"
+
+    lowered = f"{raw_prompt}\n{content}".lower()
+    explicit = re.search(
+        r"\b(?:language|in|lingua|in lingua)\s*[:=]?\s*"
+        r"(english|italian|spanish|french|german|portuguese)\b",
+        lowered,
+    )
+    if explicit:
+        return explicit.group(1).capitalize()
+    spoken = content.lower()
+    if re.search(
+        r"\b(?:ciao|grazie|sono|questo|questa|perché|allora|buongiorno)\b",
+        spoken,
+    ):
+        return "Italian"
+    if re.search(
+        r"\b(?:hola|gracias|porque|estoy|buenos|buenas|quiero)\b",
+        spoken,
+    ):
+        return "Spanish"
+    if re.search(
+        r"\b(?:bonjour|merci|parce que|suis|avec|voilà)\b",
+        spoken,
+    ):
+        return "French"
+    return "English"
+
+
+def _canonicalize_dialogue_languages(text: str, raw_prompt: str) -> str:
+    """Add only a missing H3 language tag; preserve the spoken words exactly."""
+
+    def replace(match: re.Match[str]) -> str:
+        content = match.group(1)
+        if re.match(r"\s*\[[^\]\n]*\S[^\]\n]*\]\s+\S", content):
+            return match.group(0)
+        spoken = content.strip()
+        if not spoken:
+            return match.group(0)
+        language = _dialogue_language(spoken, raw_prompt)
+        return f"<d>[{language}] {spoken}</d>"
+
+    return re.sub(r"<d>(.*?)</d>", replace, text, flags=re.DOTALL)
+
+
+def _ref_detail_bounds(text: str) -> tuple[int, int] | None:
+    start = re.search(r"(?m)^detailed_description:(?=$|[ \t])", text)
+    end = re.search(r"(?m)^overall_soundscape:(?=$|[ \t])", text)
+    if start is None or end is None or start.end() >= end.start():
+        return None
+    return start.end(), end.start()
+
+
+def _observation_fact(label: str, socket: str, observations: dict[str, str]) -> str:
+    value = str(observations.get(socket, "") or "").strip()
+    value = re.sub(rf"(?is)^\s*{re.escape(label)}\s*:\s*", "", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    if not value or value.lower().startswith("no reliable observation"):
+        return "its observed composition, subject state, framing, and visible attributes"
+    return value[:240].rstrip(" ,;:.")
+
+
+def _ensure_ref_picture_coverage(
+    text: str,
+    manifest: ReferenceManifest,
+    observations: dict[str, str],
+) -> str:
+    """Ground any omitted Picture label in its own analyzed visual evidence."""
+
+    bounds = _ref_detail_bounds(text)
+    if bounds is None:
+        return text
+    start, end = bounds
+    body = text[start:end].strip()
+    for index, asset in enumerate(manifest.pictures):
+        if asset.label in body:
+            continue
+        fact = _observation_fact(asset.label, asset.socket, observations)
+        sentence = (
+            f"At this point, {asset.label} contributes this concrete visible "
+            f"state: {fact}."
+        )
+        insertion = len(body)
+        previous_labels = [item.label for item in manifest.pictures[:index]]
+        previous_positions = [body.rfind(label) for label in previous_labels]
+        previous_position = max(previous_positions, default=-1)
+        if previous_position >= 0:
+            sentence_end = re.search(r"[.!?](?=\s|$)", body[previous_position:])
+            if sentence_end:
+                insertion = previous_position + sentence_end.end()
+        elif shot_open := re.search(r"\[Shot 1\](?:\s+At\s+[^,]+,)?\s*", body):
+            insertion = shot_open.end()
+        body = (
+            body[:insertion].rstrip()
+            + " "
+            + sentence
+            + " "
+            + body[insertion:].lstrip()
+        ).strip()
+    return text[:start].rstrip() + "\n" + body + "\n\n" + text[end:].lstrip()
+
+
+def _canonicalize_ref_generated_content(
+    text: str,
+    *,
+    raw_prompt: str,
+    observations: dict[str, str],
+    manifest: ReferenceManifest,
+) -> str:
+    value = _canonicalize_dialogue_languages(text, raw_prompt)
+    return _ensure_ref_picture_coverage(value, manifest, observations)
+
+
 @dataclass(frozen=True)
 class ComposeResult:
     prompt: str
@@ -295,6 +422,12 @@ def compose_ref_prompt(
         requested_duration_seconds=requested_duration_seconds,
         raw_user_request=raw_prompt,
     )
+    candidate = _canonicalize_ref_generated_content(
+        candidate,
+        raw_prompt=raw_prompt,
+        observations=observations,
+        manifest=manifest,
+    )
     initial = validate_ref_prompt(candidate, length, manifest)
     final = initial
     repaired = False
@@ -318,6 +451,12 @@ def compose_ref_prompt(
             manifest,
             requested_duration_seconds=requested_duration_seconds,
             raw_user_request=raw_prompt,
+        )
+        repaired_text = _canonicalize_ref_generated_content(
+            repaired_text,
+            raw_prompt=raw_prompt,
+            observations=observations,
+            manifest=manifest,
         )
         final = validate_ref_prompt(repaired_text, length, manifest)
         repaired = True
