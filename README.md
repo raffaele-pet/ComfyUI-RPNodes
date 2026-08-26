@@ -151,7 +151,8 @@ developing the action in target-video playback order. The node outputs only
 images through. The shared REF2V composition pass also supplies a missing
 dialogue language tag without changing the spoken text and restores any
 Picture omitted from `detailed_description` using that image's analyzed visual
-facts before deciding whether a model repair is necessary.
+facts inside the matching requested shot or timestamp before deciding whether
+a model repair is necessary.
 
 ### RP H3-REF2V Prompt Writer
 

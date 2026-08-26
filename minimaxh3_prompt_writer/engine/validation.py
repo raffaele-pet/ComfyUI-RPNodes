@@ -797,6 +797,13 @@ def _isolate_last_ref_schema(text: str) -> str:
     """Keep the final Ref2VA draft and restore an omitted first header."""
 
     candidate = _normalize_ref_headers(text)
+    candidate = re.sub(
+        r"(?im)^subject_definitions:\s*(?:N\s*/?\s*A|None)\s*"
+        r"subject_definitions:\s*",
+        "subject_definitions:\n",
+        candidate,
+        count=1,
+    )
     summaries = _header_matches(candidate, REF_FIELDS[1])
     if not summaries:
         return candidate

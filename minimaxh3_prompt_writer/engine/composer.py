@@ -118,13 +118,78 @@ def _observation_fact(label: str, socket: str, observations: dict[str, str]) -> 
     value = re.sub(r"\s+", " ", value).strip()
     if not value or value.lower().startswith("no reliable observation"):
         return "its observed composition, subject state, framing, and visible attributes"
-    return value[:240].rstrip(" ,;:.")
+    if len(value) <= 240:
+        return value.rstrip(" ,;:.")
+    prefix = value[:240]
+    sentence_ends = [
+        match.end()
+        for match in re.finditer(r"[.!?](?=\s|$)", prefix)
+        if match.end() >= 80
+    ]
+    if sentence_ends:
+        return prefix[: sentence_ends[-1]].rstrip(" ,;:.")
+    word_end = prefix.rfind(" ")
+    return prefix[:word_end].rstrip(" ,;:.") if word_end >= 80 else prefix.rstrip()
+
+
+def _requested_picture_location(
+    label: str,
+    raw_prompt: str,
+) -> tuple[str | None, str | None]:
+    occurrence = raw_prompt.find(label)
+    if occurrence < 0:
+        return None, None
+    prefix = raw_prompt[:occurrence]
+    shots = list(
+        re.finditer(
+            r"\[Shot\s+([1-9]\d*)\](?:\s+At\s+(\d{2}:\d{2}\.\d{3}))?",
+            prefix,
+            flags=re.IGNORECASE,
+        )
+    )
+    if not shots:
+        return None, None
+    shot = shots[-1]
+    return shot.group(1), shot.group(2)
+
+
+def _requested_picture_insertion(
+    body: str,
+    label: str,
+    raw_prompt: str,
+) -> int | None:
+    shot_id, timestamp = _requested_picture_location(label, raw_prompt)
+    if shot_id is None:
+        return None
+    if timestamp:
+        target = re.search(
+            rf"\[Shot\s+[1-9]\d*\]\s+At\s+{re.escape(timestamp)},",
+            body,
+            flags=re.IGNORECASE,
+        )
+        if target is None:
+            target = re.search(
+                rf"\[Shot\s+{re.escape(shot_id)}\]",
+                body,
+                flags=re.IGNORECASE,
+            )
+    else:
+        target = re.search(
+            rf"\[Shot\s+{re.escape(shot_id)}\]",
+            body,
+            flags=re.IGNORECASE,
+        )
+    if target is None:
+        return None
+    next_shot = re.search(r"\[Shot\s+[1-9]\d*\]", body[target.end() :])
+    return target.end() + next_shot.start() if next_shot else len(body)
 
 
 def _ensure_ref_picture_coverage(
     text: str,
     manifest: ReferenceManifest,
     observations: dict[str, str],
+    raw_prompt: str,
 ) -> str:
     """Ground any omitted Picture label in its own analyzed visual evidence."""
 
@@ -141,16 +206,26 @@ def _ensure_ref_picture_coverage(
             f"At this point, {asset.label} contributes this concrete visible "
             f"state: {fact}."
         )
-        insertion = len(body)
-        previous_labels = [item.label for item in manifest.pictures[:index]]
-        previous_positions = [body.rfind(label) for label in previous_labels]
-        previous_position = max(previous_positions, default=-1)
-        if previous_position >= 0:
-            sentence_end = re.search(r"[.!?](?=\s|$)", body[previous_position:])
-            if sentence_end:
-                insertion = previous_position + sentence_end.end()
-        elif shot_open := re.search(r"\[Shot 1\](?:\s+At\s+[^,]+,)?\s*", body):
-            insertion = shot_open.end()
+        requested_insertion = _requested_picture_insertion(
+            body,
+            asset.label,
+            raw_prompt,
+        )
+        insertion = requested_insertion
+        if requested_insertion is None:
+            insertion = len(body)
+            previous_labels = [item.label for item in manifest.pictures[:index]]
+            previous_positions = [body.rfind(label) for label in previous_labels]
+            previous_position = max(previous_positions, default=-1)
+            if previous_position >= 0:
+                sentence_end = re.search(r"[.!?](?=\s|$)", body[previous_position:])
+                if sentence_end:
+                    insertion = previous_position + sentence_end.end()
+            elif shot_open := re.search(
+                r"\[Shot 1\](?:\s+At\s+[^,]+,)?\s*",
+                body,
+            ):
+                insertion = shot_open.end()
         body = (
             body[:insertion].rstrip()
             + " "
@@ -169,7 +244,12 @@ def _canonicalize_ref_generated_content(
     manifest: ReferenceManifest,
 ) -> str:
     value = _canonicalize_dialogue_languages(text, raw_prompt)
-    return _ensure_ref_picture_coverage(value, manifest, observations)
+    return _ensure_ref_picture_coverage(
+        value,
+        manifest,
+        observations,
+        raw_prompt,
+    )
 
 
 @dataclass(frozen=True)

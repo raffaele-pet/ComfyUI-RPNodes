@@ -775,7 +775,11 @@ def ref_system_prompt_with_i2v_description(
   physically reachable intermediate states, reactions, state changes, camera
   behavior, synchronized diegetic sound, and the ending result. Be as detailed
   and explicit as the request and duration require; never reduce the body to a
-  generic one-sentence summary."""
+  generic one-sentence summary.
+- Preserve every explicit `[Shot N]` boundary and `At MM:SS.mmm` timestamp from
+  `raw_user_request`. Never create or redistribute shots merely to match the
+  number of connected Pictures; several Pictures may contribute within the
+  same requested shot, action, or transition."""
     if ref_rules not in contract:
         raise RuntimeError("REF2V detailed_description contract block not found")
     return contract.replace(ref_rules, i2v_rules, 1)

@@ -445,6 +445,28 @@ class ValidationTests(unittest.TestCase):
         result = validate_ref_prompt(canonical, 124, manifest)
         self.assertTrue(result.valid, result.issues)
 
+    def test_ref_canonicalizer_removes_glued_na_subject_prefix(self):
+        manifest = ReferenceManifest.from_inputs(ref_image_0=object())
+        candidate = (
+            "subject_definitions:\nN/Asubject_definitions:\n"
+            "<Subject 1> A performer established by <Picture 1>.\n\n"
+            "summary:\n[reference generation] The performer waves.\n\n"
+            "retention_analysis:\n"
+            "<Subject 1>: fully_preserved - Identity remains stable.\n"
+            "<Picture 1>: fully_preserved - Appearance remains stable.\n\n"
+            "detailed_description:\n"
+            "[Shot 1] <Subject 1> waves as shown by <Picture 1>.\n\n"
+            "overall_soundscape:\nQuiet room tone.\n\n"
+            "non_diegetic_music:\nN/A"
+        )
+        canonical = canonicalize_ref_structure(candidate, 124, manifest)
+        self.assertEqual(canonical.count("subject_definitions:"), 1)
+        self.assertNotIn("N/Asubject_definitions:", canonical)
+        self.assertTrue(
+            validate_ref_prompt(canonical, 124, manifest).valid,
+            validate_ref_prompt(canonical, 124, manifest).issues,
+        )
+
     def test_valid_fl2va(self):
         text = (
             "How the reference pictures align with the target video — Picture 1 "
@@ -2221,9 +2243,14 @@ class ComposerRepairTests(unittest.TestCase):
                 for label in labels
             )
             + "\n\ndetailed_description:\n"
-            "[Shot 1] <Subject 1> moves continuously through <Picture 1>, "
-            "<Picture 2>, <Picture 3>, <Picture 4>, and <Picture 5>, then says "
-            "<d>Hello</d>.\n\noverall_soundscape:\nQuiet room tone.\n\n"
+            "[Shot 1] <Subject 1> begins in <Picture 1> and greets the viewer "
+            "as in <Picture 2>.\n"
+            "[Shot 2] At 00:03.750, the action continues through <Picture 3> "
+            "and <Picture 4>.\n"
+            "[Shot 3] At 00:07.500, <Subject 1> reaches <Picture 5>, then says "
+            "<d>Hello</d>.\n"
+            "[Shot 4] At 00:11.250, the final state holds.\n\n"
+            "overall_soundscape:\nQuiet room tone.\n\n"
             "non_diegetic_music:\nN/A"
         )
         observations = {
@@ -2233,14 +2260,19 @@ class ComposerRepairTests(unittest.TestCase):
         runner = _ScriptedRunner([candidate])
         result = compose_ref_prompt(
             runner,
-            raw_prompt="The performer says hello in English.",
-            length=124,
+            raw_prompt=(
+                "[Shot 1] The performer greets the viewer. "
+                "[Shot 8] At 00:07.500, the performer points as in <Picture 6> "
+                "and says hello in English."
+            ),
+            length=362,
             selected_skill_label=SKILL_CORE,
             observations=observations,
             manifest=manifest,
             max_new_tokens=2048,
             sampling=SamplingConfig(do_sample=False, seed=7),
             i2v_detailed_description=True,
+            requested_duration_seconds=15.0,
         )
         self.assertFalse(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
@@ -2248,8 +2280,9 @@ class ComposerRepairTests(unittest.TestCase):
         detail = result.prompt.split("detailed_description:\n", 1)[1].split(
             "\n\noverall_soundscape:", 1
         )[0]
-        self.assertIn("<Picture 6> contributes", detail)
-        self.assertIn("observed state 6", detail)
+        shot_three = detail.split("[Shot 3]", 1)[1].split("[Shot 4]", 1)[0]
+        self.assertIn("<Picture 6> contributes", shot_three)
+        self.assertIn("observed state 6", shot_three)
 
     def test_frames_node_composes_through_ref_with_i2v_detailed_body(self):
         candidate = (
