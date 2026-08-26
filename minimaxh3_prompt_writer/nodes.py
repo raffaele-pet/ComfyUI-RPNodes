@@ -7,7 +7,11 @@ from typing import Any
 import comfy.model_management
 from comfy_api.latest import io
 
-from .engine.analyzers import analyze_base_media, analyze_reference_media
+from .engine.analyzers import (
+    analyze_base_media,
+    analyze_frames_media,
+    analyze_reference_media,
+)
 from .engine.composer import (
     compose_base_prompt,
     compose_ref_prompt,
@@ -63,6 +67,32 @@ def _sampling_config(
         repetition_penalty=float(repetition_penalty),
         seed=int(seed),
     )
+
+
+def _connected_frames(frames: io.Autogrow.Type | None) -> list[tuple[int, Any]]:
+    connected: list[tuple[int, Any]] = []
+    for name, image in (frames or {}).items():
+        if image is None:
+            continue
+        try:
+            slot = int(name.rsplit("_", 1)[1])
+        except (IndexError, ValueError) as exc:
+            raise ValueError(
+                f"RP H3-I2V Frames Prompt Writer: invalid input name {name!r}"
+            ) from exc
+        connected.append((slot, image))
+    connected.sort(key=lambda item: item[0])
+    slots = [slot for slot, _ in connected]
+    if slots != list(range(1, len(connected) + 1)):
+        raise ValueError(
+            "RP H3-I2V Frames Prompt Writer: frame inputs must be connected "
+            "consecutively from frame_1"
+        )
+    if len(connected) > 9:
+        raise ValueError(
+            "RP H3-I2V Frames Prompt Writer: at most 9 frames are supported"
+        )
+    return connected
 
 
 def _common_inputs() -> list[Any]:
@@ -350,6 +380,114 @@ class RPH3I2VPromptWriter(io.ComfyNode):
             first_frame,
             last_frame,
         )
+        _release_clip_vram(clip)
+        return node_output
+
+
+class RPH3I2VFramesPromptWriter(io.ComfyNode):
+    @classmethod
+    def define_schema(cls) -> io.Schema:
+        return io.Schema(
+            node_id="RPH3I2VFramesPromptWriter",
+            display_name="RP H3-I2V Frames Prompt Writer",
+            category="RP/MiniMax H3",
+            description=(
+                "Analyzes up to nine ordered H3 frame images and rewrites a raw "
+                "request into a structured multimodal prompt that uses them all."
+            ),
+            search_aliases=[
+                "H3 frames prompt",
+                "Gemma prompt writer",
+                "I2V frames prompt",
+            ],
+            inputs=_common_inputs()
+            + [
+                io.Autogrow.Input(
+                    "frames",
+                    template=io.Autogrow.TemplateNames(
+                        input=io.Image.Input(
+                            "frame",
+                            tooltip=(
+                                "Ordered H3 frame image. Connecting it reveals "
+                                "the next frame input."
+                            ),
+                        ),
+                        names=[f"frame_{index}" for index in range(1, 10)],
+                        min=1,
+                    ),
+                    tooltip="One to nine ordered H3 frame images.",
+                )
+            ],
+            outputs=[
+                io.String.Output(display_name="prompt"),
+                io.Int.Output(display_name="aligned_length"),
+                io.String.Output(display_name="analysis_report"),
+            ],
+        )
+
+    @classmethod
+    def execute(
+        cls,
+        clip,
+        skill,
+        duration_seconds,
+        prompt,
+        max_token_length,
+        media_analysis_tokens,
+        sampling,
+        temperature,
+        top_k,
+        top_p,
+        min_p,
+        repetition_penalty,
+        seed,
+        strict_validation,
+        frames: io.Autogrow.Type = None,
+    ) -> io.NodeOutput:
+        connected = _connected_frames(frames)
+        if not connected:
+            raise ValueError(
+                "RP H3-I2V Frames Prompt Writer: connect at least frame_1"
+            )
+        duration_seconds = validate_whole_duration_seconds(duration_seconds)
+        aligned_length = seconds_to_aligned_frame_count(duration_seconds)
+        runner = GemmaRunner(clip)
+        observations = analyze_frames_media(
+            runner,
+            frames=connected,
+            max_new_tokens=media_analysis_tokens,
+            seed=seed,
+            after_call=_check_interrupted,
+        )
+        result = compose_base_prompt(
+            runner,
+            raw_prompt=prompt,
+            mode="Frames2VA",
+            length=aligned_length,
+            selected_skill_label=skill,
+            observations=observations,
+            max_new_tokens=max_token_length,
+            sampling=_sampling_config(
+                sampling=sampling,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+                min_p=min_p,
+                repetition_penalty=repetition_penalty,
+                seed=seed,
+            ),
+            requested_duration_seconds=duration_seconds,
+            picture_count=len(connected),
+            strict_validation=strict_validation,
+            after_call=_check_interrupted,
+        )
+        report = result.analysis_report(
+            mode="Frames2VA",
+            length=aligned_length,
+            requested_duration_seconds=duration_seconds,
+            observations=observations,
+        )
+        node_output = io.NodeOutput(result.prompt, aligned_length, report)
         _release_clip_vram(clip)
         return node_output
 

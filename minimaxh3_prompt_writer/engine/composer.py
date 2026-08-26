@@ -162,6 +162,7 @@ def compose_base_prompt(
     max_new_tokens: int,
     sampling: SamplingConfig,
     requested_duration_seconds: float | None = None,
+    picture_count: int = 0,
     strict_validation: bool = True,
     after_call: Callable[[], None] = _noop,
 ) -> ComposeResult:
@@ -178,6 +179,7 @@ def compose_base_prompt(
         length,
         skill,
         requested_duration_seconds=requested_duration_seconds,
+        picture_count=picture_count,
     )
     task_payload = base_user_payload(
         raw_prompt=raw_prompt,
@@ -186,6 +188,7 @@ def compose_base_prompt(
         skill=skill,
         media_observations=observations,
         requested_duration_seconds=requested_duration_seconds,
+        picture_count=picture_count,
     )
     candidate = runner.generate_chat(
         system_prompt,
@@ -195,7 +198,9 @@ def compose_base_prompt(
     )
     after_call()
     candidate = canonicalize_base_structure(candidate, mode, length)
-    initial = validate_base_prompt(candidate, mode, length)
+    initial = validate_base_prompt(
+        candidate, mode, length, picture_count=picture_count
+    )
     final = initial
     repaired = False
     if not initial.valid:
@@ -213,7 +218,9 @@ def compose_base_prompt(
         )
         after_call()
         repaired_text = canonicalize_base_structure(repaired_text, mode, length)
-        final = validate_base_prompt(repaired_text, mode, length)
+        final = validate_base_prompt(
+            repaired_text, mode, length, picture_count=picture_count
+        )
         repaired = True
     if strict_validation and not final.valid:
         raise ValueError(

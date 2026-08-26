@@ -58,6 +58,7 @@ def base_system_prompt(
     skill: SkillProfile,
     *,
     requested_duration_seconds: float | None = None,
+    picture_count: int = 0,
 ) -> str:
     duration = effective_duration(length)
     requested_duration = _requested_duration(length, requested_duration_seconds)
@@ -86,9 +87,15 @@ def base_system_prompt(
             "state, then make subjects, objects, camera, light, and composition "
             "converge visibly on that frame at the end."
         ),
+        "Frames2VA": (
+            f"Pictures 1 through {picture_count} are ordered temporal keyframes. "
+            "Use every picture in numerical order, preserve visual continuity, "
+            "and describe observable intermediate states between consecutive "
+            "pictures. A changed picture is not by itself a reason to create a cut."
+        ),
     }[mode]
 
-    if mode == "T2VA":
+    if mode in ("T2VA", "Frames2VA"):
         opening_contract = (
             "The first output characters must be "
             "`integrated_multimodal_description:`."
@@ -236,6 +243,7 @@ def base_user_payload(
     skill: SkillProfile,
     media_observations: dict[str, str],
     requested_duration_seconds: float | None = None,
+    picture_count: int = 0,
 ) -> str:
     if mode == "FL2VA":
         label_map = {
@@ -246,6 +254,13 @@ def base_user_payload(
         label_map = {"<Picture 1>": "first_frame, literal first frame at 0.00 seconds"}
     elif mode == "L2VA":
         label_map = {"<Picture 1>": "last_frame, literal final frame"}
+    elif mode == "Frames2VA":
+        label_map = {
+            f"<Picture {index}>": (
+                f"frame_{index}, ordered keyframe {index} of {picture_count}"
+            )
+            for index in range(1, picture_count + 1)
+        }
     else:
         label_map = {}
 

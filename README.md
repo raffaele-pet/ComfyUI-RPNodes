@@ -111,13 +111,14 @@ provided through the package requirements.
 
 ## MiniMax H3 prompt writing
 
-Three Gemma-powered nodes turn a plain-language request and optional media into
+Four Gemma-powered nodes turn a plain-language request and optional media into
 a structured prompt for MiniMax H3 video generation.
 
 ![RP H3-T2V, I2V, and REF2V Prompt Writer nodes](./minimaxh3_prompt_writer/images/minimaxh3_prompt_nodes.png)
 
-The bundled workflow presents all three prompt writers side by side and includes
-compact English and Italian Markdown notes with the repository link.
+The bundled workflow presents the original three prompt writers side by side
+and includes compact English and Italian Markdown notes with the repository
+link.
 
 ### RP H3-T2V Prompt Writer
 
@@ -134,6 +135,15 @@ Creates the appropriate T2VA, I2VA, FL2VA, or L2VA prompt from the text request
 and optional first and last frames. Both static frame inputs also have matching
 pass-through outputs.
 
+### RP H3-I2V Frames Prompt Writer
+
+Creates an I2V prompt from an ordered sequence of up to nine frame images. The
+node initially shows `frame_1`; connecting it reveals `frame_2`, and the inputs
+continue growing in the same way through `frame_9`. Every connected frame is
+analyzed independently and represented by its matching Picture label in the
+finished prompt. The node outputs only `prompt`, `aligned_length`, and
+`analysis_report`; it does not pass the frame images through.
+
 ### RP H3-REF2V Prompt Writer
 
 Creates a Reference-to-Video prompt from connected reference images, video
@@ -148,7 +158,7 @@ T2V uses contiguous second-based Storyboard ranges; REF2V timestamps later
 shots. `duration_seconds` drives both prompt timing and the H3-compatible
 `aligned_length`.
 
-All three nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
+All four nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
 loaded as `stable_diffusion`. The native H3 generation node must keep its
 separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
 `prompt`, the H3-compatible `aligned_length`, and an `analysis_report`. Each
@@ -167,7 +177,7 @@ manual position controls. The connected images are distributed automatically
 across the exact length of the H3 AV latent.
 
 The image inputs grow automatically. The node initially shows
-`keyframe_image_1`; connecting it reveals `keyframe_image_2`, and the sequence
+`frame_1`; connecting it reveals `frame_2`, and the sequence
 continues up to 32 images. Each input accepts one still image rather than an
 image batch. The `crop` option either stretches each image to the target canvas
 or applies a centered cover crop before VAE encoding.

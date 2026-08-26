@@ -89,7 +89,7 @@ def _connected_keyframes(keyframes) -> list[tuple[int, object]]:
     if slots != expected:
         raise ValueError(
             "RP H3-Keyframes: image inputs must be connected consecutively "
-            "from keyframe_image_1"
+            "from frame_1"
         )
     return connected
 
@@ -136,14 +136,14 @@ class RPH3Keyframes(io.ComfyNode):
                     "keyframes",
                     template=io.Autogrow.TemplateNames(
                         input=io.Image.Input(
-                            "keyframe_image",
+                            "frame",
                             tooltip=(
                                 "Still image keyframe. Connecting it reveals "
                                 "the next image input."
                             ),
                         ),
                         names=[
-                            f"keyframe_image_{index}"
+                            f"frame_{index}"
                             for index in range(1, _MAX_KEYFRAMES + 1)
                         ],
                         min=1,
@@ -166,7 +166,7 @@ class RPH3Keyframes(io.ComfyNode):
         ensure_h3_keyframe_support(conditioning)
         connected = _connected_keyframes(keyframes)
         if not connected:
-            raise ValueError("RP H3-Keyframes: connect at least keyframe_image_1")
+            raise ValueError("RP H3-Keyframes: connect at least frame_1")
 
         video = _video_from_latent(latent)
         width = int(video.shape[4]) * 16
@@ -178,19 +178,19 @@ class RPH3Keyframes(io.ComfyNode):
         for (slot, image), pixel_index in zip(connected, positions):
             if getattr(image, "ndim", 0) != 4:
                 raise ValueError(
-                    f"RP H3-Keyframes: keyframe_image_{slot} expected IMAGE "
+                    f"RP H3-Keyframes: frame_{slot} expected IMAGE "
                     "[B,H,W,C]"
                 )
             if int(image.shape[0]) != 1:
                 raise ValueError(
-                    f"RP H3-Keyframes: keyframe_image_{slot} must receive exactly "
+                    f"RP H3-Keyframes: frame_{slot} must receive exactly "
                     f"one image, not a batch of {int(image.shape[0])}"
                 )
 
             encoded = vae.encode(_resize(image, width, height, crop))
             if getattr(encoded, "ndim", 0) != 5 or int(encoded.shape[2]) != 1:
                 raise ValueError(
-                    f"RP H3-Keyframes: keyframe_image_{slot} encoded to "
+                    f"RP H3-Keyframes: frame_{slot} encoded to "
                     f"{tuple(getattr(encoded, 'shape', ()))}, expected one H3 "
                     "still latent [B,C,1,H,W]"
                 )

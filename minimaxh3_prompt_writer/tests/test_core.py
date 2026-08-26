@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from engine.analyzers import (
     analyze_base_media,
+    analyze_frames_media,
     analyze_reference_media,
     clean_analysis_text,
     ensure_analysis_records,
@@ -343,6 +344,25 @@ class ValidationTests(unittest.TestCase):
         )
         result = validate_base_prompt(text, "I2VA", 124)
         self.assertTrue(result.valid, result.issues)
+
+    def test_valid_frames2va_requires_every_connected_picture(self):
+        text = self._body().replace(
+            "a person raising one hand",
+            "<Picture 1> leads into <Picture 2>, then reaches <Picture 3>",
+        )
+        result = validate_base_prompt(
+            text, "Frames2VA", 124, picture_count=3
+        )
+        self.assertTrue(result.valid, result.issues)
+
+        missing = validate_base_prompt(
+            text.replace("<Picture 2>", "the intermediate state"),
+            "Frames2VA",
+            124,
+            picture_count=3,
+        )
+        self.assertFalse(missing.valid)
+        self.assertTrue(any("<Picture 2>" in issue for issue in missing.issues))
 
     def test_valid_fl2va(self):
         text = (
@@ -1528,6 +1548,29 @@ class BaseMediaAnalysisTests(unittest.TestCase):
             },
         )
 
+    def test_ordered_frames_are_analyzed_independently(self):
+        import torch
+
+        runner = _MediaAnalysisRunner()
+        observations = analyze_frames_media(
+            runner,
+            frames=[
+                (1, torch.zeros(1, 24, 32, 3)),
+                (2, torch.ones(1, 24, 32, 3)),
+                (3, torch.full((1, 24, 32, 3), 2.0)),
+            ],
+            max_new_tokens=192,
+            seed=21,
+        )
+        self.assertEqual(len(runner.calls), 3)
+        self.assertEqual(list(observations), ["frame_1", "frame_2", "frame_3"])
+        self.assertIn("opening keyframe 1 of 3", runner.calls[0][0])
+        self.assertIn("intermediate keyframe 2 of 3", runner.calls[1][0])
+        self.assertIn("ending keyframe 3 of 3", runner.calls[2][0])
+        self.assertEqual(
+            [call[1]["seed"] for call in runner.calls], [21, 22, 23]
+        )
+
     def test_media_cleanup_discards_orphan_reasoning_prefix(self):
         value = clean_analysis_text(
             "I should restate the task first.</think><Picture 1>: A tiger in grass."
@@ -1966,6 +2009,23 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("do not add a `Timeline:` heading", prompt)
         self.assertIn("Later real cuts begin exactly `[Shot N] At", prompt)
         self.assertIn("tail ending at 5.166667s", prompt)
+
+    def test_frames_contract_maps_all_ordered_inputs(self):
+        skill = get_skill_profile(SKILL_CORE)
+        system = base_system_prompt(
+            "Frames2VA", 124, skill, picture_count=3
+        )
+        payload = base_user_payload(
+            raw_prompt="Animate the sequence.",
+            mode="Frames2VA",
+            length=124,
+            skill=skill,
+            media_observations={},
+            picture_count=3,
+        )
+        self.assertIn("Pictures 1 through 3", system)
+        self.assertIn(r'\u003cPicture 3>', payload)
+        self.assertIn("frame_3, ordered keyframe 3 of 3", payload)
 
     def test_ref_contract_is_explicit_and_duration_scaled(self):
         manifest = ReferenceManifest.from_inputs(

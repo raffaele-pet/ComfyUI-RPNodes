@@ -1269,7 +1269,7 @@ def canonicalize_base_alignment(text: str, mode: str, length: int) -> str:
         return candidate
 
     body = candidate[header[0].start() :].strip()
-    if mode == "T2VA":
+    if mode in ("T2VA", "Frames2VA"):
         return body
     if mode == "I2VA":
         return (
@@ -1341,7 +1341,13 @@ def canonicalize_base_structure(text: str, mode: str, length: int) -> str:
     return candidate.strip()
 
 
-def validate_base_prompt(text: str, mode: str, length: int) -> ValidationResult:
+def validate_base_prompt(
+    text: str,
+    mode: str,
+    length: int,
+    *,
+    picture_count: int = 0,
+) -> ValidationResult:
     candidate = sanitize_generated_text(text, mode)
     duration = effective_duration(length)
     duration_text = duration_2dp(length)
@@ -1362,6 +1368,14 @@ def validate_base_prompt(text: str, mode: str, length: int) -> ValidationResult:
         if not candidate.startswith(BASE_FIELDS[0]):
             issues.append("T2VA must begin directly with integrated_multimodal_description:.")
         allowed_pictures = 0
+    elif mode == "Frames2VA":
+        if not candidate.startswith(BASE_FIELDS[0]):
+            issues.append(
+                "Frames2VA must begin directly with integrated_multimodal_description:."
+            )
+        if not 1 <= picture_count <= 9:
+            issues.append("Frames2VA picture_count must be between 1 and 9.")
+        allowed_pictures = picture_count
     elif mode == "I2VA":
         exact = (
             "For the target video, at 0.00 seconds into the target video, "
@@ -1412,6 +1426,18 @@ def validate_base_prompt(text: str, mode: str, length: int) -> ValidationResult:
         issues.append("Picture numbering must start at 1.")
     if labels and max(labels) > allowed_pictures:
         issues.append("Prompt references a Picture label not provided by the keyframe mode.")
+    if mode == "Frames2VA":
+        missing = [
+            index
+            for index in range(1, allowed_pictures + 1)
+            if index not in labels
+        ]
+        if missing:
+            issues.append(
+                "Frames2VA must reference every connected Picture label; missing: "
+                + ", ".join(f"<Picture {index}>" for index in missing)
+                + "."
+            )
     if allowed_pictures == 0 and labels:
         issues.append("T2VA must not use Picture reference labels.")
     if re.search(r"<(?:Video|Audio|Subject)\s+\d+>", candidate):
