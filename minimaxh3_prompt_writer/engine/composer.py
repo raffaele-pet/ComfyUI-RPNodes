@@ -112,26 +112,6 @@ def _ref_detail_bounds(text: str) -> tuple[int, int] | None:
     return start.end(), end.start()
 
 
-def _observation_fact(label: str, socket: str, observations: dict[str, str]) -> str:
-    value = str(observations.get(socket, "") or "").strip()
-    value = re.sub(rf"(?is)^\s*{re.escape(label)}\s*:\s*", "", value)
-    value = re.sub(r"\s+", " ", value).strip()
-    if not value or value.lower().startswith("no reliable observation"):
-        return "its observed composition, subject state, framing, and visible attributes"
-    if len(value) <= 240:
-        return value.rstrip(" ,;:.")
-    prefix = value[:240]
-    sentence_ends = [
-        match.end()
-        for match in re.finditer(r"[.!?](?=\s|$)", prefix)
-        if match.end() >= 80
-    ]
-    if sentence_ends:
-        return prefix[: sentence_ends[-1]].rstrip(" ,;:.")
-    word_end = prefix.rfind(" ")
-    return prefix[:word_end].rstrip(" ,;:.") if word_end >= 80 else prefix.rstrip()
-
-
 def _requested_picture_location(
     label: str,
     raw_prompt: str,
@@ -185,6 +165,174 @@ def _requested_picture_insertion(
     return target.end() + next_shot.start() if next_shot else len(body)
 
 
+_TRANSITION_STOPWORDS = {
+    "about",
+    "after",
+    "against",
+    "also",
+    "before",
+    "from",
+    "into",
+    "picture",
+    "reference",
+    "referencing",
+    "shot",
+    "subject",
+    "that",
+    "their",
+    "then",
+    "there",
+    "these",
+    "this",
+    "through",
+    "towards",
+    "with",
+}
+
+
+def _transition_tokens(text: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'-]{2,}", text.lower())
+        if token not in _TRANSITION_STOPWORDS
+    }
+
+
+def _raw_picture_context(label: str, raw_prompt: str) -> str:
+    occurrence = raw_prompt.find(label)
+    if occurrence < 0:
+        return ""
+    shot_headers = list(
+        re.finditer(r"\[Shot\s+[1-9]\d*\]", raw_prompt, flags=re.IGNORECASE)
+    )
+    current_shot = [match for match in shot_headers if match.start() < occurrence]
+    if current_shot:
+        shot_start = current_shot[-1].start()
+        following = [match for match in shot_headers if match.start() > occurrence]
+        shot_end = following[0].start() if following else len(raw_prompt)
+        sentence_breaks = list(
+            re.finditer(
+                r"[.!?](?=\s|$)",
+                raw_prompt[shot_start:shot_end],
+            )
+        )
+        relative_occurrence = occurrence - shot_start
+        previous = [
+            match for match in sentence_breaks if match.end() <= relative_occurrence
+        ]
+        following_break = [
+            match for match in sentence_breaks if match.start() > relative_occurrence
+        ]
+        start = shot_start + (previous[-1].end() if previous else 0)
+        end = shot_start + (
+            following_break[0].end() if following_break else shot_end - shot_start
+        )
+        return raw_prompt[start:end]
+    start = max(
+        raw_prompt.rfind(".", 0, occurrence),
+        raw_prompt.rfind("!", 0, occurrence),
+        raw_prompt.rfind("?", 0, occurrence),
+        raw_prompt.rfind("\n", 0, occurrence),
+    )
+    ends = [
+        position
+        for delimiter in (".", "!", "?", "\n")
+        if (position := raw_prompt.find(delimiter, occurrence + len(label))) >= 0
+    ]
+    end = min(ends) + 1 if ends else len(raw_prompt)
+    return raw_prompt[start + 1 : end]
+
+
+def _action_sentence_spans(body: str) -> list[tuple[int, int]]:
+    masked = re.sub(
+        r"<d>.*?</d>",
+        lambda match: " " * len(match.group(0)),
+        body,
+        flags=re.DOTALL,
+    )
+    return [
+        (match.start(), match.end())
+        for match in re.finditer(
+            r".+?(?:[.!?](?=\s|\[Shot|$)|$)",
+            masked,
+            flags=re.DOTALL,
+        )
+        if masked[match.start() : match.end()].strip()
+    ]
+
+
+def _best_picture_action_span(
+    body: str,
+    asset_label: str,
+    asset_socket: str,
+    raw_prompt: str,
+    observations: dict[str, str],
+) -> tuple[int, int] | None:
+    raw_context = _raw_picture_context(asset_label, raw_prompt)
+    if not raw_context:
+        return None
+    raw_tokens = _transition_tokens(raw_context)
+    observation_tokens = _transition_tokens(
+        str(observations.get(asset_socket, "") or "")
+    )
+    best: tuple[int, int] | None = None
+    best_score = 0
+    for start, end in _action_sentence_spans(body):
+        sentence_tokens = _transition_tokens(body[start:end])
+        score = 3 * len(raw_tokens & sentence_tokens) + len(
+            observation_tokens & sentence_tokens
+        )
+        if score > best_score:
+            best = (start, end)
+            best_score = score
+    return best
+
+
+def _attach_picture_to_action(
+    body: str,
+    span: tuple[int, int],
+    label: str,
+) -> str:
+    _, end = span
+    insertion = end
+    while insertion > 0 and body[insertion - 1].isspace():
+        insertion -= 1
+    if insertion > 0 and body[insertion - 1] in ".!?":
+        insertion -= 1
+    return body[:insertion].rstrip() + f" ({label})" + body[insertion:]
+
+
+def _continuous_picture_transition(
+    previous_label: str | None,
+    current_label: str,
+) -> str:
+    if previous_label is None:
+        return (
+            f"The continuous opening composition is anchored by {current_label}, "
+            "with stable subject, environment, and camera state."
+        )
+    return (
+        f"Without a cut, the visible action moves smoothly from {previous_label} "
+        f"into {current_label}, preserving continuous subject, object, and camera "
+        "motion through physically coherent intermediate states."
+    )
+
+
+def _remove_static_picture_insertions(body: str) -> str:
+    """Remove legacy validation prose so labels can be bound to real actions."""
+
+    value = re.sub(
+        r"(?is)\bAt this point,\s*<Picture\s+[1-9]\d*>\s+contributes\s+"
+        r"this concrete visible state\s*:\s*.*?"
+        r"(?=\bAt this point,\s*<Picture\s+[1-9]\d*>|"
+        r"<Subject\s+[1-9]\d*>|\[Shot\s+[1-9]\d*\]|"
+        r"\bThe (?:camera|final state)\b|$)",
+        " ",
+        body,
+    )
+    return re.sub(r"[ \t]{2,}", " ", value).strip()
+
+
 def _ensure_ref_picture_coverage(
     text: str,
     manifest: ReferenceManifest,
@@ -197,15 +345,25 @@ def _ensure_ref_picture_coverage(
     if bounds is None:
         return text
     start, end = bounds
-    body = text[start:end].strip()
+    body = _remove_static_picture_insertions(text[start:end].strip())
     for index, asset in enumerate(manifest.pictures):
         if asset.label in body:
             continue
-        fact = _observation_fact(asset.label, asset.socket, observations)
-        sentence = (
-            f"At this point, {asset.label} contributes this concrete visible "
-            f"state: {fact}."
+        action_span = _best_picture_action_span(
+            body,
+            asset.label,
+            asset.socket,
+            raw_prompt,
+            observations,
         )
+        if action_span is not None:
+            body = _attach_picture_to_action(body, action_span, asset.label)
+            continue
+
+        previous_label = (
+            manifest.pictures[index - 1].label if index > 0 else None
+        )
+        sentence = _continuous_picture_transition(previous_label, asset.label)
         requested_insertion = _requested_picture_insertion(
             body,
             asset.label,

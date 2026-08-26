@@ -951,9 +951,15 @@ def _canonicalize_ref_subjects(
     manifest: ReferenceManifest,
 ) -> tuple[str, list[int]]:
     value = re.sub(
+        r"(?is)^\s*(?:N\s*/?\s*A|None)\s*subject_definitions:\s*",
+        "",
+        body,
+        count=1,
+    )
+    value = re.sub(
         r"(?im)^[ \t]*(?:<\s*)?Subject\s*(\d+)(?:\s*>)?\s*[:\-]\s*",
         lambda match: f"<Subject {int(match.group(1))}> ",
-        body.strip(),
+        value.strip(),
     )
     value = re.sub(
         r"(?m)^(<Subject [1-9]\d*>)\s*=\s*",

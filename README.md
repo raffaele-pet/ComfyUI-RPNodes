@@ -150,9 +150,11 @@ developing the action in target-video playback order. The node outputs only
 `prompt`, `aligned_length`, and `analysis_report`; it does not pass the frame
 images through. The shared REF2V composition pass also supplies a missing
 dialogue language tag without changing the spoken text and restores any
-Picture omitted from `detailed_description` using that image's analyzed visual
-facts inside the matching requested shot or timestamp before deciding whether
-a model repair is necessary.
+Picture omitted from `detailed_description` by binding it to the corresponding
+action sentence. If no matching action exists, it writes an explicit continuous
+transition from the preceding Picture instead of inserting a static image
+description. Each adjacent `frame_n` pair is treated as two states of one
+continuous movement unless the request explicitly requires a real cut.
 
 ### RP H3-REF2V Prompt Writer
 

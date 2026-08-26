@@ -2112,6 +2112,12 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("Begin its body directly with\n  `[Shot 1]`", system)
         self.assertNotIn("Begin with one\n  or two English sentences", system)
         self.assertNotIn("350–500 English", system)
+        self.assertIn("consecutive ordered visual states", system)
+        self.assertIn("physically connect each adjacent pair", system)
+        self.assertIn("A new Picture\n  alone never creates a cut", system)
+        self.assertIn("Never write source-analysis phrases", system)
+        self.assertIn("organizational event markers rather than an\n  automatic request", system)
+        self.assertIn("inside one continuous\n  `[Shot 1]`", system)
         self.assertIn(r'\u003cPicture 3>', payload)
         self.assertIn('"socket": "ref_image_2"', payload)
         self.assertIn('"mode": "Ref2VA"', payload)
@@ -2247,8 +2253,11 @@ class ComposerRepairTests(unittest.TestCase):
             "as in <Picture 2>.\n"
             "[Shot 2] At 00:03.750, the action continues through <Picture 3> "
             "and <Picture 4>.\n"
-            "[Shot 3] At 00:07.500, <Subject 1> reaches <Picture 5>, then says "
-            "<d>Hello</d>.\n"
+            "[Shot 3] At 00:07.500, At this point, <Picture 5> contributes this "
+            "concrete visible state: a static surprised pose. At this point, "
+            "<Picture 6> contributes this concrete visible state: a static "
+            "pointing pose. <Subject 1> looks off-screen with a surprised "
+            "expression. He laughs and points to the right, then says <d>Hello</d>.\n"
             "[Shot 4] At 00:11.250, the final state holds.\n\n"
             "overall_soundscape:\nQuiet room tone.\n\n"
             "non_diegetic_music:\nN/A"
@@ -2262,8 +2271,9 @@ class ComposerRepairTests(unittest.TestCase):
             runner,
             raw_prompt=(
                 "[Shot 1] The performer greets the viewer. "
-                "[Shot 8] At 00:07.500, the performer points as in <Picture 6> "
-                "and says hello in English."
+                "[Shot 8] At 00:07.500, the performer looks off-screen with a "
+                "surprised expression, as in <Picture 5>. He then laughs and "
+                "points to the right as in <Picture 6>, and says hello in English."
             ),
             length=362,
             selected_skill_label=SKILL_CORE,
@@ -2281,8 +2291,11 @@ class ComposerRepairTests(unittest.TestCase):
             "\n\noverall_soundscape:", 1
         )[0]
         shot_three = detail.split("[Shot 3]", 1)[1].split("[Shot 4]", 1)[0]
-        self.assertIn("<Picture 6> contributes", shot_three)
-        self.assertIn("observed state 6", shot_three)
+        pointing_start = shot_three.index("He laughs")
+        self.assertLess(shot_three.index("<Picture 5>"), pointing_start)
+        self.assertGreater(shot_three.index("<Picture 6>"), pointing_start)
+        self.assertNotIn("At this point", detail)
+        self.assertNotIn("contributes this concrete visible state", detail)
 
     def test_frames_node_composes_through_ref_with_i2v_detailed_body(self):
         candidate = (
@@ -2572,7 +2585,10 @@ N/A"""
         self.assertFalse(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         self.assertIn("<Picture 8>", result.prompt.split("overall_soundscape:", 1)[0])
-        self.assertIn("action 8", result.prompt.split("overall_soundscape:", 1)[0])
+        self.assertIn(
+            "moves smoothly from <Picture 7> into <Picture 8>",
+            result.prompt.split("overall_soundscape:", 1)[0],
+        )
 
     def test_ref_structural_metadata_is_fixed_without_a_generation_repair(self):
         manifest = ReferenceManifest.from_inputs(

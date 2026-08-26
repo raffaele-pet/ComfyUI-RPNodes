@@ -776,10 +776,24 @@ def ref_system_prompt_with_i2v_description(
   behavior, synchronized diegetic sound, and the ending result. Be as detailed
   and explicit as the request and duration require; never reduce the body to a
   generic one-sentence summary.
-- Preserve every explicit `[Shot N]` boundary and `At MM:SS.mmm` timestamp from
-  `raw_user_request`. Never create or redistribute shots merely to match the
-  number of connected Pictures; several Pictures may contribute within the
-  same requested shot, action, or transition."""
+- The connected Pictures are consecutive ordered visual states. Explicitly
+  narrate the continuous change from `<Picture 1>` to `<Picture 2>`, from
+  `<Picture 2>` to `<Picture 3>`, and so on through the final Picture. Describe
+  the subject, prop, expression, pose, environment, and camera movements that
+  physically connect each adjacent pair; do not merely describe either image.
+- Cite each Picture naturally in the action sentence where its state is reached.
+  Never write source-analysis phrases such as `At this point, <Picture N>
+  contributes`, `the image shows`, or `the reference depicts`. A new Picture
+  alone never creates a cut: keep one continuous shot unless `raw_user_request`
+  explicitly requires a new shot, place, time, or viewpoint.
+- Preserve every explicit `At MM:SS.mmm` event time from `raw_user_request`, but
+  treat its `[Shot N]` labels as organizational event markers rather than an
+  automatic request for a visual cut. Keep the events inside one continuous
+  `[Shot 1]` whenever subject, place, time, and viewpoint remain continuous;
+  create a later Shot only when the request explicitly calls for a cut or a
+  genuinely discontinuous place, time, or viewpoint. Never create or
+  redistribute shots merely to match the number of connected Pictures; several
+  Pictures may contribute within the same continuous action or transition."""
     if ref_rules not in contract:
         raise RuntimeError("REF2V detailed_description contract block not found")
     return contract.replace(ref_rules, i2v_rules, 1)
