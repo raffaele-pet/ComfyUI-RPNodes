@@ -346,9 +346,22 @@ class ValidationTests(unittest.TestCase):
         self.assertTrue(result.valid, result.issues)
 
     def test_valid_frames2va_requires_every_connected_picture(self):
-        text = self._body().replace(
-            "a person raising one hand",
-            "<Picture 1> leads into <Picture 2>, then reaches <Picture 3>",
+        text = (
+            "subject_definitions:\n"
+            "<Subject 1> A consistent person established by <Picture 1>, "
+            "<Picture 2>, and <Picture 3>.\n\n"
+            "summary:\n"
+            "[keyframe completion] The person performs one continuous gesture.\n\n"
+            "retention_analysis:\n"
+            "<Subject 1>: fully_preserved - Identity and clothing remain stable.\n"
+            "<Picture 1>: fully_preserved - The opening appearance remains exact.\n"
+            "<Picture 2>: fully_preserved - The intermediate pose remains exact.\n"
+            "<Picture 3>: fully_preserved - The ending pose remains exact.\n\n"
+            + self._body().replace(
+                "a person raising one hand",
+                "<Subject 1> in <Picture 1> leads into <Picture 2>, then reaches "
+                "<Picture 3>",
+            )
         )
         result = validate_base_prompt(
             text, "Frames2VA", 124, picture_count=3
@@ -356,13 +369,33 @@ class ValidationTests(unittest.TestCase):
         self.assertTrue(result.valid, result.issues)
 
         missing = validate_base_prompt(
-            text.replace("<Picture 2>", "the intermediate state"),
+            text.replace(
+                "leads into <Picture 2>, then",
+                "leads through the intermediate state, then",
+            ),
             "Frames2VA",
             124,
             picture_count=3,
         )
         self.assertFalse(missing.valid)
         self.assertTrue(any("<Picture 2>" in issue for issue in missing.issues))
+
+        unlabeled_retention = validate_base_prompt(
+            text.replace(
+                "<Picture 2>: fully_preserved",
+                ": fully_preserved",
+            ),
+            "Frames2VA",
+            124,
+            picture_count=3,
+        )
+        self.assertFalse(unlabeled_retention.valid)
+        self.assertTrue(
+            any(
+                "Every retention_analysis line" in issue
+                for issue in unlabeled_retention.issues
+            )
+        )
 
     def test_valid_fl2va(self):
         text = (
@@ -2024,6 +2057,10 @@ class GemmaRunnerTests(unittest.TestCase):
             picture_count=3,
         )
         self.assertIn("Pictures 1 through 3", system)
+        self.assertIn("subject_definitions:\nsummary:\nretention_analysis:", system)
+        self.assertIn("exactly one line for every defined Subject", system)
+        self.assertIn("exactly one line for every connected Picture", system)
+        self.assertIn("metadata-only coverage does not count", system)
         self.assertIn(r'\u003cPicture 3>', payload)
         self.assertIn("frame_3, ordered keyframe 3 of 3", payload)
 
@@ -2138,6 +2175,46 @@ class _ScriptedRunner:
 
 
 class ComposerRepairTests(unittest.TestCase):
+    def test_frames2va_keeps_i2v_body_and_adds_fidelity_sections(self):
+        candidate = (
+            "subject_definitions:\n"
+            "<Subject 1> A blue bird established by <Picture 1> and "
+            "<Picture 2>.\n\n"
+            "summary:\n"
+            "[keyframe completion] The bird raises one wing and settles.\n\n"
+            "retention_analysis:\n"
+            "<Subject 1>: fully_preserved - Blue plumage and identity remain stable.\n"
+            "<Picture 1>: fully_preserved - The opening pose remains exact.\n"
+            "<Picture 2>: fully_preserved - The final pose remains exact.\n\n"
+            "integrated_multimodal_description:\n"
+            "[Shot 1] <Subject 1> begins as in <Picture 1>, raises one wing, "
+            "and settles into <Picture 2>.\n\n"
+            "overall_soundscape:\nQuiet room tone and one feather rustle.\n\n"
+            "non_diegetic_music:\nN/A"
+        )
+        runner = _ScriptedRunner([candidate])
+        result = compose_base_prompt(
+            runner,
+            raw_prompt="Make the bird lift one wing.",
+            mode="Frames2VA",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "frame_1": "<Picture 1>: A blue bird.",
+                "frame_2": "<Picture 2>: The same bird with one wing raised.",
+            },
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=7),
+            picture_count=2,
+        )
+        self.assertFalse(result.repaired)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertTrue(result.prompt.startswith("subject_definitions:\n"))
+        self.assertIn("integrated_multimodal_description:\n[Shot 1]", result.prompt)
+        self.assertEqual(
+            runner.calls[0][2]["assistant_prefix"], "subject_definitions:\n"
+        )
+
     def test_repair_output_section_separators_are_canonicalized(self):
         repaired = (
             "For the target video, Picture 1 establishes the first shot.\n"

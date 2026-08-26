@@ -14,6 +14,11 @@ BASE_FIELDS = (
     "overall_soundscape:",
     "non_diegetic_music:",
 )
+FRAMES_BASE_FIELDS = (
+    "subject_definitions:",
+    "summary:",
+    "retention_analysis:",
+) + BASE_FIELDS
 REF_FIELDS = (
     "subject_definitions:",
     "summary:",
@@ -32,6 +37,8 @@ def _contains_schema_anchor(text: str, mode: str) -> bool:
         anchors = ("scene overview:", "storyboard:", "camera:", "audio:")
     elif mode == "Ref2VA":
         anchors = REF_FIELDS
+    elif mode == "Frames2VA":
+        anchors = FRAMES_BASE_FIELDS
     elif mode == "I2VA":
         anchors = ("for the target video,",) + BASE_FIELDS
     elif mode in ("FL2VA", "L2VA"):
@@ -166,6 +173,11 @@ def sanitize_generated_text(text: str, mode: str) -> str:
         starts = []
     elif mode == "Ref2VA":
         starts = [value.find("subject_definitions:")]
+    elif mode == "Frames2VA":
+        starts = [
+            value.find("subject_definitions:"),
+            value.find(BASE_FIELDS[0]),
+        ]
     elif mode == "I2VA":
         starts = [value.find("For the target video,"), value.find(BASE_FIELDS[0])]
     elif mode in ("FL2VA", "L2VA"):
@@ -1310,6 +1322,34 @@ def canonicalize_base_structure(text: str, mode: str, length: int) -> str:
     genuinely malformed structure.
     """
 
+    if mode == "Frames2VA":
+        candidate = sanitize_generated_text(text, mode)
+        matches = [
+            _header_matches(candidate, field) for field in FRAMES_BASE_FIELDS
+        ]
+        if any(len(field_matches) != 1 for field_matches in matches):
+            return candidate
+        if [field_matches[0].start() for field_matches in matches] != sorted(
+            field_matches[0].start() for field_matches in matches
+        ):
+            return candidate
+
+        bodies: list[str] = []
+        for index, field_matches in enumerate(matches):
+            start = field_matches[0].end()
+            end = (
+                matches[index + 1][0].start()
+                if index + 1 < len(matches)
+                else len(candidate)
+            )
+            bodies.append(candidate[start:end].strip())
+        bodies[3] = _canonicalize_timeline_cut_markers(bodies[3])
+        result = "\n\n".join(
+            f"{field}\n{body}"
+            for field, body in zip(FRAMES_BASE_FIELDS, bodies)
+        )
+        return _canonicalize_speaker_groups(result).strip()
+
     candidate = _isolate_last_base_schema(text, mode)
     candidate = canonicalize_base_alignment(candidate, mode, length)
     candidate = _canonicalize_speaker_groups(candidate)
@@ -1351,7 +1391,8 @@ def validate_base_prompt(
     candidate = sanitize_generated_text(text, mode)
     duration = effective_duration(length)
     duration_text = duration_2dp(length)
-    issues = _validate_common(candidate, BASE_FIELDS)
+    fields = FRAMES_BASE_FIELDS if mode == "Frames2VA" else BASE_FIELDS
+    issues = _validate_common(candidate, fields)
     main_body = _field_body(candidate, BASE_FIELDS[0], BASE_FIELDS[1])
     issues.extend(
         _validate_shot_timeline(
@@ -1369,9 +1410,9 @@ def validate_base_prompt(
             issues.append("T2VA must begin directly with integrated_multimodal_description:.")
         allowed_pictures = 0
     elif mode == "Frames2VA":
-        if not candidate.startswith(BASE_FIELDS[0]):
+        if not candidate.startswith(FRAMES_BASE_FIELDS[0]):
             issues.append(
-                "Frames2VA must begin directly with integrated_multimodal_description:."
+                "Frames2VA must begin with subject_definitions:."
             )
         if not 1 <= picture_count <= 9:
             issues.append("Frames2VA picture_count must be between 1 and 9.")
@@ -1438,10 +1479,143 @@ def validate_base_prompt(
                 + ", ".join(f"<Picture {index}>" for index in missing)
                 + "."
             )
+        integrated_labels = {
+            int(value)
+            for value in re.findall(r"<Picture\s+(\d+)>", main_body)
+        }
+        missing_from_main = [
+            index
+            for index in range(1, allowed_pictures + 1)
+            if index not in integrated_labels
+        ]
+        if missing_from_main:
+            issues.append(
+                "Every connected Picture must be used inside "
+                "integrated_multimodal_description; missing: "
+                + ", ".join(
+                    f"<Picture {index}>" for index in missing_from_main
+                )
+                + "."
+            )
+
+        issues.extend(
+            _validate_sequential_ids(candidate, "Subject", r"<Subject\s+(\d+)>")
+        )
+        subject_body = _field_body(
+            candidate, "subject_definitions:", "summary:"
+        )
+        subject_ids = sorted(
+            {int(value) for value in re.findall(r"<Subject\s+(\d+)>", candidate)}
+        )
+        subject_lines = [
+            line.strip() for line in subject_body.splitlines() if line.strip()
+        ]
+        if subject_lines != ["N/A"]:
+            for line in subject_lines:
+                if re.match(r"^<Subject [1-9]\d*>\s+\S", line) is None:
+                    issues.append(
+                        "Every subject_definitions line must begin with one "
+                        "canonical Subject label, or the section must be N/A."
+                    )
+                    break
+        elif subject_ids:
+            issues.append(
+                "subject_definitions cannot be N/A when Subject labels are used."
+            )
+        for subject_id in subject_ids:
+            definitions = re.findall(
+                rf"(?m)^<Subject {subject_id}>(?=$|[ \t]).*$",
+                subject_body,
+            )
+            if len(definitions) != 1:
+                issues.append(
+                    f"<Subject {subject_id}> must have exactly one line in "
+                    "subject_definitions."
+                )
+            elif not re.search(r"<Picture\s+\d+>", definitions[0]):
+                issues.append(
+                    f"<Subject {subject_id}> must cite its source Picture "
+                    "label in subject_definitions."
+                )
+
+        summary_body = _field_body(
+            candidate, "summary:", "retention_analysis:"
+        )
+        if not re.match(r"^\[keyframe completion\](?=$|\s)", summary_body):
+            issues.append(
+                "Frames2VA summary must begin with [keyframe completion]."
+            )
+        elif not re.search(
+            r"[A-Za-z0-9<]",
+            summary_body[len("[keyframe completion]") :],
+        ):
+            issues.append(
+                "Frames2VA summary needs substantive target-event prose."
+            )
+
+        retention = _field_body(
+            candidate, "retention_analysis:", BASE_FIELDS[0]
+        )
+        retention_lines = [
+            line.strip() for line in retention.splitlines() if line.strip()
+        ]
+        relationship_pattern = re.compile(
+            r"^(?P<label><(?:Subject|Picture) [1-9]\d*>):\s*"
+            r"(?P<marker>fully_preserved|partially_preserved|"
+            r"attribute_transfer|weak_reference)\s*-\s*(?P<explanation>\S.*)$"
+        )
+        expected_retention_labels = {
+            *(f"<Subject {subject_id}>" for subject_id in subject_ids),
+            *(f"<Picture {index}>" for index in range(1, allowed_pictures + 1)),
+        }
+        marker_pattern = re.compile(
+            r"\b(?:fully_preserved|partially_preserved|attribute_transfer|"
+            r"weak_reference)\b"
+        )
+        for line in retention_lines:
+            parsed = relationship_pattern.fullmatch(line)
+            if parsed is None:
+                issues.append(
+                    "Every retention_analysis line must have a canonical "
+                    "Subject/Picture label, one marker, and an explanation."
+                )
+                continue
+            if parsed.group("label") not in expected_retention_labels:
+                issues.append(
+                    "retention_analysis uses an undefined label: "
+                    f"{parsed.group('label')}."
+                )
+            if len(marker_pattern.findall(line)) != 1:
+                issues.append(
+                    f"{parsed.group('label')} must use exactly one retention marker."
+                )
+
+        def retention_lines_for(label: str) -> list[str]:
+            return [
+                line
+                for line in retention_lines
+                if re.match(rf"^{re.escape(label)}:", line)
+            ]
+
+        for label in sorted(expected_retention_labels):
+            relationships = retention_lines_for(label)
+            if len(relationships) != 1:
+                issues.append(
+                    "retention_analysis must contain exactly one line beginning "
+                    f"with {label}."
+                )
+            elif relationship_pattern.fullmatch(relationships[0]) is None:
+                issues.append(
+                    f"{label} needs one visible retention marker and explanation."
+                )
     if allowed_pictures == 0 and labels:
         issues.append("T2VA must not use Picture reference labels.")
-    if re.search(r"<(?:Video|Audio|Subject)\s+\d+>", candidate):
-        issues.append("Base modes must not introduce Ref2VA Subject/Video/Audio labels.")
+    forbidden_kinds = "Video|Audio" if mode == "Frames2VA" else "Video|Audio|Subject"
+    if re.search(rf"<(?:{forbidden_kinds})\s+\d+>", candidate):
+        if mode == "Frames2VA":
+            issues.append("Frames2VA must not introduce Video or Audio labels.")
+        else:
+            issues.append("Base modes must not introduce Ref2VA Subject/Video/Audio labels.")
 
     return ValidationResult(candidate, tuple(dict.fromkeys(issues)))
 

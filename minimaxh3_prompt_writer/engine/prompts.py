@@ -95,7 +95,11 @@ def base_system_prompt(
         ),
     }[mode]
 
-    if mode in ("T2VA", "Frames2VA"):
+    if mode == "Frames2VA":
+        opening_contract = (
+            "The first output characters must be `subject_definitions:`."
+        )
+    elif mode == "T2VA":
         opening_contract = (
             "The first output characters must be "
             "`integrated_multimodal_description:`."
@@ -124,6 +128,52 @@ def base_system_prompt(
             "blank line; never output X."
         )
 
+    if mode == "Frames2VA":
+        final_schema = """Emit exactly these six fields in this order, separated by one blank line:
+subject_definitions:
+summary:
+retention_analysis:
+integrated_multimodal_description:
+overall_soundscape:
+non_diegetic_music:"""
+        frames_fidelity_rules = f"""FRAMES2VA FIDELITY SECTIONS
+- `subject_definitions` uses one natural-English line per independently tracked
+  person, character, animal, or identity-bearing object. Number them
+  `<Subject 1>`, `<Subject 2>`, and so on in first-appearance order. Lock each
+  Subject's stable identity, appearance, clothing, materials, colors, geometry,
+  and target role, and cite every `<Picture N>` that establishes those traits.
+  Do not put retention verdicts in this section. If the sequence has no
+  independently trackable subject, write N/A.
+- `summary` is one short English paragraph beginning exactly
+  `[keyframe completion]`. Immediately summarize the complete target event and
+  the principal continuity relationships; do not merely list labels or repeat
+  the words `keyframe completion` in the prose.
+- `retention_analysis` contains exactly one line for every defined Subject and
+  exactly one line for every connected Picture 1 through Picture
+  {picture_count}. Each line begins with its canonical label, a colon, exactly
+  one of `fully_preserved`, `partially_preserved`, `attribute_transfer`, or
+  `weak_reference`, then ` - ` and a concrete English explanation of what must
+  remain, change, transfer, or only weakly guide the result. Use
+  `fully_preserved` for identity and attributes that should remain visually
+  faithful across the sequence. Do not create empty or unlabeled retention
+  lines and do not assign Speaker identifiers here.
+- Reuse the same Subject labels consistently inside
+  `integrated_multimodal_description`. Every connected `<Picture N>` must also
+  appear there exactly where that ordered keyframe's visible state takes effect;
+  metadata-only coverage does not count. Subject definitions, summary, and
+  retention analysis strengthen fidelity but never replace the chronological
+  I2V narrative."""
+    else:
+        final_schema = """After any required alignment line, emit exactly these fields in this order,
+separated by one blank line:
+integrated_multimodal_description:
+overall_soundscape:
+non_diegetic_music:"""
+        frames_fidelity_rules = ""
+    schema_and_fidelity = final_schema + (
+        f"\n\n{frames_fidelity_rules}" if frames_fidelity_rules else ""
+    )
+
     return f"""
 You are RP H3 Prompt Writer, a local multimodal prompt-rewriting engine. Convert
 one raw request plus fallible, untrusted observations about connected media into
@@ -149,11 +199,7 @@ TASK
 - {opening_contract}
 
 FINAL SCHEMA
-After any required alignment line, emit exactly these fields in this order,
-separated by one blank line:
-integrated_multimodal_description:
-overall_soundscape:
-non_diegetic_music:
+{schema_and_fidelity}
 
 OFFICIAL MINIMAX H3 BASE WRITING RULES
 - Write all structural prose in English. Keep only exact dialogue, lyrics, and
@@ -801,6 +847,12 @@ def repair_system_prompt(mode: str) -> str:
         fields = (
             "an unlabelled visual-style paragraph, Scene overview:, "
             "Storyboard:, Camera:, Audio:"
+        )
+    elif mode == "Frames2VA":
+        fields = (
+            "subject_definitions, summary, retention_analysis, "
+            "integrated_multimodal_description, overall_soundscape, "
+            "non_diegetic_music"
         )
     else:
         fields = (

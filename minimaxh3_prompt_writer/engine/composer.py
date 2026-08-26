@@ -147,7 +147,11 @@ def _repair(
         ),
         max_new_tokens=max_new_tokens,
         sampling=SamplingConfig(do_sample=False, seed=seed),
-        assistant_prefix="subject_definitions:\n" if mode == "Ref2VA" else "",
+        assistant_prefix=(
+            "subject_definitions:\n"
+            if mode in ("Ref2VA", "Frames2VA")
+            else ""
+        ),
     )
 
 
@@ -195,6 +199,9 @@ def compose_base_prompt(
         task_payload,
         max_new_tokens=max_new_tokens,
         sampling=sampling,
+        assistant_prefix=(
+            "subject_definitions:\n" if mode == "Frames2VA" else ""
+        ),
     )
     after_call()
     candidate = canonicalize_base_structure(candidate, mode, length)

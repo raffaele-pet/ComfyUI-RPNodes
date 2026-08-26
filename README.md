@@ -141,8 +141,12 @@ Creates an I2V prompt from an ordered sequence of up to nine frame images. The
 node initially shows `frame_1`; connecting it reveals `frame_2`, and the inputs
 continue growing in the same way through `frame_9`. Every connected frame is
 analyzed independently and represented by its matching Picture label in the
-finished prompt. The node outputs only `prompt`, `aligned_length`, and
-`analysis_report`; it does not pass the frame images through.
+finished prompt. Before the chronological `integrated_multimodal_description`,
+the prompt includes `subject_definitions`, `summary`, and `retention_analysis`
+sections that lock recurring subjects and state explicitly which visible
+properties of every Picture must be preserved. The node outputs only `prompt`,
+`aligned_length`, and `analysis_report`; it does not pass the frame images
+through.
 
 ### RP H3-REF2V Prompt Writer
 
