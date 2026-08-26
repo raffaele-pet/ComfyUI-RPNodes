@@ -144,7 +144,10 @@ analyzed independently and represented by its matching Picture label in the
 finished prompt. Before the chronological `integrated_multimodal_description`,
 the prompt includes `subject_definitions`, `summary`, and `retention_analysis`
 sections that lock recurring subjects and state explicitly which visible
-properties of every Picture must be preserved. The node outputs only `prompt`,
+properties of every Picture must be preserved. These sections use the same
+manifest-driven composition, canonicalization, repair, and validation pipeline
+as `RP H3-REF2V Prompt Writer`; only the chronological body keeps the I2V field
+name `integrated_multimodal_description`. The node outputs only `prompt`,
 `aligned_length`, and `analysis_report`; it does not pass the frame images
 through.
 

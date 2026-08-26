@@ -22,6 +22,8 @@ from .prompts import (
     auto_skill_user_payload,
     base_system_prompt,
     base_user_payload,
+    frames_system_prompt,
+    frames_user_payload,
     ref_system_prompt,
     ref_user_payload,
     repair_system_prompt,
@@ -32,9 +34,11 @@ from .prompts import (
 from .validation import (
     ValidationResult,
     canonicalize_base_structure,
+    canonicalize_frames_structure,
     canonicalize_ref_structure,
     canonicalize_t2v_structure,
     validate_base_prompt,
+    validate_frames_prompt,
     validate_ref_prompt,
     validate_t2v_prompt,
 )
@@ -42,6 +46,43 @@ from .validation import (
 
 def _noop() -> None:
     return None
+
+
+def _frames_main_body(text: str) -> tuple[int, int, str] | None:
+    start = re.search(
+        r"(?m)^integrated_multimodal_description:(?=$|[ \t])",
+        text,
+    )
+    end = re.search(r"(?m)^overall_soundscape:(?=$|[ \t])", text)
+    if start is None or end is None or start.end() >= end.start():
+        return None
+    return start.end(), end.start(), text[start.end() : end.start()].strip()
+
+
+def _preserve_better_frames_main(
+    initial: str,
+    repaired: str,
+    manifest: ReferenceManifest,
+) -> str:
+    """Keep the original I2V body when a repair loses Picture coverage."""
+
+    initial_section = _frames_main_body(initial)
+    repaired_section = _frames_main_body(repaired)
+    if initial_section is None or repaired_section is None:
+        return repaired
+    labels = set(manifest.labels("image"))
+    initial_coverage = {label for label in labels if label in initial_section[2]}
+    repaired_coverage = {label for label in labels if label in repaired_section[2]}
+    if len(initial_coverage) <= len(repaired_coverage):
+        return repaired
+    repaired_start, repaired_end, _ = repaired_section
+    return (
+        repaired[:repaired_start].rstrip()
+        + "\n"
+        + initial_section[2]
+        + "\n\n"
+        + repaired[repaired_end:].lstrip()
+    )
 
 
 @dataclass(frozen=True)
@@ -317,6 +358,106 @@ def compose_ref_prompt(
     if strict_validation and not final.valid:
         raise ValueError(
             "Gemma could not produce a structurally valid H3 Ref2VA prompt after one repair pass:\n- "
+            + "\n- ".join(final.issues)
+        )
+    return ComposeResult(final.text, skill, initial, final, repaired)
+
+
+def compose_frames_prompt(
+    runner: GemmaRunner,
+    *,
+    raw_prompt: str,
+    length: int,
+    selected_skill_label: str,
+    observations: dict[str, str],
+    manifest: ReferenceManifest,
+    max_new_tokens: int,
+    sampling: SamplingConfig,
+    requested_duration_seconds: float | None = None,
+    strict_validation: bool = True,
+    after_call: Callable[[], None] = _noop,
+) -> ComposeResult:
+    """Compose Frames2VA through the Ref2VA manifest pipeline."""
+
+    skill = resolve_skill(
+        runner,
+        selected_skill_label,
+        raw_prompt=raw_prompt,
+        observations=observations,
+        seed=sampling.seed,
+        after_call=after_call,
+    )
+    system_prompt = frames_system_prompt(
+        length,
+        skill,
+        manifest,
+        requested_duration_seconds=requested_duration_seconds,
+    )
+    task_payload = frames_user_payload(
+        raw_prompt=raw_prompt,
+        length=length,
+        skill=skill,
+        manifest=manifest,
+        media_observations=observations,
+        requested_duration_seconds=requested_duration_seconds,
+    )
+    candidate = runner.generate_chat(
+        system_prompt,
+        task_payload,
+        max_new_tokens=max_new_tokens,
+        sampling=sampling,
+        assistant_prefix="subject_definitions:\n",
+    )
+    after_call()
+    candidate = canonicalize_frames_structure(
+        candidate,
+        length,
+        manifest,
+        requested_duration_seconds=requested_duration_seconds,
+        raw_user_request=raw_prompt,
+    )
+    initial = validate_frames_prompt(candidate, length, manifest)
+    final = initial
+    repaired = False
+    if not initial.valid:
+        repaired_text = _repair(
+            runner,
+            mode="Frames2VA",
+            length=length,
+            authoritative_system_prompt=system_prompt,
+            original_task_payload=task_payload,
+            candidate=initial.text,
+            validation=initial,
+            max_new_tokens=max_new_tokens,
+            seed=sampling.seed + 10_000,
+            manifest=manifest,
+        )
+        after_call()
+        repaired_text = canonicalize_frames_structure(
+            repaired_text,
+            length,
+            manifest,
+            requested_duration_seconds=requested_duration_seconds,
+            raw_user_request=raw_prompt,
+        )
+        repaired_text = _preserve_better_frames_main(
+            initial.text,
+            repaired_text,
+            manifest,
+        )
+        repaired_text = canonicalize_frames_structure(
+            repaired_text,
+            length,
+            manifest,
+            requested_duration_seconds=requested_duration_seconds,
+            raw_user_request=raw_prompt,
+        )
+        final = validate_frames_prompt(repaired_text, length, manifest)
+        repaired = True
+    if strict_validation and not final.valid:
+        raise ValueError(
+            "Gemma could not produce a structurally valid H3 Frames2VA prompt "
+            "after one repair pass:\n- "
             + "\n- ".join(final.issues)
         )
     return ComposeResult(final.text, skill, initial, final, repaired)

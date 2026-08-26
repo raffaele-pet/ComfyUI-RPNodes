@@ -826,6 +826,12 @@ def _isolate_last_ref_schema(text: str) -> str:
             == sorted(matches[0].start() for matches in remaining)
         ):
             prefix = candidate[: summary_headers[0].start()].strip()
+            first_subject = re.search(r"(?m)^<Subject [1-9]\d*>\s+", prefix)
+            if first_subject:
+                prefix = prefix[first_subject.start() :].strip()
+            else:
+                paragraphs = re.split(r"\n[ \t]*\n", prefix)
+                prefix = paragraphs[-1].strip() if paragraphs else prefix
             prefix_lines = prefix.splitlines()
             if prefix_lines and re.match(
                 r"(?i)^(?:here is|final|corrected|ref2va prompt\b)",
@@ -1320,6 +1326,45 @@ def canonicalize_ref_structure(
 
     result = "\n\n".join(f"{field}\n{body}" for field, body in zip(REF_FIELDS, bodies))
     return _canonicalize_speaker_groups(result).strip()
+
+
+def _frames_schema_as_ref(text: str) -> str:
+    """Adapt only the Frames2VA main field header to the Ref2VA schema."""
+
+    return re.sub(
+        r"(?im)^[ \t]*(?:\#{1,6}[ \t]+)?(?:[-*][ \t]+)?"
+        r"(?:\*\*|__)?integrated[\s_-]*multimodal[\s_-]*description"
+        r"(?:\*\*|__)?[ \t]*:",
+        "detailed_description:",
+        str(text or ""),
+    )
+
+
+def _ref_schema_as_frames(text: str) -> str:
+    return re.sub(
+        r"(?m)^detailed_description:",
+        "integrated_multimodal_description:",
+        str(text or ""),
+    )
+
+
+def canonicalize_frames_structure(
+    text: str,
+    length: int,
+    manifest: ReferenceManifest,
+    requested_duration_seconds: float | None = None,
+    raw_user_request: str | None = None,
+) -> str:
+    """Run Frames2VA through the Ref2VA manifest canonicalizer."""
+
+    canonical = canonicalize_ref_structure(
+        _frames_schema_as_ref(text),
+        length,
+        manifest,
+        requested_duration_seconds=requested_duration_seconds,
+        raw_user_request=raw_user_request,
+    )
+    return _ref_schema_as_frames(canonical)
 
 
 def canonicalize_base_alignment(text: str, mode: str, length: int) -> str:
@@ -2020,4 +2065,49 @@ def validate_ref_prompt(
                     "Audio-copy prose requires `audio reuse` and explicit copy intent."
                 )
 
+    return ValidationResult(candidate, tuple(dict.fromkeys(issues)))
+
+
+def validate_frames_prompt(
+    text: str,
+    length: int,
+    manifest: ReferenceManifest,
+) -> ValidationResult:
+    """Validate Frames2VA with the Ref2VA manifest rules plus I2V framing."""
+
+    ref_result = validate_ref_prompt(
+        _frames_schema_as_ref(text),
+        length,
+        manifest,
+    )
+    candidate = _ref_schema_as_frames(ref_result.text)
+    issues = [
+        issue.replace("Ref2VA", "Frames2VA").replace(
+            "detailed_description", "integrated_multimodal_description"
+        )
+        for issue in ref_result.issues
+    ]
+
+    summary_body = _field_body(
+        candidate, "summary:", "retention_analysis:"
+    )
+    signature = re.match(r"^\[([^\]\n]+)\](?=$|\s)", summary_body)
+    signature_types = {
+        item.strip() for item in signature.group(1).split("+")
+    } if signature else set()
+    if "keyframe completion" not in signature_types:
+        issues.append(
+            "Frames2VA summary must include keyframe completion in its task signature."
+        )
+
+    main_body = _field_body(
+        candidate,
+        "integrated_multimodal_description:",
+        "overall_soundscape:",
+    )
+    if not main_body.startswith("[Shot 1]"):
+        issues.append(
+            "Frames2VA integrated_multimodal_description must begin directly "
+            "with [Shot 1]."
+        )
     return ValidationResult(candidate, tuple(dict.fromkeys(issues)))

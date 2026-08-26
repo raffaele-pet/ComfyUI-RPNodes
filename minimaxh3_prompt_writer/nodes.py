@@ -14,6 +14,7 @@ from .engine.analyzers import (
 )
 from .engine.composer import (
     compose_base_prompt,
+    compose_frames_prompt,
     compose_ref_prompt,
     compose_t2v_prompt,
 )
@@ -459,13 +460,14 @@ class RPH3I2VFramesPromptWriter(io.ComfyNode):
             seed=seed,
             after_call=_check_interrupted,
         )
-        result = compose_base_prompt(
+        manifest = ReferenceManifest.from_ordered_frames(len(connected))
+        result = compose_frames_prompt(
             runner,
             raw_prompt=prompt,
-            mode="Frames2VA",
             length=aligned_length,
             selected_skill_label=skill,
             observations=observations,
+            manifest=manifest,
             max_new_tokens=max_token_length,
             sampling=_sampling_config(
                 sampling=sampling,
@@ -477,7 +479,6 @@ class RPH3I2VFramesPromptWriter(io.ComfyNode):
                 seed=seed,
             ),
             requested_duration_seconds=duration_seconds,
-            picture_count=len(connected),
             strict_validation=strict_validation,
             after_call=_check_interrupted,
         )
@@ -486,6 +487,7 @@ class RPH3I2VFramesPromptWriter(io.ComfyNode):
             length=aligned_length,
             requested_duration_seconds=duration_seconds,
             observations=observations,
+            manifest=manifest,
         )
         node_output = io.NodeOutput(result.prompt, aligned_length, report)
         _release_clip_vram(clip)
