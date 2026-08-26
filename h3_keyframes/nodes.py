@@ -1,7 +1,7 @@
 # Copyright (C) 2026 NikoDemon80 and contributors
 # Modified for ComfyUI-RPNodes in 2026. Licensed under GPL-3.0-or-later.
 
-"""Prompt-timed still-image keyframes for MiniMax H3."""
+"""Still-image keyframes for MiniMax H3."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ import node_helpers
 from comfy_api.latest import io
 
 from .compat import ensure_h3_keyframe_support
-from .timing import shot_frame_positions
 
 
 _LOG = logging.getLogger("rp_h3_keyframes")
@@ -22,6 +21,23 @@ _MAX_KEYFRAMES = 32
 
 def _pixel_frames(latent_steps: int) -> int:
     return sum(_FRAME_PER_TOKEN[index % 5] for index in range(latent_steps))
+
+
+def _automatic_positions(keyframe_count: int, frame_count: int) -> list[int]:
+    if keyframe_count < 1:
+        return []
+    if keyframe_count == 1:
+        return [0]
+    if keyframe_count > frame_count:
+        raise ValueError(
+            "RP H3-Keyframes: the target has fewer frames than connected images"
+        )
+    last_frame = frame_count - 1
+    intervals = keyframe_count - 1
+    return [
+        (index * last_frame + intervals // 2) // intervals
+        for index in range(keyframe_count)
+    ]
 
 
 def _video_from_latent(latent):
@@ -79,7 +95,7 @@ def _connected_keyframes(keyframes) -> list[tuple[int, object]]:
 
 
 class RPH3Keyframes(io.ComfyNode):
-    """Attach each image at the timestamp of the same-numbered prompt shot."""
+    """Attach an ordered sequence of still images to H3 conditioning."""
 
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -88,11 +104,10 @@ class RPH3Keyframes(io.ComfyNode):
             display_name="RP H3-Keyframes",
             category="RP/MiniMax H3",
             description=(
-                "Pins each connected still to the start time of the matching "
-                "[Shot N] in an RP H3 prompt. Shot 1 starts at frame zero; "
-                "later shots use At MM:SS.mmm at H3's native 24 fps."
+                "Adds an ordered sequence of still-image keyframes to MiniMax "
+                "H3 conditioning with automatically growing image inputs."
             ),
-            search_aliases=["H3 keyframes", "MiniMax keyframes", "timed keyframes"],
+            search_aliases=["H3 keyframes", "MiniMax keyframes"],
             inputs=[
                 io.Conditioning.Input(
                     "conditioning",
@@ -112,15 +127,6 @@ class RPH3Keyframes(io.ComfyNode):
                         "and exact frame count."
                     ),
                 ),
-                io.String.Input(
-                    "prompt",
-                    multiline=True,
-                    dynamic_prompts=False,
-                    tooltip=(
-                        "Connect the same RP H3 prompt used by the native H3 "
-                        "conditioning node. keyframe_image_N uses [Shot N]."
-                    ),
-                ),
                 io.Combo.Input(
                     "crop",
                     options=["disabled", "center"],
@@ -132,8 +138,8 @@ class RPH3Keyframes(io.ComfyNode):
                         input=io.Image.Input(
                             "keyframe_image",
                             tooltip=(
-                                "Still image for the same-numbered [Shot N]. "
-                                "Connecting it reveals the next image input."
+                                "Still image keyframe. Connecting it reveals "
+                                "the next image input."
                             ),
                         ),
                         names=[
@@ -154,7 +160,6 @@ class RPH3Keyframes(io.ComfyNode):
         conditioning,
         vae,
         latent,
-        prompt,
         crop="disabled",
         keyframes: io.Autogrow.Type = None,
     ) -> io.NodeOutput:
@@ -167,8 +172,7 @@ class RPH3Keyframes(io.ComfyNode):
         width = int(video.shape[4]) * 16
         height = int(video.shape[3]) * 16
         frame_count = _pixel_frames(int(video.shape[2]))
-        slots = [slot for slot, _ in connected]
-        positions = shot_frame_positions(prompt, slots, frame_count)
+        positions = _automatic_positions(len(connected), frame_count)
 
         encoded_keyframes = []
         for (slot, image), pixel_index in zip(connected, positions):

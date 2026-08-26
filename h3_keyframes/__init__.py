@@ -1,4 +1,4 @@
-"""RP H3 prompt-timed keyframe node registration."""
+"""RP H3 keyframe node registration."""
 
 from .nodes import RPH3Keyframes
 

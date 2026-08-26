@@ -11,7 +11,7 @@ A collection of utility nodes for ComfyUI:
 
 Python nodes are grouped in `image_sizing_and_resizing` and
 `video_frame_processing`, with the H3 prompt-writing nodes in
-`minimaxh3_prompt_writer` and the timed keyframe node in `h3_keyframes`. Shared
+`minimaxh3_prompt_writer` and the keyframe node in `h3_keyframes`. Shared
 browser extensions live under `web`, and all example workflows remain together
 in `example_workflows`.
 
@@ -158,14 +158,13 @@ has its own traceable observation. The shared defaults are `max_token_length =
 After writing the prompt, the nodes offload their dedicated Gemma CLIP before
 downstream H3 generation to release VRAM.
 
+## MiniMax H3 keyframes
+
 ### RP H3-Keyframes
 
-Pins still images to the MiniMax H3 timeline without manual position controls.
-Connect the same structured prompt used for H3 generation: `keyframe_image_1`
-is placed at the start of `[Shot 1]`, while every later
-`keyframe_image_N` reads the timestamp from `[Shot N] At MM:SS.mmm`. Times are
-converted to the nearest frame at H3's native 24 fps and checked against the
-exact length of the connected H3 AV latent.
+Adds an ordered sequence of still images to MiniMax H3 conditioning without
+manual position controls. The connected images are distributed automatically
+across the exact length of the H3 AV latent.
 
 The image inputs grow automatically. The node initially shows
 `keyframe_image_1`; connecting it reveals `keyframe_image_2`, and the sequence
@@ -177,15 +176,11 @@ Typical wiring is:
 
 1. Connect the H3 conditioning and AV latent to `conditioning` and `latent`.
 2. Connect the MiniMax H3 video VAE to `vae`.
-3. Branch the generated prompt to both the native H3 conditioning node and the
-   `prompt` input of `RP H3-Keyframes`.
-4. Connect one image for each sequential shot that should be pinned, then send
-   the output conditioning to the sampler path.
+3. Connect the still images in their intended order, then send the output
+   conditioning to the sampler path.
 
 The node replaces the conditioning's keyframe list with the connected images
-in shot order. It reports a clear error when a shot is missing, a later shot
-has no timestamp, two connected shots collapse onto the same frame, or a
-timestamp lies outside the target latent.
+in input order.
 
 ## Installation
 
@@ -198,8 +193,7 @@ python -m pip install -r ComfyUI-RPNodes/requirements.txt
 
 Restart ComfyUI and refresh the browser. The image-sizing nodes are available
 under `image/resolution`; the video-processing nodes are available under
-`video/RPNodes`; the MiniMax H3 prompt writers are available under
-`RP/MiniMax H3`, together with `RP H3-Keyframes`.
+`video/RPNodes`; all MiniMax H3 nodes are available under `RP/MiniMax H3`.
 
 ## Example workflows
 
