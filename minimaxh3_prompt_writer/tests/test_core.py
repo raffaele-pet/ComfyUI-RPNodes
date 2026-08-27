@@ -2367,7 +2367,7 @@ class _ScriptedRunner:
 
 
 class ComposerRepairTests(unittest.TestCase):
-    def test_frames_keeps_first_dialogue_after_picture_coverage_repair(self):
+    def test_frames_keeps_first_dialogue_after_semantic_picture_recovery(self):
         raw = """The character waves and says "Hello!".
 He lowers his hand and drinks."""
         candidate = """subject_definitions:
@@ -2410,7 +2410,8 @@ N/A"""
             sampling=SamplingConfig(do_sample=False, seed=42),
             i2v_detailed_description=True,
         )
-        self.assertTrue(result.repaired)
+        self.assertFalse(result.repaired)
+        self.assertEqual(len(runner.calls), 1)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         detail = result.prompt.split("detailed_description:\n", 1)[1]
         self.assertLess(detail.index("Hello!"), detail.index("drinks"))
@@ -2609,7 +2610,7 @@ N/A"""
         self.assertEqual(fallback.prompt.count("<d>[English] Hello!</d>"), 1)
         self.assertEqual(fallback.prompt.count("<d>[English] Not now!</d>"), 1)
 
-    def test_frames_requires_missing_picture_to_be_repaired_in_its_action(self):
+    def test_frames_restores_missing_picture_in_its_matching_action(self):
         manifest = ReferenceManifest.from_inputs(
             ref_images={"ref_image_0": object(), "ref_image_1": object()}
         )
@@ -2651,12 +2652,123 @@ N/A"""
             sampling=SamplingConfig(do_sample=False, seed=42),
             i2v_detailed_description=True,
         )
-        self.assertTrue(result.repaired)
+        self.assertFalse(result.repaired)
+        self.assertEqual(len(runner.calls), 1)
         detail = result.prompt.split("detailed_description:\n", 1)[1].split(
             "\n\noverall_soundscape:", 1
         )[0]
         self.assertIn("points to the right (<Picture 2>)", detail)
         self.assertNotIn("moves smoothly from", detail)
+
+    def test_frames_restores_eighth_picture_beside_final_zoom_action(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(8)}
+        )
+        labels = ", ".join(f"<Picture {index}>" for index in range(1, 9))
+        first_seven = " ".join(
+            f"The action reaches <Picture {index}> with a distinct pose."
+            for index in range(1, 8)
+        )
+        candidate = f"""subject_definitions:
+<Subject 1> is the recurring stylized man established by {labels}.
+
+summary:
+[keyframe completion] The man completes a continuous sequence and ends in close-up.
+
+retention_analysis:
+<Subject 1>: fully_preserved - His identity, orange hoodie, jeans, and 3D style remain stable.
+{chr(10).join(f'<Picture {index}>: fully_preserved - Its visible pose remains exact.' for index in range(1, 9))}
+
+detailed_description:
+Stylized 3D character animation with soft blue studio lighting.
+[Shot 1] {first_seven} Finally, the camera zooms in on the smiling man as he folds his arms across his orange hoodie and settles into a medium close-up.
+
+overall_soundscape:
+Soft clothing movement and quiet studio room tone.
+
+non_diegetic_music:
+N/A"""
+        runner = _ScriptedRunner([candidate])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt=(
+                'The character waves and says "Hello everyone! I\'m Raph!".\n'
+                "He drinks. A robot enters. He looks surprised. He laughs. "
+                "He shows a sign. He says follow me. Zoom in on the character."
+            ),
+            length=362,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                f"ref_image_{index}": (
+                    f"<Picture {index + 1}>: distinct pose {index + 1}."
+                )
+                for index in range(7)
+            }
+            | {
+                "ref_image_7": (
+                    "<Picture 8>: The smiling man is framed in a medium close-up "
+                    "with both arms folded across his orange hoodie."
+                )
+            },
+            manifest=manifest,
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+        )
+        self.assertFalse(result.repaired)
+        self.assertEqual(len(runner.calls), 1)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        detail = result.prompt.split("detailed_description:\n", 1)[1].split(
+            "\n\noverall_soundscape:", 1
+        )[0]
+        self.assertIn("medium close-up (<Picture 8>)", detail)
+        self.assertLess(detail.index("<Picture 7>"), detail.index("<Picture 8>"))
+
+    def test_frames_uses_constrained_positional_fallback_after_failed_repair(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={"ref_image_0": object(), "ref_image_1": object()}
+        )
+        candidate = """subject_definitions:
+<Subject 1> is the performer established by <Picture 1> and <Picture 2>.
+
+summary:
+[keyframe completion] The performer turns and stops.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity and clothing remain stable.
+<Picture 1>: fully_preserved - The opening pose remains exact.
+<Picture 2>: fully_preserved - The ending pose remains exact.
+
+detailed_description:
+[Shot 1] <Subject 1> begins in <Picture 1>. The performer turns slowly and stops.
+
+overall_soundscape:
+Quiet room tone and soft clothing movement.
+
+non_diegetic_music:
+N/A"""
+        runner = _ScriptedRunner([candidate, candidate])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt="The performer turns and stops.",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "ref_image_0": "<Picture 1>: A performer faces forward.",
+                "ref_image_1": "<Picture 2>: A striped umbrella lies on a table.",
+            },
+            manifest=manifest,
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+        )
+        self.assertTrue(result.repaired)
+        self.assertEqual(len(runner.calls), 2)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertIn("stops (<Picture 2>)", result.prompt)
+        self.assertTrue(
+            any("constrained timeline positions" in item for item in result.quality_warnings)
+        )
 
     def test_frames_style_warning_does_not_trigger_a_costly_repair(self):
         ref_images = {f"ref_image_{index}": object() for index in range(6)}

@@ -190,6 +190,23 @@ _TRANSITION_STOPWORDS = {
     "with",
 }
 
+_FRAME_CITATION_STOPWORDS = _TRANSITION_STOPWORDS | {
+    "background",
+    "character",
+    "depicted",
+    "depicts",
+    "frame",
+    "image",
+    "observation",
+    "rendered",
+    "scene",
+    "shown",
+    "shows",
+    "state",
+    "style",
+    "visible",
+}
+
 
 def _transition_tokens(text: str) -> set[str]:
     return {
@@ -197,6 +214,31 @@ def _transition_tokens(text: str) -> set[str]:
         for token in re.findall(r"[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'-]{2,}", text.lower())
         if token not in _TRANSITION_STOPWORDS
     }
+
+
+def _frame_citation_tokens(text: str) -> set[str]:
+    """Return conservative word stems for matching a frame to action prose."""
+
+    result: set[str] = set()
+    for token in re.findall(r"[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'-]{2,}", text.lower()):
+        if token in _FRAME_CITATION_STOPWORDS:
+            continue
+        stem = token
+        if len(stem) > 5 and stem.endswith("ing"):
+            stem = stem[:-3]
+            if stem.endswith(("clos", "giv", "mov", "smil", "wav")):
+                stem += "e"
+        elif len(stem) > 4 and stem.endswith("ed"):
+            stem = stem[:-2]
+        elif len(stem) > 4 and stem.endswith(
+            ("ses", "xes", "zes", "ches", "shes", "oes")
+        ):
+            stem = stem[:-2]
+        elif len(stem) > 4 and stem.endswith("s"):
+            stem = stem[:-1]
+        if len(stem) >= 3:
+            result.add(stem)
+    return result
 
 
 def _raw_picture_context(label: str, raw_prompt: str) -> str:
@@ -287,6 +329,125 @@ def _best_picture_action_span(
             best = (start, end)
             best_score = score
     return best
+
+
+def _best_ordered_frame_action_span(
+    body: str,
+    picture_index: int,
+    manifest: ReferenceManifest,
+    observations: dict[str, str],
+    *,
+    require_semantic_match: bool,
+) -> tuple[int, int] | None:
+    """Choose an in-order action sentence for one omitted frame citation.
+
+    The first pass requires lexical evidence from that frame's own observation.
+    A post-repair fallback may use relative timeline position, but it is still
+    constrained between the nearest cited earlier and later Pictures so a
+    missing label cannot be moved across an established keyframe boundary.
+    """
+
+    spans = _action_sentence_spans(body)
+    if not spans:
+        return None
+
+    assets = manifest.pictures
+    asset = assets[picture_index]
+    earlier_positions = [
+        body.rfind(item.label)
+        for item in assets[:picture_index]
+        if item.label in body
+    ]
+    later_positions = [
+        body.find(item.label)
+        for item in assets[picture_index + 1 :]
+        if item.label in body
+    ]
+    lower_bound = max(earlier_positions, default=-1)
+    upper_bound = min(later_positions, default=len(body))
+    eligible = [
+        (span_index, left, right)
+        for span_index, (left, right) in enumerate(spans)
+        if right > lower_bound and left < upper_bound
+    ]
+    if not eligible:
+        return None
+
+    observation_tokens = {
+        item.label: _frame_citation_tokens(
+            str(observations.get(item.socket, "") or "")
+        )
+        for item in assets
+    }
+    token_frequency: dict[str, int] = {}
+    for tokens in observation_tokens.values():
+        for token in tokens:
+            token_frequency[token] = token_frequency.get(token, 0) + 1
+    maximum_frequency = max(1, len(assets) // 3)
+    target_tokens = observation_tokens[asset.label]
+    distinctive_tokens = {
+        token
+        for token in target_tokens
+        if token_frequency.get(token, 0) <= maximum_frequency
+    }
+    target_span = (
+        0.0
+        if len(assets) == 1
+        else picture_index * (len(spans) - 1) / (len(assets) - 1)
+    )
+
+    ranked: list[tuple[int, float, int, int]] = []
+    for span_index, left, right in eligible:
+        sentence_tokens = _frame_citation_tokens(body[left:right])
+        semantic_score = (
+            4 * len(distinctive_tokens & sentence_tokens)
+            + len(target_tokens & sentence_tokens)
+        )
+        ranked.append(
+            (
+                semantic_score,
+                -abs(span_index - target_span),
+                left,
+                right,
+            )
+        )
+    best_score, _, left, right = max(ranked)
+    if require_semantic_match and best_score < 2:
+        return None
+    return left, right
+
+
+def _restore_ordered_frame_picture_coverage(
+    text: str,
+    manifest: ReferenceManifest,
+    observations: dict[str, str],
+    *,
+    require_semantic_match: bool,
+) -> tuple[str, tuple[str, ...]]:
+    """Attach omitted Picture labels without rewriting frame semantics."""
+
+    bounds = _ref_detail_bounds(text)
+    if bounds is None:
+        return text, ()
+    start, end = bounds
+    body = text[start:end].strip()
+    restored: list[str] = []
+    for picture_index, asset in enumerate(manifest.pictures):
+        if asset.label in body:
+            continue
+        span = _best_ordered_frame_action_span(
+            body,
+            picture_index,
+            manifest,
+            observations,
+            require_semantic_match=require_semantic_match,
+        )
+        if span is None:
+            continue
+        body = _attach_picture_to_action(body, span, asset.label)
+        restored.append(asset.label)
+    value = text[:start].rstrip() + "\n" + body + "\n\n" + text[end:].lstrip()
+    return value, tuple(restored)
 
 
 def _attach_picture_to_action(
@@ -1118,9 +1279,16 @@ def compose_ref_prompt(
     )
     if i2v_detailed_description:
         candidate = _ensure_frame_event_dialogue(candidate, raw_prompt)
+        candidate, _ = _restore_ordered_frame_picture_coverage(
+            candidate,
+            manifest,
+            observations,
+            require_semantic_match=True,
+        )
     initial = validate_ref_prompt(candidate, length, manifest)
     final = initial
     repaired = False
+    positional_frame_restorations: tuple[str, ...] = ()
     if not initial.valid:
         repaired_text = _repair(
             runner,
@@ -1157,6 +1325,14 @@ def compose_ref_prompt(
                 repaired_text,
                 raw_prompt,
             )
+            repaired_text, positional_frame_restorations = (
+                _restore_ordered_frame_picture_coverage(
+                    repaired_text,
+                    manifest,
+                    observations,
+                    require_semantic_match=False,
+                )
+            )
         final = validate_ref_prompt(repaired_text, length, manifest)
         repaired = True
     if strict_validation and not final.valid:
@@ -1166,9 +1342,16 @@ def compose_ref_prompt(
         )
     quality_warnings: tuple[str, ...] = ()
     if i2v_detailed_description:
-        quality_warnings = tuple(
-            _frame_quality_warnings(final.text, manifest, raw_prompt)
-        )
+        warnings = _frame_quality_warnings(final.text, manifest, raw_prompt)
+        if positional_frame_restorations:
+            warnings.append(
+                "After Gemma's repair, omitted frame citations were restored "
+                "by their constrained timeline positions: "
+                + ", ".join(positional_frame_restorations)
+                + ". Review those citation locations if the source states are "
+                "highly ambiguous."
+            )
+        quality_warnings = tuple(dict.fromkeys(warnings))
     return ComposeResult(
         final.text,
         skill,

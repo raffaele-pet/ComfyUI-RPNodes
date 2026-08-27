@@ -149,19 +149,23 @@ format, including a short style introduction before `[Shot 1]`, while
 developing the action in target-video playback order. The node outputs only
 `prompt`, `aligned_length`, and `analysis_report`; it does not pass the frame
 images through. The shared REF2V composition pass also supplies a missing
-dialogue language tag without changing the spoken text. A missing Picture or a
-bare cluster of Picture labels triggers the normal repair pass instead of being
-filled with generic transition prose. Each frame analysis is supplied once in
-an ordered frame ledger, permanently bound to its matching Picture label; the
-node never silently exchanges labels. The raw request is separately converted
-into an ordered event ledger, so each line remains attached to its own action
-and exact spoken text. This allows several events to occur between two frames
-without merging their dialogue. Only structural schema errors can trigger the
-single Gemma repair pass. Non-structural review hints, such as a suspicious
-first-citation order, are written to `quality_warnings` in `analysis_report` and
-never block or regenerate an otherwise usable prompt. Each adjacent `frame_n`
-pair is treated as two states of one continuous movement unless the request or
-the images establish a real cut.
+dialogue language tag without changing the spoken text. A missing Picture
+citation is first restored only when its own analyzed visual evidence matches a
+concrete action sentence. If Gemma still omits it after the normal repair pass,
+the node attaches the citation within the interval bounded by its nearest
+earlier and later keyframes and reports that fallback in `quality_warnings`.
+It never fills the gap with invented generic transition prose. Each frame
+analysis is supplied once in an ordered frame ledger, permanently bound to its
+matching Picture label; the node never silently exchanges labels. The raw
+request is separately converted into an ordered event ledger, so each line
+remains attached to its own action and exact spoken text. This allows several
+events to occur between two frames without merging their dialogue. Only
+structural schema errors can trigger the single Gemma repair pass.
+Non-structural review hints, such as a suspicious first-citation order, are
+written to `quality_warnings` in `analysis_report` and never block or regenerate
+an otherwise usable prompt. Each adjacent `frame_n` pair is treated as two
+states of one continuous movement unless the request or the images establish a
+real cut.
 
 ### RP H3-REF2V Prompt Writer
 
