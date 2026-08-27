@@ -805,12 +805,17 @@ def _validate_frame_picture_order(
         for match in re.finditer(r"<Picture\s+[1-9]\d*>", body)
         if match.group(0) in allowed
     ]
-    sequence = [allowed[match.group(0)] for match in matches]
-    if sequence != sorted(sequence):
+    first_occurrences: list[int] = []
+    seen: set[int] = set()
+    for match in matches:
+        number = allowed[match.group(0)]
+        if number not in seen:
+            seen.add(number)
+            first_occurrences.append(number)
+    if first_occurrences != sorted(first_occurrences):
         return [
-            "Picture citations inside detailed_description must advance in "
-            "connected numerical order; bind each Picture to the action that "
-            "reaches that frame before continuing to the next Picture."
+            "The first citation of each Picture does not follow connected frame "
+            "order. Review where each target state is reached."
         ]
     for current, following in zip(matches, matches[1:]):
         if allowed[following.group(0)] <= allowed[current.group(0)]:
@@ -824,137 +829,28 @@ def _validate_frame_picture_order(
     return []
 
 
-_FRAME_GROUNDING_STOPWORDS = {
-    "against",
-    "background",
-    "character",
-    "depicted",
-    "depicts",
-    "figure",
-    "frame",
-    "image",
-    "observation",
-    "picture",
-    "reliable",
-    "rendered",
-    "scene",
-    "shown",
-    "shows",
-    "state",
-    "style",
-    "subject",
-    "visible",
-} | _TRANSITION_STOPWORDS
-
-
-def _frame_grounding_tokens(text: str) -> set[str]:
-    """Return compact content stems for a visual-state consistency check."""
-
-    result: set[str] = set()
-    for token in re.findall(r"[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'-]{2,}", text.lower()):
-        if token in _FRAME_GROUNDING_STOPWORDS:
-            continue
-        stem = token
-        if len(stem) > 5 and stem.endswith("ing"):
-            stem = stem[:-3]
-            if stem.endswith(("wav", "mov", "smil", "clos", "driv", "giv")):
-                stem += "e"
-        elif len(stem) > 4 and stem.endswith("ed"):
-            stem = stem[:-2]
-        elif len(stem) > 4 and stem.endswith(
-            ("ses", "xes", "zes", "ches", "shes", "oes")
-        ):
-            stem = stem[:-2]
-        elif len(stem) > 4 and stem.endswith("s"):
-            stem = stem[:-1]
-        if len(stem) >= 3:
-            result.add(stem)
-    return result
-
-
-def _validate_frame_prompt_contract(
+def _frame_quality_warnings(
     text: str,
     manifest: ReferenceManifest,
-    observations: dict[str, str],
+    raw_prompt: str,
 ) -> list[str]:
-    """Validate Picture-to-state meaning without rewriting model prose."""
+    """Report review hints that must never trigger generation or failure."""
 
-    issues: list[str] = []
+    warnings = validate_dialogue_event_ownership(text, raw_prompt)
+    warnings.extend(_validate_frame_picture_order(text, manifest))
     bounds = _ref_detail_bounds(text)
-    if bounds is None:
-        return issues
-    start, end = bounds
-    detail = text[start:end]
-    if re.search(
-        r"\bcontributes\s+this\s+concrete\s+visible\s+state\b",
-        detail,
-        flags=re.IGNORECASE,
-    ):
-        issues.append(
-            "Rewrite static `contributes this concrete visible state` insertions "
-            "as direct, continuous target-video action with the Picture citation "
-            "at the state it reaches."
-        )
-
-    observation_tokens = {
-        asset.label: _frame_grounding_tokens(
-            str(observations.get(asset.socket, "") or "")
-        )
-        for asset in manifest.pictures
-    }
-    token_frequency: dict[str, int] = {}
-    for tokens in observation_tokens.values():
-        for token in tokens:
-            token_frequency[token] = token_frequency.get(token, 0) + 1
-    maximum_frequency = max(1, len(manifest.pictures) // 3)
-    spans = _action_sentence_spans(detail)
-    for asset_index, asset in enumerate(manifest.pictures):
-        if asset_index == 0:
-            # The opening frame often contains only identity and composition
-            # shared by every later frame, so lexical distinctiveness is too
-            # weak for a safe semantic verdict.
-            continue
-        distinctive = {
-            token
-            for token in observation_tokens[asset.label]
-            if token_frequency.get(token, 0) <= maximum_frequency
-        }
-        if not distinctive:
-            continue
-        cited_sentences = " ".join(
-            detail[left:right]
-            for left, right in spans
-            if asset.label in detail[left:right]
-        )
-        if not cited_sentences:
-            continue
-        # One shared word such as "raises" is weak evidence and can occur in a
-        # different action.  Two independent visual terms are reliable enough
-        # to catch a swapped state without demanding an exact paraphrase.
-        required_overlap = 2 if len(distinctive) >= 2 else 0
-        if required_overlap and len(
-            distinctive & _frame_grounding_tokens(cited_sentences)
-        ) < required_overlap:
-            examples = ", ".join(sorted(distinctive)[:6])
-            issues.append(
-                f"{asset.label} is cited beside prose that does not match its own "
-                f"observed state. Rebind it using concrete evidence from its ledger "
-                f"row (distinctive terms include: {examples}); never relabel another "
-                "frame's action."
+    if bounds is not None:
+        start, end = bounds
+        if re.search(
+            r"\bcontributes\s+this\s+concrete\s+visible\s+state\b",
+            text[start:end],
+            flags=re.IGNORECASE,
+        ):
+            warnings.append(
+                "Static reference-analysis wording remains in detailed_description; "
+                "review it as direct target-video action if desired."
             )
-    return issues
-
-
-def _with_additional_issues(
-    validation: ValidationResult,
-    issues: list[str],
-) -> ValidationResult:
-    if not issues:
-        return validation
-    return ValidationResult(
-        validation.text,
-        tuple(dict.fromkeys((*validation.issues, *issues))),
-    )
+    return list(dict.fromkeys(warnings))
 
 
 @dataclass(frozen=True)
@@ -964,6 +860,7 @@ class ComposeResult:
     initial_validation: ValidationResult
     final_validation: ValidationResult
     repaired: bool
+    quality_warnings: tuple[str, ...] = ()
 
     def analysis_report(
         self,
@@ -993,6 +890,7 @@ class ComposeResult:
             "repair_performed": self.repaired,
             "initial_validation_issues": list(self.initial_validation.issues),
             "final_validation_issues": list(self.final_validation.issues),
+            "quality_warnings": list(self.quality_warnings),
         }
         return json.dumps(payload, ensure_ascii=False, indent=2)
 
@@ -1221,17 +1119,6 @@ def compose_ref_prompt(
     if i2v_detailed_description:
         candidate = _ensure_frame_event_dialogue(candidate, raw_prompt)
     initial = validate_ref_prompt(candidate, length, manifest)
-    if i2v_detailed_description:
-        initial = _with_additional_issues(
-            initial,
-            validate_dialogue_event_ownership(initial.text, raw_prompt)
-            + _validate_frame_picture_order(initial.text, manifest)
-            + _validate_frame_prompt_contract(
-                initial.text,
-                manifest,
-                observations,
-            ),
-        )
     final = initial
     repaired = False
     if not initial.valid:
@@ -1271,24 +1158,25 @@ def compose_ref_prompt(
                 raw_prompt,
             )
         final = validate_ref_prompt(repaired_text, length, manifest)
-        if i2v_detailed_description:
-            final = _with_additional_issues(
-                final,
-                validate_dialogue_event_ownership(final.text, raw_prompt)
-                + _validate_frame_picture_order(final.text, manifest)
-                + _validate_frame_prompt_contract(
-                    final.text,
-                    manifest,
-                    observations,
-                ),
-            )
         repaired = True
     if strict_validation and not final.valid:
         raise ValueError(
             "Gemma could not produce a structurally valid H3 Ref2VA prompt after one repair pass:\n- "
             + "\n- ".join(final.issues)
         )
-    return ComposeResult(final.text, skill, initial, final, repaired)
+    quality_warnings: tuple[str, ...] = ()
+    if i2v_detailed_description:
+        quality_warnings = tuple(
+            _frame_quality_warnings(final.text, manifest, raw_prompt)
+        )
+    return ComposeResult(
+        final.text,
+        skill,
+        initial,
+        final,
+        repaired,
+        quality_warnings,
+    )
 
 
 def compose_t2v_prompt(

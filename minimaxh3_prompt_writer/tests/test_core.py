@@ -19,7 +19,6 @@ from engine.constants import SKILL_CHOICES, SKILL_CORE, get_skill_profile
 from engine.composer import (
     _ensure_frame_event_dialogue,
     _materialize_frame_event_dialogue,
-    _validate_frame_prompt_contract,
     _validate_frame_picture_order,
     compose_base_prompt,
     compose_ref_prompt,
@@ -205,100 +204,6 @@ N/A"""
         self.assertIn('and says "<d>[English] Follow me!</d>"', detail)
         self.assertNotIn("says  as", detail)
         self.assertEqual(detail.count("and says"), 1)
-
-    def test_frames_never_hide_a_semantic_error_by_swapping_picture_labels(self):
-        manifest = ReferenceManifest.from_inputs(
-            ref_images={f"ref_image_{index}": object() for index in range(3)}
-        )
-        candidate = """subject_definitions:
-<Subject 1> A performer (<Picture 1>).
-
-summary:
-[keyframe completion] The performer waves, drinks, then raises a sign.
-
-retention_analysis:
-<Subject 1>: fully_preserved - identity and clothing remain stable.
-<Picture 1>: fully_preserved - neutral opening pose and composition.
-<Picture 2>: fully_preserved - raised waving hand and smile.
-<Picture 3>: fully_preserved - readable sign and upright pose.
-
-detailed_description:
-A clean studio animation with soft light. [Shot 1] The performer begins neutral (<Picture 1>). He raises a sign (<Picture 2>). He waves and smiles (<Picture 3>).
-
-overall_soundscape:
-Soft room ambience and cloth movement.
-
-non_diegetic_music:
-N/A"""
-        observations = {
-            "ref_image_0": "<Picture 1>: neutral standing pose",
-            "ref_image_1": "<Picture 2>: raised hand, waving and smiling",
-            "ref_image_2": "<Picture 3>: holding a readable sign upright",
-        }
-        issues = _validate_frame_prompt_contract(
-            candidate, manifest, observations
-        )
-        self.assertTrue(any("<Picture 2> is cited" in issue for issue in issues))
-        self.assertTrue(any("<Picture 3> is cited" in issue for issue in issues))
-
-    def test_eight_frame_story_keeps_every_visible_state_on_its_real_picture(self):
-        manifest = ReferenceManifest.from_inputs(
-            ref_images={f"ref_image_{index}": object() for index in range(8)}
-        )
-        observations = {
-            "ref_image_0": "<Picture 1>: neutral full-body standing pose",
-            "ref_image_1": "<Picture 2>: raised right hand waving with a smile",
-            "ref_image_2": "<Picture 3>: drinking from a white mug with eyes closed",
-            "ref_image_3": "<Picture 4>: gray robot beside him; arms folded and annoyed",
-            "ref_image_4": "<Picture 5>: turns right with a surprised open mouth",
-            "ref_image_5": "<Picture 6>: laughs with eyes closed while pointing right",
-            "ref_image_6": "<Picture 7>: holds a sign reading I Love ComfyUI and winks",
-            "ref_image_7": "<Picture 8>: close-up, smiling with arms folded",
-        }
-        candidate = """subject_definitions:
-<Subject 1> A stylized bearded man in an orange hoodie and blue jeans, established by <Picture 1>.
-<Subject 2> A small retro gray robot, established by <Picture 4>.
-<Subject 3> A white mug, established by <Picture 3>.
-<Subject 4> A handheld sign reading "I Love ComfyUI", established by <Picture 7>.
-
-summary:
-[keyframe completion] The man greets the viewer, drinks, reacts to a robot, laughs, presents a sign, and finishes in close-up.
-
-retention_analysis:
-<Subject 1>: fully_preserved - face, hair, beard, orange hoodie, jeans, and proportions remain consistent.
-<Subject 2>: fully_preserved - compact gray retro body and red facial details remain consistent.
-<Subject 3>: fully_preserved - plain white ceramic form remains consistent while handled.
-<Subject 4>: fully_preserved - white board, wooden handle, heart symbol, and readable lettering remain consistent.
-<Picture 1>: fully_preserved - neutral full-body opening composition.
-<Picture 2>: fully_preserved - raised waving hand and smiling greeting pose.
-<Picture 3>: fully_preserved - mug-to-mouth drinking pose and side view.
-<Picture 4>: fully_preserved - robot placement and annoyed folded-arm reaction.
-<Picture 5>: fully_preserved - rightward turn and surprised expression.
-<Picture 6>: fully_preserved - laughing face and extended pointing gesture.
-<Picture 7>: fully_preserved - sign placement, wink, and readable text.
-<Picture 8>: fully_preserved - close framing, smile, and folded arms.
-
-detailed_description:
-A soft, polished 3D character animation with consistent studio lighting and a plain light-blue setting. Motion is elastic but physically continuous. [Shot 1] <Subject 1> begins in a relaxed full-body stance (<Picture 1>). He lifts his right arm, opens his palm toward the viewer, smiles, and waves as he reaches <Picture 2>; (S1) says "<d>[English] Hello everyone! I'm Raph!</d>". He lowers the hand, reaches behind his back, brings <Subject 3> to his mouth, and drinks with his eyes gently closed, settling into <Picture 3>. He lowers the mug as <Subject 2> walks in beside him; his shoulders tighten, his arms fold, and his gaze drops toward the robot with an annoyed frown in <Picture 4>. (S1) says "<d>[English] Not now, Pat!</d>". He unfolds his arms, turns his head and torso toward the right, and his eyes widen and mouth opens in surprise as he reaches <Picture 5>. The surprise releases into laughter: he closes his eyes, leans into the laugh, and extends one arm to point right, matching <Picture 6>. He recovers, reaches behind his back, and raises <Subject 4>; he holds the sign upright, keeps its "I Love ComfyUI" lettering readable, and winks in <Picture 7>. He lowers the sign to his side and (S1) says "<d>[English] Follow me!</d>". The camera then moves smoothly closer while he folds his arms and smiles, ending in the close-up composition of <Picture 8>.
-
-overall_soundscape:
-Quiet studio ambience, soft cloth movement, mug handling, small robot footsteps, natural laughter, sign movement, and the character's clear voice.
-
-non_diegetic_music:
-N/A"""
-        self.assertEqual(
-            _validate_frame_prompt_contract(candidate, manifest, observations),
-            [],
-        )
-        corrupted = candidate.replace(
-            "The surprise releases into laughter: he closes his eyes, leans into the laugh, and extends one arm to point right, matching <Picture 6>. He recovers, reaches behind his back, and raises <Subject 4>; he holds the sign upright, keeps its \"I Love ComfyUI\" lettering readable, and winks in <Picture 7>.",
-            "He recovers, reaches behind his back, and raises <Subject 4>; he holds the sign upright, keeps its \"I Love ComfyUI\" lettering readable, and winks in <Picture 6>. The surprise then releases into laughter: he closes his eyes, leans into the laugh, and extends one arm to point right, matching <Picture 7>.",
-        )
-        issues = _validate_frame_prompt_contract(
-            corrupted, manifest, observations
-        )
-        self.assertTrue(any("<Picture 6> is cited" in issue for issue in issues))
-        self.assertTrue(any("<Picture 7> is cited" in issue for issue in issues))
 
     def test_frames_rejects_bare_picture_label_clusters(self):
         manifest = ReferenceManifest.from_inputs(
@@ -2511,7 +2416,7 @@ N/A"""
         self.assertLess(detail.index("Hello!"), detail.index("drinks"))
         self.assertLess(detail.index("<Picture 1>"), detail.index("<Picture 2>"))
 
-    def test_frames_repairs_out_of_order_picture_actions_and_drops_picture_definitions(self):
+    def test_frames_reports_out_of_order_picture_actions_without_blocking_output(self):
         header = """subject_definitions:
 <Subject 1> A recurring performer established by <Picture 1>, <Picture 2>, and <Picture 3>.
 <Picture 1>: A redundant static source description.
@@ -2539,11 +2444,7 @@ N/A"""
             "[Shot 1] <Subject 1> begins in <Picture 1>, settles into "
             "<Picture 3>, then laughs in <Picture 2>."
         ) + suffix
-        repaired = header + (
-            "[Shot 1] <Subject 1> begins in <Picture 1>, turns and laughs as the "
-            "movement reaches <Picture 2>, then settles into <Picture 3>."
-        ) + suffix
-        runner = _ScriptedRunner([malformed, repaired])
+        runner = _ScriptedRunner([malformed])
         result = compose_ref_prompt(
             runner,
             raw_prompt="The performer turns.\nThe performer laughs.\nThe performer settles.",
@@ -2561,13 +2462,16 @@ N/A"""
             sampling=SamplingConfig(do_sample=False, seed=42),
             i2v_detailed_description=True,
         )
-        self.assertTrue(result.repaired)
+        self.assertFalse(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertTrue(
+            any("first citation" in warning for warning in result.quality_warnings)
+        )
         subject_body = result.prompt.split("summary:", 1)[0]
         self.assertNotIn("<Picture 1>:", subject_body)
         detail = result.prompt.split("detailed_description:\n", 1)[1]
-        self.assertLess(detail.index("<Picture 1>"), detail.index("<Picture 2>"))
-        self.assertLess(detail.index("<Picture 2>"), detail.index("<Picture 3>"))
+        self.assertLess(detail.index("<Picture 1>"), detail.index("<Picture 3>"))
+        self.assertLess(detail.index("<Picture 3>"), detail.index("<Picture 2>"))
 
     def test_frames_relocates_dialogue_moved_into_a_later_event(self):
         raw = """The character waves and says "Hello everyone! I'm Raph!".
@@ -2754,7 +2658,7 @@ N/A"""
         self.assertIn("points to the right (<Picture 2>)", detail)
         self.assertNotIn("moves smoothly from", detail)
 
-    def test_ref_composer_deterministically_repairs_missing_picture_and_language(self):
+    def test_frames_style_warning_does_not_trigger_a_costly_repair(self):
         ref_images = {f"ref_image_{index}": object() for index in range(6)}
         manifest = ReferenceManifest.from_inputs(ref_images=ref_images)
         labels = [f"<Picture {index}>" for index in range(1, 7)]
@@ -2787,15 +2691,7 @@ N/A"""
             f"ref_image_{index}": f"<Picture {index + 1}>: observed state {index + 1}"
             for index in range(6)
         }
-        repaired = re.sub(
-            r"\[Shot 3\].*?(?=\n\[Shot 4\])",
-            "[Shot 3] At 00:07.500, <Subject 1> looks off-screen with a "
-            "surprised expression in <Picture 5>. He laughs and points to the "
-            "right as the movement reaches <Picture 6>, then says <d>Hello</d>.",
-            candidate,
-            flags=re.DOTALL,
-        )
-        runner = _ScriptedRunner([candidate, repaired])
+        runner = _ScriptedRunner([candidate])
         result = compose_ref_prompt(
             runner,
             raw_prompt=(
@@ -2813,16 +2709,18 @@ N/A"""
             i2v_detailed_description=True,
             requested_duration_seconds=15.0,
         )
-        self.assertTrue(result.repaired)
+        self.assertFalse(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         self.assertIn("<d>[English] Hello</d>", result.prompt)
+        self.assertTrue(
+            any("Static reference-analysis" in item for item in result.quality_warnings)
+        )
         detail = result.prompt.split("detailed_description:\n", 1)[1].split(
             "\n\noverall_soundscape:", 1
         )[0]
         shot_three = detail.split("[Shot 3]", 1)[1].split("[Shot 4]", 1)[0]
         self.assertLess(shot_three.index("<Picture 5>"), shot_three.index("<Picture 6>"))
-        self.assertNotIn("At this point", detail)
-        self.assertNotIn("contributes this concrete visible state", detail)
+        self.assertIn("contributes this concrete visible state", detail)
 
     def test_frames_node_composes_through_ref_with_i2v_detailed_body(self):
         candidate = (

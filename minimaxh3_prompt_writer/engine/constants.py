@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-BUNDLE_VERSION = "1.8.3+grounded-ordered-frames.2026-08-27"
+BUNDLE_VERSION = "1.8.4+nonblocking-frame-quality.2026-08-27"
 H3_SKILLS_COMMIT = "093f3129a3f7bd27c74928b1cd31a54fbdebe057"
 COMFYUI_REFERENCE_COMMIT = "7972b5ba7f1597f68261be33c912f5e5dba8b9c0"
 FPS = 24

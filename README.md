@@ -153,12 +153,15 @@ dialogue language tag without changing the spoken text. A missing Picture or a
 bare cluster of Picture labels triggers the normal repair pass instead of being
 filled with generic transition prose. Each frame analysis is supplied once in
 an ordered frame ledger, permanently bound to its matching Picture label; the
-node validates an inconsistent association instead of silently exchanging
-labels. The raw request is separately converted into an ordered event ledger,
-so each line remains attached to its own action and exact spoken text. This
-allows several events to occur between two frames without merging their
-dialogue. Each adjacent `frame_n` pair is treated as two states of one continuous
-movement unless the request or the images establish a real cut.
+node never silently exchanges labels. The raw request is separately converted
+into an ordered event ledger, so each line remains attached to its own action
+and exact spoken text. This allows several events to occur between two frames
+without merging their dialogue. Only structural schema errors can trigger the
+single Gemma repair pass. Non-structural review hints, such as a suspicious
+first-citation order, are written to `quality_warnings` in `analysis_report` and
+never block or regenerate an otherwise usable prompt. Each adjacent `frame_n`
+pair is treated as two states of one continuous movement unless the request or
+the images establish a real cut.
 
 ### RP H3-REF2V Prompt Writer
 
