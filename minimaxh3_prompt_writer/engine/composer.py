@@ -15,6 +15,7 @@ from .constants import (
     SkillProfile,
     get_skill_profile,
 )
+from .chronology import ordered_event_ledger, validate_dialogue_event_ownership
 from .gemma import GemmaRunner, SamplingConfig
 from .manifests import ReferenceManifest, effective_duration
 from .prompts import (
@@ -166,18 +167,45 @@ def _requested_picture_insertion(
 
 
 _TRANSITION_STOPWORDS = {
+    "against",
     "about",
     "after",
-    "against",
     "also",
     "before",
+    "beard",
+    "bearded",
+    "bright",
+    "brown",
+    "cartoon",
+    "cartoonish",
+    "centered",
+    "character",
+    "digital",
+    "even",
+    "figure",
     "from",
+    "hair",
+    "hooded",
+    "hoodie",
+    "illustration",
     "into",
+    "jeans",
+    "lighting",
+    "male",
+    "orange",
+    "plain",
     "picture",
+    "rendered",
     "reference",
     "referencing",
+    "shown",
     "shot",
+    "solid",
+    "stands",
+    "style",
+    "stylized",
     "subject",
+    "sweatshirt",
     "that",
     "their",
     "then",
@@ -186,6 +214,8 @@ _TRANSITION_STOPWORDS = {
     "this",
     "through",
     "towards",
+    "wearing",
+    "wears",
     "with",
 }
 
@@ -267,16 +297,19 @@ def _best_picture_action_span(
     asset_socket: str,
     raw_prompt: str,
     observations: dict[str, str],
+    *,
+    allow_observation_only: bool = False,
+    minimum_score: int = 1,
 ) -> tuple[int, int] | None:
     raw_context = _raw_picture_context(asset_label, raw_prompt)
-    if not raw_context:
+    if not raw_context and not allow_observation_only:
         return None
     raw_tokens = _transition_tokens(raw_context)
     observation_tokens = _transition_tokens(
         str(observations.get(asset_socket, "") or "")
     )
     best: tuple[int, int] | None = None
-    best_score = 0
+    best_score = minimum_score - 1
     for start, end in _action_sentence_spans(body):
         sentence_tokens = _transition_tokens(body[start:end])
         score = 3 * len(raw_tokens & sentence_tokens) + len(
@@ -319,18 +352,52 @@ def _continuous_picture_transition(
 
 
 def _remove_static_picture_insertions(body: str) -> str:
-    """Remove legacy validation prose so labels can be bound to real actions."""
+    """Collapse legacy static prose while preserving its citation slot."""
 
     value = re.sub(
-        r"(?is)\bAt this point,\s*<Picture\s+[1-9]\d*>\s+contributes\s+"
+        r"(?is)\bAt this point,\s*(<Picture\s+[1-9]\d*>)\s+contributes\s+"
         r"this concrete visible state\s*:\s*.*?"
         r"(?=\bAt this point,\s*<Picture\s+[1-9]\d*>|"
         r"<Subject\s+[1-9]\d*>|\[Shot\s+[1-9]\d*\]|"
         r"\bThe (?:camera|final state)\b|$)",
-        " ",
+        lambda match: f" ({match.group(1)}) ",
         body,
     )
     return re.sub(r"[ \t]{2,}", " ", value).strip()
+
+
+def _sort_frame_picture_citations(
+    body: str,
+    manifest: ReferenceManifest,
+) -> str:
+    """Keep citation slots in place while restoring connected-frame order."""
+
+    order = {
+        asset.label: index
+        for index, asset in enumerate(manifest.pictures)
+    }
+    if len(order) < 2:
+        return body
+
+    label_pattern = re.compile(r"<Picture\s+[1-9]\d*>")
+    labels = [
+        match.group(0)
+        for match in label_pattern.finditer(body)
+        if match.group(0) in order
+    ]
+    sorted_labels = sorted(labels, key=order.__getitem__)
+    if labels == sorted_labels:
+        return body
+
+    replacements = iter(sorted_labels)
+
+    def replace(match: re.Match[str]) -> str:
+        label = match.group(0)
+        if label not in order:
+            return label
+        return next(replacements)
+
+    return label_pattern.sub(replace, body)
 
 
 def _ensure_ref_picture_coverage(
@@ -338,6 +405,8 @@ def _ensure_ref_picture_coverage(
     manifest: ReferenceManifest,
     observations: dict[str, str],
     raw_prompt: str,
+    *,
+    semantic_only: bool = False,
 ) -> str:
     """Ground any omitted Picture label in its own analyzed visual evidence."""
 
@@ -346,6 +415,15 @@ def _ensure_ref_picture_coverage(
         return text
     start, end = bounds
     body = _remove_static_picture_insertions(text[start:end].strip())
+    if semantic_only:
+        body = _sort_frame_picture_citations(body, manifest)
+        return (
+            text[:start].rstrip()
+            + "\n"
+            + body
+            + "\n\n"
+            + text[end:].lstrip()
+        )
     for index, asset in enumerate(manifest.pictures):
         if asset.label in body:
             continue
@@ -355,6 +433,7 @@ def _ensure_ref_picture_coverage(
             asset.socket,
             raw_prompt,
             observations,
+            allow_observation_only=semantic_only,
         )
         if action_span is not None:
             body = _attach_picture_to_action(body, action_span, asset.label)
@@ -400,13 +479,428 @@ def _canonicalize_ref_generated_content(
     raw_prompt: str,
     observations: dict[str, str],
     manifest: ReferenceManifest,
+    semantic_picture_binding: bool = False,
 ) -> str:
     value = _canonicalize_dialogue_languages(text, raw_prompt)
+    value = re.sub(
+        r"(?im)^(\[(?:reference generation|keyframe completion)\])\s*"
+        r"(?:reference generation|keyframe completion)\b\s*",
+        r"\1 ",
+        value,
+    )
+    value = re.sub(
+        r"(?im)^(\[(?:reference generation|keyframe completion)\])\s*\.\s*",
+        r"\1 ",
+        value,
+    )
     return _ensure_ref_picture_coverage(
         value,
         manifest,
         observations,
         raw_prompt,
+        semantic_only=semantic_picture_binding,
+    )
+
+
+def _remove_frame_picture_definitions(text: str) -> str:
+    start = re.search(r"(?m)^subject_definitions:(?=$|[ \t])", text)
+    end = re.search(r"(?m)^summary:(?=$|[ \t])", text)
+    if start is None or end is None or start.end() >= end.start():
+        return text
+    body = text[start.end() : end.start()]
+    kept = [
+        line
+        for line in body.splitlines()
+        if not re.match(r"^\s*<Picture\s+[1-9]\d*>\s*:", line)
+    ]
+    normalized = "\n".join(kept).strip() or "N/A"
+    return text[: start.end()] + "\n" + normalized + "\n\n" + text[end.start() :]
+
+
+_FRAME_EVENT_MARKER_RE = re.compile(
+    r"\[(?:\[\s*)?(?:EVENT|E)[ _-]?([1-9]\d*)\s*\](?:\])?",
+    flags=re.IGNORECASE,
+)
+
+
+def _remove_frame_non_picture_labels(text: str) -> str:
+    """Frames mode has image evidence only; discard hallucinated media labels."""
+
+    value = re.sub(
+        r"(?m)^\s*<(?:Audio|Video)\s+[1-9]\d*>\s*:.*(?:\n|$)",
+        "",
+        text,
+    )
+    value = re.sub(r"<(?:Audio|Video)\s+[1-9]\d*>", "", value)
+    return re.sub(r"[ \t]+(?=[,.;:])", "", value)
+
+
+def _frame_dialogue_spans(body: str) -> list[tuple[int, int]]:
+    """Locate outer dialogue regions even when Gemma nests H3 tags."""
+
+    tokens = list(re.finditer(r"</?d>", body, flags=re.IGNORECASE))
+    spans: list[tuple[int, int]] = []
+    depth = 0
+    opening = 0
+    opening_end = 0
+    for token in tokens:
+        closing = token.group(0).lower().startswith("</")
+        if not closing:
+            if depth == 0:
+                opening = token.start()
+                opening_end = token.end()
+            depth += 1
+            continue
+        if depth == 0:
+            spans.append((token.start(), token.end()))
+            continue
+        depth -= 1
+        if depth == 0:
+            spans.append((opening, token.end()))
+    if depth:
+        spans.append((opening, opening_end))
+    return spans
+
+
+def _mask_frame_dialogue_blocks(body: str) -> str:
+    value = list(body)
+    for start, end in _frame_dialogue_spans(body):
+        value[start:end] = " " * (end - start)
+    return "".join(value)
+
+
+def _strip_frame_dialogue_blocks(body: str) -> str:
+    """Remove model-authored dialogue, including malformed nested H3 tags."""
+
+    spans = _frame_dialogue_spans(body)
+    if not spans:
+        return body
+    pieces: list[str] = []
+    cursor = 0
+    for start, end in spans:
+        pieces.append(body[cursor:start])
+        cursor = end
+    pieces.append(body[cursor:])
+    value = "".join(pieces)
+    value = re.sub(r"[\"“”]\s*[\"“”]", "", value)
+    value = _remove_dangling_speech_carriers(value)
+    value = re.sub(r",\s*,+", ",", value)
+    value = re.sub(r",\s*\.", ".", value)
+    value = re.sub(r"\s+,", ",", value)
+    value = re.sub(r"\s+\.", ".", value)
+    return re.sub(r"[ \t]{2,}", " ", value)
+
+
+def _remove_dangling_speech_carriers(body: str) -> str:
+    """Remove a speech verb only after its dialogue content was removed."""
+
+    return re.sub(
+        r"\b(?:and\s+)?(?:says?|saying|asks?|asking|shouts?|shouting|"
+        r"whispers?|whispering|replies|replying|calls out)\s*,?\s*"
+        r"(?=[,.;:]|\b(?:matching|then|while|as)\b|$)",
+        "",
+        body,
+        flags=re.IGNORECASE,
+    )
+
+
+def _materialize_frame_event_dialogue(text: str, raw_prompt: str) -> str:
+    """Anchor exact speech to its chronological action, then erase event markers."""
+
+    bounds = _ref_detail_bounds(text)
+    ledger = ordered_event_ledger(raw_prompt)
+    if bounds is None or not ledger:
+        return _FRAME_EVENT_MARKER_RE.sub("", text)
+    start, end = bounds
+    body = text[start:end]
+    markers = list(_FRAME_EVENT_MARKER_RE.finditer(body))
+    found = [int(match.group(1)) for match in markers]
+    expected = list(range(1, len(ledger) + 1))
+
+    spoken_values = [
+        str(value)
+        for event in ledger
+        for value in event["spoken_verbatim_strings"]
+    ]
+    original_sentence_targets: dict[str, int] = {}
+    if spoken_values:
+        masked_body = _mask_frame_dialogue_blocks(body)
+        original_spans = _action_sentence_spans(masked_body)
+        for spoken in spoken_values:
+            occurrence = body.casefold().find(spoken.casefold())
+            if occurrence < 0:
+                continue
+            sentence_index = next(
+                (
+                    index
+                    for index, (left, right) in enumerate(original_spans)
+                    if left <= occurrence < right
+                ),
+                -1,
+            )
+            if sentence_index >= 0:
+                original_sentence_targets[spoken.casefold()] = sentence_index
+        target_counts: dict[int, int] = {}
+        for sentence_index in original_sentence_targets.values():
+            target_counts[sentence_index] = target_counts.get(sentence_index, 0) + 1
+        original_sentence_targets = {
+            spoken: sentence_index
+            for spoken, sentence_index in original_sentence_targets.items()
+            if target_counts[sentence_index] == 1
+        }
+        body = _strip_frame_dialogue_blocks(body)
+    for spoken in spoken_values:
+        escaped = re.escape(spoken)
+        body = re.sub(
+            rf"<d>\s*(?:\[[^\]\n]+\]\s*)?{escaped}\s*</d>",
+            "",
+            body,
+            flags=re.IGNORECASE,
+        )
+        body = re.sub(
+            rf"[\"“”]\s*{escaped}\s*[\"“”]",
+            "",
+            body,
+            flags=re.IGNORECASE,
+        )
+        body = re.sub(escaped, "", body, flags=re.IGNORECASE)
+    if spoken_values:
+        body = _remove_dangling_speech_carriers(body)
+        body = re.sub(r"\[\s*[A-Za-zÀ-ÿ -]+\s*\](?=\s*[,.;:]|\s*$)", "", body)
+
+    def add_spoken(segment: str, spoken: list[str]) -> str:
+        if spoken:
+            segment = re.sub(
+                r"\b(?:and\s+)?(?:says?|asks?|shouts?|whispers?|replies|calls out)"
+                r"\s*,?\s*(?=[.!?])",
+                "",
+                segment,
+                flags=re.IGNORECASE,
+            )
+            blocks = [
+                f'"<d>[{_dialogue_language(value, raw_prompt)}] {value}</d>"'
+                for value in spoken
+            ]
+            speech = " and then says ".join(blocks)
+            sentence_end = re.search(r"[.!?](?=\s|$)", segment)
+            if sentence_end:
+                position = sentence_end.start()
+                segment = (
+                    segment[:position].rstrip(" ,")
+                    + f", and says {speech}"
+                    + segment[position:]
+                )
+            else:
+                segment = segment.rstrip(" ,") + f', and says {speech}.'
+        return segment
+
+    if found == expected:
+        markers = list(_FRAME_EVENT_MARKER_RE.finditer(body))
+        rebuilt: list[str] = []
+        cursor = 0
+        for index, marker in enumerate(markers):
+            rebuilt.append(body[cursor : marker.start()])
+            segment_end = (
+                markers[index + 1].start()
+                if index + 1 < len(markers)
+                else len(body)
+            )
+            segment = body[marker.end() : segment_end]
+            spoken = [
+                str(value) for value in ledger[index]["spoken_verbatim_strings"]
+            ]
+            rebuilt.append(add_spoken(segment, spoken))
+            cursor = segment_end
+        rebuilt.append(body[cursor:])
+        materialized = "".join(rebuilt)
+    else:
+        body = _FRAME_EVENT_MARKER_RE.sub("", body)
+        sentence_ends = list(re.finditer(r"[.!?](?=\s|$)", body))
+        spans: list[tuple[int, int]] = []
+        cursor = 0
+        for sentence_end in sentence_ends:
+            spans.append((cursor, sentence_end.end()))
+            cursor = sentence_end.end()
+        if body[cursor:].strip():
+            spans.append((cursor, len(body)))
+        if not spans:
+            materialized = body
+        else:
+            sentences = [body[left:right] for left, right in spans]
+            tail = body[spans[-1][1] :]
+            spoken_targets: set[int] = set()
+            for index, event in enumerate(ledger):
+                spoken = [
+                    str(value) for value in event["spoken_verbatim_strings"]
+                ]
+                if spoken:
+                    preserved_targets = [
+                        original_sentence_targets[value.casefold()]
+                        for value in spoken
+                        if value.casefold() in original_sentence_targets
+                    ]
+                    if preserved_targets:
+                        target = min(preserved_targets[0], len(sentences) - 1)
+                    elif len(ledger) == 1 or len(sentences) == 1:
+                        target = 0
+                    else:
+                        target = round(
+                            index * (len(sentences) - 1) / (len(ledger) - 1)
+                        )
+                    available = [
+                        candidate
+                        for candidate in range(len(sentences))
+                        if candidate not in spoken_targets
+                    ]
+                    if available:
+                        target = min(available, key=lambda candidate: abs(candidate - target))
+                    spoken_targets.add(target)
+                    sentences[target] = add_spoken(sentences[target], spoken)
+            materialized = "".join(sentences) + tail
+    materialized = re.sub(r"[ \t]{2,}", " ", materialized)
+    return text[:start] + materialized + text[end:]
+
+
+def _ensure_frame_event_dialogue(text: str, raw_prompt: str) -> str:
+    """Apply chronology, then deterministically restore any omitted speech.
+
+    Small models can return valid event prose while dropping the first dialogue
+    block during a repair.  This final pass does not ask the model again: it
+    audits exact normalized dialogue values and attaches each missing value to
+    a distinct action sentence near its source event.
+    """
+
+    value = _materialize_frame_event_dialogue(text, raw_prompt)
+    ledger = ordered_event_ledger(raw_prompt)
+    bounds = _ref_detail_bounds(value)
+    if bounds is None or not ledger:
+        return value
+
+    def normalized(content: str) -> str:
+        content = re.sub(r"^\s*\[[^\]\n]+\]\s*", "", content.strip())
+        content = content.replace("’", "'").replace("‘", "'")
+        return re.sub(r"\s+", " ", content).strip().casefold()
+
+    existing = [
+        normalized(match.group(1))
+        for match in re.finditer(
+            r"<d>(.*?)</d>",
+            value,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
+    ]
+    missing: list[tuple[int, str]] = []
+    for index, event in enumerate(ledger):
+        for spoken in event["spoken_verbatim_strings"]:
+            spoken_text = str(spoken)
+            if existing.count(normalized(spoken_text)) != 1:
+                missing.append((index, spoken_text))
+    if not missing:
+        return value
+
+    missing_keys = {normalized(spoken) for _, spoken in missing}
+
+    def remove_non_unique(match: re.Match[str]) -> str:
+        return "" if normalized(match.group(1)) in missing_keys else match.group(0)
+
+    value = re.sub(
+        r"<d>(.*?)</d>",
+        remove_non_unique,
+        value,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    bounds = _ref_detail_bounds(value)
+    if bounds is None:
+        return value
+
+    start, end = bounds
+    body = value[start:end]
+    occupied: set[int] = set()
+    for event_index, spoken in missing:
+        spans = _action_sentence_spans(body)
+        if not spans:
+            break
+        preferred = (
+            0
+            if len(ledger) == 1 or len(spans) == 1
+            else round(event_index * (len(spans) - 1) / (len(ledger) - 1))
+        )
+        available = [
+            sentence_index
+            for sentence_index, (left, right) in enumerate(spans)
+            if sentence_index not in occupied
+            and "<d>" not in body[left:right].casefold()
+        ]
+        target = (
+            min(available, key=lambda item: abs(item - preferred))
+            if available
+            else preferred
+        )
+        occupied.add(target)
+        left, right = spans[target]
+        sentence = body[left:right]
+        block = (
+            f'"<d>[{_dialogue_language(spoken, raw_prompt)}] '
+            f'{spoken}</d>"'
+        )
+        if sentence and sentence[-1] in ".!?":
+            insertion = right - 1
+            prefix = body[:insertion].rstrip(" ,")
+            suffix = body[insertion:]
+            body = prefix + f", and says {block}" + suffix
+        else:
+            insertion = right
+            body = (
+                body[:insertion].rstrip(" ,")
+                + f", and says {block}."
+                + body[insertion:]
+            )
+    return value[:start] + body + value[end:]
+
+
+def _validate_frame_picture_order(
+    text: str,
+    manifest: ReferenceManifest,
+) -> list[str]:
+    bounds = _ref_detail_bounds(text)
+    if bounds is None:
+        return []
+    start, end = bounds
+    body = text[start:end]
+    allowed = {asset.label: index for index, asset in enumerate(manifest.pictures, 1)}
+    matches = [
+        match
+        for match in re.finditer(r"<Picture\s+[1-9]\d*>", body)
+        if match.group(0) in allowed
+    ]
+    sequence = [allowed[match.group(0)] for match in matches]
+    if sequence != sorted(sequence):
+        return [
+            "Picture citations inside detailed_description must advance in "
+            "connected numerical order; bind each Picture to the action that "
+            "reaches that frame before continuing to the next Picture."
+        ]
+    for current, following in zip(matches, matches[1:]):
+        if allowed[following.group(0)] <= allowed[current.group(0)]:
+            continue
+        between = body[current.end() : following.start()]
+        if not re.search(r"[A-Za-zÀ-ÿ0-9]", between):
+            return [
+                "Each adjacent Picture pair needs narrative action between its "
+                "citation slots; bare clusters of Picture labels are invalid."
+            ]
+    return []
+
+
+def _with_additional_issues(
+    validation: ValidationResult,
+    issues: list[str],
+) -> ValidationResult:
+    if not issues:
+        return validation
+    return ValidationResult(
+        validation.text,
+        tuple(dict.fromkeys((*validation.issues, *issues))),
     )
 
 
@@ -644,6 +1138,7 @@ def compose_ref_prompt(
         manifest=manifest,
         media_observations=observations,
         requested_duration_seconds=requested_duration_seconds,
+        ordered_frames=i2v_detailed_description,
     )
     candidate = runner.generate_chat(
         system_prompt,
@@ -660,13 +1155,25 @@ def compose_ref_prompt(
         requested_duration_seconds=requested_duration_seconds,
         raw_user_request=raw_prompt,
     )
+    if i2v_detailed_description:
+        candidate = _remove_frame_picture_definitions(candidate)
+        candidate = _remove_frame_non_picture_labels(candidate)
     candidate = _canonicalize_ref_generated_content(
         candidate,
         raw_prompt=raw_prompt,
         observations=observations,
         manifest=manifest,
+        semantic_picture_binding=i2v_detailed_description,
     )
+    if i2v_detailed_description:
+        candidate = _ensure_frame_event_dialogue(candidate, raw_prompt)
     initial = validate_ref_prompt(candidate, length, manifest)
+    if i2v_detailed_description:
+        initial = _with_additional_issues(
+            initial,
+            validate_dialogue_event_ownership(initial.text, raw_prompt)
+            + _validate_frame_picture_order(initial.text, manifest),
+        )
     final = initial
     repaired = False
     if not initial.valid:
@@ -690,13 +1197,28 @@ def compose_ref_prompt(
             requested_duration_seconds=requested_duration_seconds,
             raw_user_request=raw_prompt,
         )
+        if i2v_detailed_description:
+            repaired_text = _remove_frame_picture_definitions(repaired_text)
+            repaired_text = _remove_frame_non_picture_labels(repaired_text)
         repaired_text = _canonicalize_ref_generated_content(
             repaired_text,
             raw_prompt=raw_prompt,
             observations=observations,
             manifest=manifest,
+            semantic_picture_binding=i2v_detailed_description,
         )
+        if i2v_detailed_description:
+            repaired_text = _ensure_frame_event_dialogue(
+                repaired_text,
+                raw_prompt,
+            )
         final = validate_ref_prompt(repaired_text, length, manifest)
+        if i2v_detailed_description:
+            final = _with_additional_issues(
+                final,
+                validate_dialogue_event_ownership(final.text, raw_prompt)
+                + _validate_frame_picture_order(final.text, manifest),
+            )
         repaired = True
     if strict_validation and not final.valid:
         raise ValueError(

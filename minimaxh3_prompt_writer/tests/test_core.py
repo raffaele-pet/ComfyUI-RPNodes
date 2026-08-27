@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -10,8 +11,16 @@ from engine.analyzers import (
     clean_analysis_text,
     ensure_analysis_records,
 )
+from engine.chronology import (
+    ordered_event_ledger,
+    validate_dialogue_event_ownership,
+)
 from engine.constants import SKILL_CHOICES, SKILL_CORE, get_skill_profile
 from engine.composer import (
+    _ensure_frame_event_dialogue,
+    _materialize_frame_event_dialogue,
+    _sort_frame_picture_citations,
+    _validate_frame_picture_order,
     compose_base_prompt,
     compose_ref_prompt,
     compose_t2v_prompt,
@@ -91,6 +100,147 @@ class GridAndModeTests(unittest.TestCase):
             ["ref_image_0", "ref_image_1", "ref_image_2"],
         )
         self.assertIn("<Picture 3> <- ref_image_2", manifest.inventory_text())
+
+    def test_frames_event_ledger_preserves_line_order_and_verbatim_strings(self):
+        raw = """===
+The character waves and says "Hello everyone! I'm Raph!".
+He picks up a mug and drinks.
+A robot enters; he looks annoyed and says "Not now, Pat!".
+He puts a sign aside and says "Follow me!".
+==="""
+        ledger = ordered_event_ledger(raw)
+        self.assertEqual([event["event_index"] for event in ledger], [1, 2, 3, 4])
+        self.assertEqual(
+            ledger[0]["protected_verbatim_strings"],
+            ["Hello everyone! I'm Raph!"],
+        )
+        self.assertEqual(
+            ledger[0]["spoken_verbatim_strings"],
+            ["Hello everyone! I'm Raph!"],
+        )
+        self.assertEqual(
+            ledger[2]["protected_verbatim_strings"],
+            ["Not now, Pat!"],
+        )
+
+    def test_frames_dialogue_validator_rejects_lines_merged_across_events(self):
+        raw = """The character waves and says "Hello everyone! I'm Raph!".
+He drinks from a mug.
+A robot enters; he looks annoyed and says "Not now, Pat!"."""
+        candidate = (
+            "[Shot 1] The character waves and then drinks. A robot enters; "
+            "he looks annoyed and says <d>[English] Hello everyone! I'm Raph!</d>, "
+            "then says <d>[English] Not now, Pat!</d>."
+        )
+        issues = validate_dialogue_event_ownership(candidate, raw)
+        self.assertTrue(any("merged into one action sentence" in issue for issue in issues))
+
+    def test_frames_dialogue_validator_rejects_an_omitted_spoken_line(self):
+        raw = """The character waves and says "Hello!".
+He raises a sign that reads "Welcome"."""
+        candidate = "[Shot 1] The character waves and raises a sign that reads \"Welcome\"."
+        issues = validate_dialogue_event_ownership(candidate, raw)
+        self.assertTrue(any("spoken line `Hello!`" in issue for issue in issues))
+        self.assertFalse(any("Welcome" in issue for issue in issues))
+
+    def test_frames_dialogue_fallback_maps_more_events_than_action_sentences(self):
+        raw = """The character waves and says "Hello!".
+He drinks.
+A robot enters and he says "Not now!".
+He turns.
+He laughs.
+He raises a sign.
+He lowers it and says "Follow me!".
+The camera moves closer."""
+        candidate = """detailed_description:
+[Shot 1] The character waves and begins the sequence. He drinks before a robot enters and he reacts. He turns, laughs, and raises a sign. He lowers it as the camera moves closer.
+
+overall_soundscape:
+N/A"""
+        result = _materialize_frame_event_dialogue(candidate, raw)
+        self.assertEqual(validate_dialogue_event_ownership(result, raw), [])
+        self.assertLess(result.index("Hello!"), result.index("Not now!"))
+        self.assertLess(result.index("Not now!"), result.index("Follow me!"))
+
+    def test_frames_final_dialogue_audit_restores_only_missing_source_lines(self):
+        raw = """The character waves and says "Hello!".
+He drinks.
+A robot enters and he says "Not now!".
+He turns.
+He laughs.
+He raises a sign.
+He lowers it and says "Follow me!".
+The camera moves closer."""
+        candidate = """detailed_description:
+[Shot 1] The character waves. He drinks. A robot enters and he reacts, and says "<d>[English] Not now!</d>". He turns. He laughs. He raises a sign. He lowers it, and says "<d>[English] Follow me!</d>". The camera moves closer.
+
+overall_soundscape:
+N/A"""
+        result = _ensure_frame_event_dialogue(candidate, raw)
+        self.assertEqual(validate_dialogue_event_ownership(result, raw), [])
+        self.assertEqual(result.count("Hello!"), 1)
+        self.assertEqual(result.count("Not now!"), 1)
+        self.assertEqual(result.count("Follow me!"), 1)
+
+    def test_frames_final_dialogue_audit_collapses_duplicate_source_line(self):
+        raw = 'The character waves and says "Hello!".'
+        candidate = """detailed_description:
+[Shot 1] The character waves and says <d>[English] Hello!</d>, then repeats <d>[English] Hello!</d>.
+
+overall_soundscape:
+N/A"""
+        result = _ensure_frame_event_dialogue(candidate, raw)
+        self.assertEqual(validate_dialogue_event_ownership(result, raw), [])
+        self.assertEqual(result.count("Hello!"), 1)
+
+    def test_frames_replaces_plain_quoted_dialogue_without_orphaned_says(self):
+        raw = 'He lowers the sign and says "Follow me!".'
+        candidate = """detailed_description:
+[Shot 1] [Event 1] He lowers the sign and says "Follow me!" as he folds his arms.
+
+overall_soundscape:
+N/A"""
+        result = _ensure_frame_event_dialogue(candidate, raw)
+        detail = result.split("detailed_description:\n", 1)[1]
+        self.assertIn('and says "<d>[English] Follow me!</d>"', detail)
+        self.assertNotIn("says  as", detail)
+        self.assertEqual(detail.count("and says"), 1)
+
+    def test_frames_sorts_picture_labels_without_moving_narrative_slots(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(8)}
+        )
+        body = (
+            "[Shot 1] Opens at <Picture 1>. Waves at <Picture 2>. "
+            "Drinks at <Picture 3>. Meets a robot at <Picture 4>. "
+            "Looks surprised at <Picture 5>. Laughs at <Picture 7>. "
+            "Raises a sign at <Picture 6>. Ends close at <Picture 8>."
+        )
+        result = _sort_frame_picture_citations(body, manifest)
+        self.assertIn("Laughs at <Picture 6>.", result)
+        self.assertIn("Raises a sign at <Picture 7>.", result)
+        self.assertEqual(
+            [
+                result.index(f"<Picture {index}>")
+                for index in range(1, 9)
+            ],
+            sorted(
+                result.index(f"<Picture {index}>")
+                for index in range(1, 9)
+            ),
+        )
+
+    def test_frames_rejects_bare_picture_label_clusters(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
+        candidate = """detailed_description:
+[Shot 1] The performer begins in <Picture 1> (<Picture 2>) (<Picture 3>), then moves.
+
+overall_soundscape:
+N/A"""
+        issues = _validate_frame_picture_order(candidate, manifest)
+        self.assertTrue(any("bare clusters" in issue for issue in issues))
 
 
 class ManifestTests(unittest.TestCase):
@@ -2113,9 +2263,12 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertNotIn("Begin with one\n  or two English sentences", system)
         self.assertNotIn("350–500 English", system)
         self.assertIn("consecutive ordered visual states", system)
-        self.assertIn("physically connect each adjacent pair", system)
-        self.assertIn("A new Picture\n  alone never creates a cut", system)
-        self.assertIn("Never write source-analysis phrases", system)
+        self.assertIn("ordered_event_ledger", system)
+        self.assertIn("one atomic\n  event", system)
+        self.assertIn("ordered_adjacent_frame_pairs", system)
+        self.assertIn("transforms its start state into its end state", system)
+        self.assertIn("Use direct action prose", system)
+        self.assertIn("finished target state positively", system)
         self.assertIn("organizational event markers rather than an\n  automatic request", system)
         self.assertIn("inside one continuous\n  `[Shot 1]`", system)
         self.assertIn(r'\u003cPicture 3>', payload)
@@ -2233,6 +2386,298 @@ class _ScriptedRunner:
 
 
 class ComposerRepairTests(unittest.TestCase):
+    def test_frames_keeps_first_dialogue_after_picture_coverage_repair(self):
+        raw = """The character waves and says "Hello!".
+He lowers his hand and drinks."""
+        candidate = """subject_definitions:
+<Subject 1> A recurring character.
+
+summary:
+[keyframe completion] The character greets and drinks.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity remains stable.
+<Picture 1>: fully_preserved - The greeting pose remains exact.
+<Picture 2>: fully_preserved - The drinking pose remains exact.
+
+detailed_description:
+[Shot 1] <Subject 1> raises one hand and waves. He lowers his hand and drinks as the motion reaches <Picture 2>.
+
+overall_soundscape:
+Natural room tone.
+
+non_diegetic_music:
+N/A"""
+        repaired = candidate.replace(
+            "raises one hand and waves.",
+            "raises one hand and waves in <Picture 1>.",
+        )
+        runner = _ScriptedRunner([candidate, repaired])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt=raw,
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "ref_image_0": "<Picture 1>: The character raises one hand and waves.",
+                "ref_image_1": "<Picture 2>: The character drinks.",
+            },
+            manifest=ReferenceManifest.from_inputs(
+                ref_images={"ref_image_0": object(), "ref_image_1": object()}
+            ),
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+        )
+        self.assertTrue(result.repaired)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        detail = result.prompt.split("detailed_description:\n", 1)[1]
+        self.assertLess(detail.index("Hello!"), detail.index("drinks"))
+        self.assertLess(detail.index("<Picture 1>"), detail.index("<Picture 2>"))
+
+    def test_frames_canonicalizes_out_of_order_picture_actions_and_drops_picture_definitions(self):
+        header = """subject_definitions:
+<Subject 1> A recurring performer established by <Picture 1>, <Picture 2>, and <Picture 3>.
+<Picture 1>: A redundant static source description.
+<Picture 2>: Another redundant static source description.
+
+summary:
+[keyframe completion] The performer turns, laughs, and settles.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity and clothing remain stable.
+<Picture 1>: fully_preserved - The opening state remains exact.
+<Picture 2>: fully_preserved - The laughing state remains exact.
+<Picture 3>: fully_preserved - The ending state remains exact.
+
+detailed_description:
+"""
+        suffix = """
+
+overall_soundscape:
+Natural movement sounds and one laugh.
+
+non_diegetic_music:
+N/A"""
+        malformed = header + (
+            "[Shot 1] <Subject 1> begins in <Picture 1>, settles into "
+            "<Picture 3>, then laughs in <Picture 2>."
+        ) + suffix
+        repaired = header + (
+            "[Shot 1] <Subject 1> begins in <Picture 1>, turns and laughs as the "
+            "movement reaches <Picture 2>, then settles into <Picture 3>."
+        ) + suffix
+        runner = _ScriptedRunner([malformed, repaired])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt="The performer turns.\nThe performer laughs.\nThe performer settles.",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "ref_image_0": "<Picture 1>: opening pose.",
+                "ref_image_1": "<Picture 2>: laughing pose.",
+                "ref_image_2": "<Picture 3>: settled pose.",
+            },
+            manifest=ReferenceManifest.from_inputs(
+                ref_images={f"ref_image_{index}": object() for index in range(3)}
+            ),
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+        )
+        self.assertFalse(result.repaired)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        subject_body = result.prompt.split("summary:", 1)[0]
+        self.assertNotIn("<Picture 1>:", subject_body)
+        detail = result.prompt.split("detailed_description:\n", 1)[1]
+        self.assertLess(detail.index("<Picture 1>"), detail.index("<Picture 2>"))
+        self.assertLess(detail.index("<Picture 2>"), detail.index("<Picture 3>"))
+
+    def test_frames_relocates_dialogue_moved_into_a_later_event(self):
+        raw = """The character waves and says "Hello everyone! I'm Raph!".
+He drinks from a mug.
+A robot enters; he looks annoyed and says "Not now, Pat!"."""
+        prefix = """subject_definitions:
+<Subject 1> A recurring character established by <Picture 1> and <Picture 2>.
+
+summary:
+[keyframe completion] The character greets, drinks, and reacts to a robot.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity and clothing remain stable.
+<Picture 1>: fully_preserved - The opening character state remains exact.
+<Picture 2>: fully_preserved - The reaction state remains exact.
+
+detailed_description:
+"""
+        suffix = """
+
+overall_soundscape:
+Quiet room tone and natural movement sounds.
+
+non_diegetic_music:
+N/A"""
+        malformed = prefix + (
+            "[Shot 1] <Subject 1> waves in <Picture 1> and then drinks. A robot "
+            "enters in <Picture 2>; he looks annoyed and says "
+            "<d>[English] Hello everyone! I'm Raph!</d>, then says "
+            "<d>[English] Not now, Pat!</d>."
+        ) + suffix
+        repaired = prefix + (
+            "[Shot 1] <Subject 1> waves in <Picture 1> and says "
+            "<d>[English] Hello everyone! I'm Raph!</d>. He lowers his hand, "
+            "raises a mug, and drinks. A robot enters as the action reaches "
+            "<Picture 2>; <Subject 1> looks annoyed and says "
+            "<d>[English] Not now, Pat!</d>."
+        ) + suffix
+        runner = _ScriptedRunner([malformed, repaired])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt=raw,
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "ref_image_0": "<Picture 1>: The character raises one hand.",
+                "ref_image_1": "<Picture 2>: The character looks annoyed.",
+            },
+            manifest=ReferenceManifest.from_inputs(
+                ref_images={"ref_image_0": object(), "ref_image_1": object()}
+            ),
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+        )
+        self.assertFalse(result.repaired)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertIn('"ordered_event_ledger"', runner.calls[0][1])
+        self.assertLess(result.prompt.index("Hello everyone"), result.prompt.index("A robot"))
+        self.assertLess(result.prompt.index("A robot"), result.prompt.index("Not now, Pat"))
+
+    def test_frames_materializes_event_dialogue_and_drops_hallucinated_media_labels(self):
+        raw = """The character waves and says "Hello!".
+He drinks from a mug.
+A robot enters; he looks annoyed and says "Not now!"."""
+        candidate = """subject_definitions:
+<Subject 1> A recurring character established by <Picture 1> and <Picture 2>.
+<Audio 1>: Hallucinated dialogue source.
+
+summary:
+[keyframe completion] The character greets, drinks, and reacts.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity and clothing remain stable.
+<Picture 1>: fully_preserved - The opening state remains exact.
+<Picture 2>: fully_preserved - The reaction state remains exact.
+<Audio 1>: fully_copy - Hallucinated dialogue source.
+
+detailed_description:
+[Shot 1] [Event 1] <Subject 1> waves in <Picture 1>.
+[Event 2] He lowers his hand, raises a mug, and drinks.
+[Event 3] A robot enters as the action reaches <Picture 2>; <Subject 1> looks annoyed.
+
+overall_soundscape:
+Quiet room tone and natural movement sounds from <Audio 1>.
+
+non_diegetic_music:
+N/A"""
+        runner = _ScriptedRunner([candidate])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt=raw,
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "ref_image_0": "<Picture 1>: The character waves.",
+                "ref_image_1": "<Picture 2>: The character looks annoyed.",
+            },
+            manifest=ReferenceManifest.from_inputs(
+                ref_images={"ref_image_0": object(), "ref_image_1": object()}
+            ),
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+        )
+        self.assertFalse(result.repaired)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertEqual(result.prompt.count("<d>[English] Hello!</d>"), 1)
+        self.assertEqual(result.prompt.count("<d>[English] Not now!</d>"), 1)
+        self.assertLess(result.prompt.index("Hello!"), result.prompt.index("raises a mug"))
+        self.assertLess(result.prompt.index("raises a mug"), result.prompt.index("Not now!"))
+        self.assertNotIn("[Event ", result.prompt)
+        self.assertNotIn("<Audio 1>", result.prompt)
+
+        unmarked = candidate
+        for event_number in range(1, 4):
+            unmarked = unmarked.replace(f"[Event {event_number}] ", "")
+        fallback = compose_ref_prompt(
+            _ScriptedRunner([unmarked]),
+            raw_prompt=raw,
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "ref_image_0": "<Picture 1>: The character waves.",
+                "ref_image_1": "<Picture 2>: The character looks annoyed.",
+            },
+            manifest=ReferenceManifest.from_inputs(
+                ref_images={"ref_image_0": object(), "ref_image_1": object()}
+            ),
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+        )
+        self.assertFalse(fallback.repaired)
+        self.assertEqual(fallback.prompt.count("<d>[English] Hello!</d>"), 1)
+        self.assertEqual(fallback.prompt.count("<d>[English] Not now!</d>"), 1)
+
+    def test_frames_requires_missing_picture_to_be_repaired_in_its_action(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={"ref_image_0": object(), "ref_image_1": object()}
+        )
+        candidate = """subject_definitions:
+<Subject 1> A recurring performer established by <Picture 1> and <Picture 2>.
+
+summary:
+[keyframe completion] The performer turns and laughs.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity and clothing remain stable.
+<Picture 1>: fully_preserved - The surprised pose remains exact.
+<Picture 2>: fully_preserved - The laughing pose remains exact.
+
+detailed_description:
+[Shot 1] <Subject 1> turns with a surprised expression in <Picture 1>. He throws his head back, closes his eyes, laughs, and points to the right.
+
+overall_soundscape:
+One natural laugh and subtle clothing movement.
+
+non_diegetic_music:
+N/A"""
+        repaired = candidate.replace(
+            "laughs, and points to the right.",
+            "laughs, and points to the right (<Picture 2>).",
+        )
+        runner = _ScriptedRunner([candidate, repaired])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt="The performer looks surprised.\nHe laughs and points.",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "ref_image_0": "<Picture 1>: surprised expression and turned body.",
+                "ref_image_1": "<Picture 2>: eyes closed, laughing and pointing right.",
+            },
+            manifest=manifest,
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+        )
+        self.assertTrue(result.repaired)
+        detail = result.prompt.split("detailed_description:\n", 1)[1].split(
+            "\n\noverall_soundscape:", 1
+        )[0]
+        self.assertIn("points to the right (<Picture 2>)", detail)
+        self.assertNotIn("moves smoothly from", detail)
+
     def test_ref_composer_deterministically_repairs_missing_picture_and_language(self):
         ref_images = {f"ref_image_{index}": object() for index in range(6)}
         manifest = ReferenceManifest.from_inputs(ref_images=ref_images)
@@ -2266,7 +2711,15 @@ class ComposerRepairTests(unittest.TestCase):
             f"ref_image_{index}": f"<Picture {index + 1}>: observed state {index + 1}"
             for index in range(6)
         }
-        runner = _ScriptedRunner([candidate])
+        repaired = re.sub(
+            r"\[Shot 3\].*?(?=\n\[Shot 4\])",
+            "[Shot 3] At 00:07.500, <Subject 1> looks off-screen with a "
+            "surprised expression in <Picture 5>. He laughs and points to the "
+            "right as the movement reaches <Picture 6>, then says <d>Hello</d>.",
+            candidate,
+            flags=re.DOTALL,
+        )
+        runner = _ScriptedRunner([candidate, repaired])
         result = compose_ref_prompt(
             runner,
             raw_prompt=(
@@ -2284,16 +2737,14 @@ class ComposerRepairTests(unittest.TestCase):
             i2v_detailed_description=True,
             requested_duration_seconds=15.0,
         )
-        self.assertFalse(result.repaired)
+        self.assertTrue(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         self.assertIn("<d>[English] Hello</d>", result.prompt)
         detail = result.prompt.split("detailed_description:\n", 1)[1].split(
             "\n\noverall_soundscape:", 1
         )[0]
         shot_three = detail.split("[Shot 3]", 1)[1].split("[Shot 4]", 1)[0]
-        pointing_start = shot_three.index("He laughs")
-        self.assertLess(shot_three.index("<Picture 5>"), pointing_start)
-        self.assertGreater(shot_three.index("<Picture 6>"), pointing_start)
+        self.assertLess(shot_three.index("<Picture 5>"), shot_three.index("<Picture 6>"))
         self.assertNotIn("At this point", detail)
         self.assertNotIn("contributes this concrete visible state", detail)
 

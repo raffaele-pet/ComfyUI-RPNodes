@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+from .chronology import ordered_event_ledger
 from .constants import (
     BUNDLE_VERSION,
     MAX_H3_PROMPT_CHARS,
@@ -708,6 +709,7 @@ def ref_user_payload(
     manifest: ReferenceManifest,
     media_observations: dict[str, str],
     requested_duration_seconds: float | None = None,
+    ordered_frames: bool = False,
 ) -> str:
     payload = {
         "raw_user_request": raw_prompt.strip(),
@@ -721,6 +723,13 @@ def ref_user_payload(
         "authoritative_reference_manifest": manifest.to_dict(),
         "untrusted_media_observations": media_observations,
     }
+    if ordered_frames:
+        picture_labels = list(manifest.labels("image"))
+        payload["ordered_event_ledger"] = ordered_event_ledger(raw_prompt)
+        payload["ordered_adjacent_frame_pairs"] = [
+            {"start_state": first, "end_state": second}
+            for first, second in zip(picture_labels, picture_labels[1:])
+        ]
     return (
         "Create the final Ref2VA prompt from the JSON task record below. The "
         "raw_user_request is the primary target event and must be enacted, while "
@@ -776,24 +785,42 @@ def ref_system_prompt_with_i2v_description(
   behavior, synchronized diegetic sound, and the ending result. Be as detailed
   and explicit as the request and duration require; never reduce the body to a
   generic one-sentence summary.
-- The connected Pictures are consecutive ordered visual states. Explicitly
-  narrate the continuous change from `<Picture 1>` to `<Picture 2>`, from
-  `<Picture 2>` to `<Picture 3>`, and so on through the final Picture. Describe
-  the subject, prop, expression, pose, environment, and camera movements that
-  physically connect each adjacent pair; do not merely describe either image.
-- Cite each Picture naturally in the action sentence where its state is reached.
-  Never write source-analysis phrases such as `At this point, <Picture N>
-  contributes`, `the image shows`, or `the reference depicts`. A new Picture
-  alone never creates a cut: keep one continuous shot unless `raw_user_request`
-  explicitly requires a new shot, place, time, or viewpoint.
+- Read `ordered_event_ledger` before writing. Each numbered entry is one atomic
+  event in the target chronology. Complete entry 1 before entry 2, entry 2
+  before entry 3, and so on. An entry may span multiple Pictures, and multiple
+  entries may occur between the same two Pictures.
+- Write one complete main action sentence for each ledger entry, in the same
+  count and order. Keep transitions and Picture citations inside the applicable
+  event sentence; never merge two ledger entries into one sentence.
+- Inside `detailed_description`, write `[Shot 1] [Event 1]` before the first
+  action, then `[Event 2]`, `[Event 3]`, and so on immediately before each next
+  ledger event, exactly once and in strict numerical order. These `[Event N]`
+  labels are the only temporary exception to the Shot-only playback body. The
+  application removes them from the finished prompt.
+- Copy every item in an entry's `spoken_verbatim_strings` exactly once as
+  `<d>[Language] exact words</d>` inside that same event. Place it in the same
+  action sentence as its speaker's action, then finish that sentence before
+  advancing to the next entry. Dialogue belonging to separate entries receives
+  separate action sentences. Keep every other protected verbatim string inside
+  its own ledger entry as literal visible text or other requested content.
+- The connected Pictures are consecutive ordered visual states. For every item
+  in `ordered_adjacent_frame_pairs`, write the concrete visible action that
+  transforms its start state into its end state: body and object trajectories,
+  gaze, expression, pose, environment, and camera movement as applicable.
+- Cite each Picture naturally in the target-video action sentence where its
+  visible state is reached. Use direct action prose throughout. The same shot
+  continues across adjacent Pictures whenever the requested subject, place,
+  time, and viewpoint remain continuous.
+- Write the finished target state positively: state the intended visible and
+  audible result itself. Use exclusion language only when the raw request
+  explicitly makes an exclusion part of the target event.
 - Preserve every explicit `At MM:SS.mmm` event time from `raw_user_request`, but
   treat its `[Shot N]` labels as organizational event markers rather than an
   automatic request for a visual cut. Keep the events inside one continuous
   `[Shot 1]` whenever subject, place, time, and viewpoint remain continuous;
   create a later Shot only when the request explicitly calls for a cut or a
-  genuinely discontinuous place, time, or viewpoint. Never create or
-  redistribute shots merely to match the number of connected Pictures; several
-  Pictures may contribute within the same continuous action or transition."""
+  genuinely discontinuous place, time, or viewpoint. Let the requested event
+  structure determine shots independently from the number of Pictures."""
     if ref_rules not in contract:
         raise RuntimeError("REF2V detailed_description contract block not found")
     return contract.replace(ref_rules, i2v_rules, 1)

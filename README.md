@@ -149,11 +149,13 @@ rules follow `RP H3-I2V Prompt Writer`, beginning directly with `[Shot 1]` and
 developing the action in target-video playback order. The node outputs only
 `prompt`, `aligned_length`, and `analysis_report`; it does not pass the frame
 images through. The shared REF2V composition pass also supplies a missing
-dialogue language tag without changing the spoken text and restores any
-Picture omitted from `detailed_description` by binding it to the corresponding
-action sentence. If no matching action exists, it writes an explicit continuous
-transition from the preceding Picture instead of inserting a static image
-description. Each adjacent `frame_n` pair is treated as two states of one
+dialogue language tag without changing the spoken text. A missing Picture or a
+bare cluster of Picture labels triggers the normal repair pass instead of being
+filled with generic transition prose. The raw request is also converted into an
+ordered event ledger: each line remains attached to its own action and exact
+spoken text, while the visual states are connected independently from `frame_1`
+onward. This allows several events to occur between two frames without merging
+their dialogue. Each adjacent `frame_n` pair is treated as two states of one
 continuous movement unless the request explicitly requires a real cut.
 
 ### RP H3-REF2V Prompt Writer
