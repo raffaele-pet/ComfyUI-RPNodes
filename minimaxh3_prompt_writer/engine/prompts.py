@@ -721,15 +721,22 @@ def ref_user_payload(
         "effective_duration_seconds": effective_duration(length),
         "selected_skill": skill.identifier,
         "authoritative_reference_manifest": manifest.to_dict(),
-        "untrusted_media_observations": media_observations,
     }
     if ordered_frames:
-        picture_labels = list(manifest.labels("image"))
         payload["ordered_event_ledger"] = ordered_event_ledger(raw_prompt)
-        payload["ordered_adjacent_frame_pairs"] = [
-            {"start_state": first, "end_state": second}
-            for first, second in zip(picture_labels, picture_labels[1:])
+        payload["ordered_frame_ledger"] = [
+            {
+                "frame_index": index,
+                "picture_label": asset.label,
+                "connected_input": f"frame_{index}",
+                "observed_state": str(
+                    media_observations.get(asset.socket, "") or ""
+                ),
+            }
+            for index, asset in enumerate(manifest.pictures, 1)
         ]
+    else:
+        payload["untrusted_media_observations"] = media_observations
     return (
         "Create the final Ref2VA prompt from the JSON task record below. The "
         "raw_user_request is the primary target event and must be enacted, while "
@@ -746,7 +753,7 @@ def ref_system_prompt_with_i2v_description(
     *,
     requested_duration_seconds: float | None = None,
 ) -> str:
-    """Use REF2V unchanged except for I2V-style detailed_description rules."""
+    """Add ordered-frame continuity rules to the official REF2V contract."""
 
     contract = ref_system_prompt(
         length,
@@ -771,59 +778,34 @@ def ref_system_prompt_with_i2v_description(
   synchronized sound, where each reference takes effect, and the ending state.
   Fit every event inside {requested_duration_text} seconds and hold that final
   state unchanged through any aligned tail ending at {duration:.6f} seconds."""
-    i2v_rules = f"""- `detailed_description` is the complete narrative audiovisual body in
-  target-video playback order, not a plot synopsis, production plan, keyword
-  list, or list of reference relationships. Begin its body directly with
-  `[Shot 1]`; do not add a `Timeline:` heading and do not require `[0s-1s]`
-  beat ranges. Establish style and opening composition there, then describe
-  continuous visible and audible development through the final state. Fit all
-  requested events inside {requested_duration_text} seconds and hold the final
-  state unchanged through any aligned tail ending at {duration:.6f} seconds.
-- Every detail must be observable or audible: initial composition, subject
-  appearance and position, environment and lighting, key props, action onset,
-  physically reachable intermediate states, reactions, state changes, camera
-  behavior, synchronized diegetic sound, and the ending result. Be as detailed
-  and explicit as the request and duration require; never reduce the body to a
-  generic one-sentence summary.
-- Read `ordered_event_ledger` before writing. Each numbered entry is one atomic
-  event in the target chronology. Complete entry 1 before entry 2, entry 2
-  before entry 3, and so on. An entry may span multiple Pictures, and multiple
-  entries may occur between the same two Pictures.
-- Write one complete main action sentence for each ledger entry, in the same
-  count and order. Keep transitions and Picture citations inside the applicable
-  event sentence; never merge two ledger entries into one sentence.
-- Inside `detailed_description`, write `[Shot 1] [Event 1]` before the first
-  action, then `[Event 2]`, `[Event 3]`, and so on immediately before each next
-  ledger event, exactly once and in strict numerical order. These `[Event N]`
-  labels are the only temporary exception to the Shot-only playback body. The
-  application removes them from the finished prompt.
-- Copy every item in an entry's `spoken_verbatim_strings` exactly once as
-  `<d>[Language] exact words</d>` inside that same event. Place it in the same
-  action sentence as its speaker's action, then finish that sentence before
-  advancing to the next entry. Dialogue belonging to separate entries receives
-  separate action sentences. Keep every other protected verbatim string inside
-  its own ledger entry as literal visible text or other requested content.
-- The connected Pictures are consecutive ordered visual states. For every item
-  in `ordered_adjacent_frame_pairs`, write the concrete visible action that
-  transforms its start state into its end state: body and object trajectories,
-  gaze, expression, pose, environment, and camera movement as applicable.
-- Cite each Picture naturally in the target-video action sentence where its
-  visible state is reached. Use direct action prose throughout. The same shot
-  continues across adjacent Pictures whenever the requested subject, place,
-  time, and viewpoint remain continuous.
-- Write the finished target state positively: state the intended visible and
-  audible result itself. Use exclusion language only when the raw request
-  explicitly makes an exclusion part of the target event.
-- Preserve every explicit `At MM:SS.mmm` event time from `raw_user_request`, but
-  treat its `[Shot N]` labels as organizational event markers rather than an
-  automatic request for a visual cut. Keep the events inside one continuous
-  `[Shot 1]` whenever subject, place, time, and viewpoint remain continuous;
-  create a later Shot only when the request explicitly calls for a cut or a
-  genuinely discontinuous place, time, or viewpoint. Let the requested event
-  structure determine shots independently from the number of Pictures."""
+    frame_rules = """FRAMES INPUT RULES
+- `ordered_frame_ledger` is authoritative. Its rows are consecutive visible
+  states in playback order. Keep every `picture_label` bound to the
+  `observed_state` in its own row; never exchange labels or transfer a visible
+  state to a different Picture.
+- In `detailed_description`, cite each Picture in numerical order exactly where
+  that observed state is reached. Describe the physically plausible motion
+  from each row to the next: subject and object trajectories, gaze, expression,
+  pose, environment, and camera motion when they visibly change. Write this as
+  one fluid video action, not as image analysis or a sequence of static frame
+  descriptions.
+- `ordered_event_ledger` preserves the raw request's event order and verbatim
+  strings. Enact every event once in that order. Keep dialogue from different
+  events in separate action sentences, copy each spoken string exactly once in
+  `<d>[Language] exact words</d>`, and identify its physical speaker with one
+  stable `(S1)`, `(S2)`, etc. ID.
+- Use `[keyframe completion]` in `summary`. Define every independently tracked
+  visible character or important manipulated prop as a Subject with Picture
+  provenance. Retention explanations must state what visible identity or state
+  is preserved rather than merely repeat a label.
+- Keep a single Shot while subject, place, time, and viewpoint are continuous.
+  Start another Shot only for a real discontinuity requested by the user or
+  established by the ordered frames. Preserve explicit requested timestamps.
+- Describe intended visible and audible results directly. Use exclusion wording
+  only when an exclusion is itself part of the user's requested event."""
     if ref_rules not in contract:
         raise RuntimeError("REF2V detailed_description contract block not found")
-    return contract.replace(ref_rules, i2v_rules, 1)
+    return contract.replace(ref_rules, ref_rules + "\n" + frame_rules, 1)
 
 
 def keyframes_analysis_prompt(entries: list[tuple[str, str, str]]) -> str:

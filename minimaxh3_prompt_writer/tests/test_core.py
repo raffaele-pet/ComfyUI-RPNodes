@@ -19,7 +19,7 @@ from engine.constants import SKILL_CHOICES, SKILL_CORE, get_skill_profile
 from engine.composer import (
     _ensure_frame_event_dialogue,
     _materialize_frame_event_dialogue,
-    _sort_frame_picture_citations,
+    _validate_frame_prompt_contract,
     _validate_frame_picture_order,
     compose_base_prompt,
     compose_ref_prompt,
@@ -206,29 +206,99 @@ N/A"""
         self.assertNotIn("says  as", detail)
         self.assertEqual(detail.count("and says"), 1)
 
-    def test_frames_sorts_picture_labels_without_moving_narrative_slots(self):
+    def test_frames_never_hide_a_semantic_error_by_swapping_picture_labels(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
+        candidate = """subject_definitions:
+<Subject 1> A performer (<Picture 1>).
+
+summary:
+[keyframe completion] The performer waves, drinks, then raises a sign.
+
+retention_analysis:
+<Subject 1>: fully_preserved - identity and clothing remain stable.
+<Picture 1>: fully_preserved - neutral opening pose and composition.
+<Picture 2>: fully_preserved - raised waving hand and smile.
+<Picture 3>: fully_preserved - readable sign and upright pose.
+
+detailed_description:
+A clean studio animation with soft light. [Shot 1] The performer begins neutral (<Picture 1>). He raises a sign (<Picture 2>). He waves and smiles (<Picture 3>).
+
+overall_soundscape:
+Soft room ambience and cloth movement.
+
+non_diegetic_music:
+N/A"""
+        observations = {
+            "ref_image_0": "<Picture 1>: neutral standing pose",
+            "ref_image_1": "<Picture 2>: raised hand, waving and smiling",
+            "ref_image_2": "<Picture 3>: holding a readable sign upright",
+        }
+        issues = _validate_frame_prompt_contract(
+            candidate, manifest, observations
+        )
+        self.assertTrue(any("<Picture 2> is cited" in issue for issue in issues))
+        self.assertTrue(any("<Picture 3> is cited" in issue for issue in issues))
+
+    def test_eight_frame_story_keeps_every_visible_state_on_its_real_picture(self):
         manifest = ReferenceManifest.from_inputs(
             ref_images={f"ref_image_{index}": object() for index in range(8)}
         )
-        body = (
-            "[Shot 1] Opens at <Picture 1>. Waves at <Picture 2>. "
-            "Drinks at <Picture 3>. Meets a robot at <Picture 4>. "
-            "Looks surprised at <Picture 5>. Laughs at <Picture 7>. "
-            "Raises a sign at <Picture 6>. Ends close at <Picture 8>."
-        )
-        result = _sort_frame_picture_citations(body, manifest)
-        self.assertIn("Laughs at <Picture 6>.", result)
-        self.assertIn("Raises a sign at <Picture 7>.", result)
+        observations = {
+            "ref_image_0": "<Picture 1>: neutral full-body standing pose",
+            "ref_image_1": "<Picture 2>: raised right hand waving with a smile",
+            "ref_image_2": "<Picture 3>: drinking from a white mug with eyes closed",
+            "ref_image_3": "<Picture 4>: gray robot beside him; arms folded and annoyed",
+            "ref_image_4": "<Picture 5>: turns right with a surprised open mouth",
+            "ref_image_5": "<Picture 6>: laughs with eyes closed while pointing right",
+            "ref_image_6": "<Picture 7>: holds a sign reading I Love ComfyUI and winks",
+            "ref_image_7": "<Picture 8>: close-up, smiling with arms folded",
+        }
+        candidate = """subject_definitions:
+<Subject 1> A stylized bearded man in an orange hoodie and blue jeans, established by <Picture 1>.
+<Subject 2> A small retro gray robot, established by <Picture 4>.
+<Subject 3> A white mug, established by <Picture 3>.
+<Subject 4> A handheld sign reading "I Love ComfyUI", established by <Picture 7>.
+
+summary:
+[keyframe completion] The man greets the viewer, drinks, reacts to a robot, laughs, presents a sign, and finishes in close-up.
+
+retention_analysis:
+<Subject 1>: fully_preserved - face, hair, beard, orange hoodie, jeans, and proportions remain consistent.
+<Subject 2>: fully_preserved - compact gray retro body and red facial details remain consistent.
+<Subject 3>: fully_preserved - plain white ceramic form remains consistent while handled.
+<Subject 4>: fully_preserved - white board, wooden handle, heart symbol, and readable lettering remain consistent.
+<Picture 1>: fully_preserved - neutral full-body opening composition.
+<Picture 2>: fully_preserved - raised waving hand and smiling greeting pose.
+<Picture 3>: fully_preserved - mug-to-mouth drinking pose and side view.
+<Picture 4>: fully_preserved - robot placement and annoyed folded-arm reaction.
+<Picture 5>: fully_preserved - rightward turn and surprised expression.
+<Picture 6>: fully_preserved - laughing face and extended pointing gesture.
+<Picture 7>: fully_preserved - sign placement, wink, and readable text.
+<Picture 8>: fully_preserved - close framing, smile, and folded arms.
+
+detailed_description:
+A soft, polished 3D character animation with consistent studio lighting and a plain light-blue setting. Motion is elastic but physically continuous. [Shot 1] <Subject 1> begins in a relaxed full-body stance (<Picture 1>). He lifts his right arm, opens his palm toward the viewer, smiles, and waves as he reaches <Picture 2>; (S1) says "<d>[English] Hello everyone! I'm Raph!</d>". He lowers the hand, reaches behind his back, brings <Subject 3> to his mouth, and drinks with his eyes gently closed, settling into <Picture 3>. He lowers the mug as <Subject 2> walks in beside him; his shoulders tighten, his arms fold, and his gaze drops toward the robot with an annoyed frown in <Picture 4>. (S1) says "<d>[English] Not now, Pat!</d>". He unfolds his arms, turns his head and torso toward the right, and his eyes widen and mouth opens in surprise as he reaches <Picture 5>. The surprise releases into laughter: he closes his eyes, leans into the laugh, and extends one arm to point right, matching <Picture 6>. He recovers, reaches behind his back, and raises <Subject 4>; he holds the sign upright, keeps its "I Love ComfyUI" lettering readable, and winks in <Picture 7>. He lowers the sign to his side and (S1) says "<d>[English] Follow me!</d>". The camera then moves smoothly closer while he folds his arms and smiles, ending in the close-up composition of <Picture 8>.
+
+overall_soundscape:
+Quiet studio ambience, soft cloth movement, mug handling, small robot footsteps, natural laughter, sign movement, and the character's clear voice.
+
+non_diegetic_music:
+N/A"""
         self.assertEqual(
-            [
-                result.index(f"<Picture {index}>")
-                for index in range(1, 9)
-            ],
-            sorted(
-                result.index(f"<Picture {index}>")
-                for index in range(1, 9)
-            ),
+            _validate_frame_prompt_contract(candidate, manifest, observations),
+            [],
         )
+        corrupted = candidate.replace(
+            "The surprise releases into laughter: he closes his eyes, leans into the laugh, and extends one arm to point right, matching <Picture 6>. He recovers, reaches behind his back, and raises <Subject 4>; he holds the sign upright, keeps its \"I Love ComfyUI\" lettering readable, and winks in <Picture 7>.",
+            "He recovers, reaches behind his back, and raises <Subject 4>; he holds the sign upright, keeps its \"I Love ComfyUI\" lettering readable, and winks in <Picture 6>. The surprise then releases into laughter: he closes his eyes, leans into the laugh, and extends one arm to point right, matching <Picture 7>.",
+        )
+        issues = _validate_frame_prompt_contract(
+            corrupted, manifest, observations
+        )
+        self.assertTrue(any("<Picture 6> is cited" in issue for issue in issues))
+        self.assertTrue(any("<Picture 7> is cited" in issue for issue in issues))
 
     def test_frames_rejects_bare_picture_label_clusters(self):
         manifest = ReferenceManifest.from_inputs(
@@ -2253,26 +2323,32 @@ class GemmaRunnerTests(unittest.TestCase):
             length=124,
             skill=skill,
             manifest=manifest,
-            media_observations={},
+            media_observations={
+                "ref_image_0": "<Picture 1>: neutral pose.",
+                "ref_image_1": "<Picture 2>: waving pose.",
+                "ref_image_2": "<Picture 3>: final pose.",
+            },
+            ordered_frames=True,
         )
         self.assertIn("<Picture 3> <- ref_image_2", system)
         self.assertIn("detailed_description:", system)
         self.assertNotIn("integrated_multimodal_description:", system)
         self.assertIn("keep each meaning\n  stable in every section", system)
-        self.assertIn("Begin its body directly with\n  `[Shot 1]`", system)
-        self.assertNotIn("Begin with one\n  or two English sentences", system)
-        self.assertNotIn("350–500 English", system)
-        self.assertIn("consecutive ordered visual states", system)
+        self.assertIn("Begin with one\n  or two English sentences", system)
+        self.assertIn("350–500 English", system)
+        self.assertIn("consecutive visible\n  states", system)
         self.assertIn("ordered_event_ledger", system)
-        self.assertIn("one atomic\n  event", system)
-        self.assertIn("ordered_adjacent_frame_pairs", system)
-        self.assertIn("transforms its start state into its end state", system)
-        self.assertIn("Use direct action prose", system)
-        self.assertIn("finished target state positively", system)
-        self.assertIn("organizational event markers rather than an\n  automatic request", system)
-        self.assertIn("inside one continuous\n  `[Shot 1]`", system)
+        self.assertIn("ordered_frame_ledger", system)
+        self.assertIn("never exchange labels", system)
+        self.assertIn("physically plausible motion", system)
+        self.assertIn("Use `[keyframe completion]`", system)
+        self.assertNotIn("ordered_adjacent_frame_pairs", system)
+        self.assertNotIn("[Event 1]", system)
         self.assertIn(r'\u003cPicture 3>', payload)
         self.assertIn('"socket": "ref_image_2"', payload)
+        self.assertIn('"connected_input": "frame_3"', payload)
+        self.assertIn('"observed_state":', payload)
+        self.assertIn("final pose.", payload)
         self.assertIn('"mode": "Ref2VA"', payload)
 
     def test_ref_contract_is_explicit_and_duration_scaled(self):
@@ -2435,7 +2511,7 @@ N/A"""
         self.assertLess(detail.index("Hello!"), detail.index("drinks"))
         self.assertLess(detail.index("<Picture 1>"), detail.index("<Picture 2>"))
 
-    def test_frames_canonicalizes_out_of_order_picture_actions_and_drops_picture_definitions(self):
+    def test_frames_repairs_out_of_order_picture_actions_and_drops_picture_definitions(self):
         header = """subject_definitions:
 <Subject 1> A recurring performer established by <Picture 1>, <Picture 2>, and <Picture 3>.
 <Picture 1>: A redundant static source description.
@@ -2485,7 +2561,7 @@ N/A"""
             sampling=SamplingConfig(do_sample=False, seed=42),
             i2v_detailed_description=True,
         )
-        self.assertFalse(result.repaired)
+        self.assertTrue(result.repaired)
         self.assertTrue(result.final_validation.valid, result.final_validation.issues)
         subject_body = result.prompt.split("summary:", 1)[0]
         self.assertNotIn("<Picture 1>:", subject_body)
@@ -2518,13 +2594,13 @@ Quiet room tone and natural movement sounds.
 non_diegetic_music:
 N/A"""
         malformed = prefix + (
-            "[Shot 1] <Subject 1> waves in <Picture 1> and then drinks. A robot "
+            "[Shot 1] <Subject 1> raises one hand and waves in <Picture 1>, then drinks. A robot "
             "enters in <Picture 2>; he looks annoyed and says "
             "<d>[English] Hello everyone! I'm Raph!</d>, then says "
             "<d>[English] Not now, Pat!</d>."
         ) + suffix
         repaired = prefix + (
-            "[Shot 1] <Subject 1> waves in <Picture 1> and says "
+            "[Shot 1] <Subject 1> raises one hand and waves in <Picture 1> and says "
             "<d>[English] Hello everyone! I'm Raph!</d>. He lowers his hand, "
             "raises a mug, and drinks. A robot enters as the action reaches "
             "<Picture 2>; <Subject 1> looks annoyed and says "

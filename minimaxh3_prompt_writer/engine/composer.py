@@ -167,45 +167,18 @@ def _requested_picture_insertion(
 
 
 _TRANSITION_STOPWORDS = {
-    "against",
     "about",
     "after",
+    "against",
     "also",
     "before",
-    "beard",
-    "bearded",
-    "bright",
-    "brown",
-    "cartoon",
-    "cartoonish",
-    "centered",
-    "character",
-    "digital",
-    "even",
-    "figure",
     "from",
-    "hair",
-    "hooded",
-    "hoodie",
-    "illustration",
     "into",
-    "jeans",
-    "lighting",
-    "male",
-    "orange",
-    "plain",
     "picture",
-    "rendered",
     "reference",
     "referencing",
-    "shown",
     "shot",
-    "solid",
-    "stands",
-    "style",
-    "stylized",
     "subject",
-    "sweatshirt",
     "that",
     "their",
     "then",
@@ -214,8 +187,6 @@ _TRANSITION_STOPWORDS = {
     "this",
     "through",
     "towards",
-    "wearing",
-    "wears",
     "with",
 }
 
@@ -297,19 +268,16 @@ def _best_picture_action_span(
     asset_socket: str,
     raw_prompt: str,
     observations: dict[str, str],
-    *,
-    allow_observation_only: bool = False,
-    minimum_score: int = 1,
 ) -> tuple[int, int] | None:
     raw_context = _raw_picture_context(asset_label, raw_prompt)
-    if not raw_context and not allow_observation_only:
+    if not raw_context:
         return None
     raw_tokens = _transition_tokens(raw_context)
     observation_tokens = _transition_tokens(
         str(observations.get(asset_socket, "") or "")
     )
     best: tuple[int, int] | None = None
-    best_score = minimum_score - 1
+    best_score = 0
     for start, end in _action_sentence_spans(body):
         sentence_tokens = _transition_tokens(body[start:end])
         score = 3 * len(raw_tokens & sentence_tokens) + len(
@@ -352,52 +320,18 @@ def _continuous_picture_transition(
 
 
 def _remove_static_picture_insertions(body: str) -> str:
-    """Collapse legacy static prose while preserving its citation slot."""
+    """Remove legacy validation prose so labels can be bound to real actions."""
 
     value = re.sub(
-        r"(?is)\bAt this point,\s*(<Picture\s+[1-9]\d*>)\s+contributes\s+"
+        r"(?is)\bAt this point,\s*<Picture\s+[1-9]\d*>\s+contributes\s+"
         r"this concrete visible state\s*:\s*.*?"
         r"(?=\bAt this point,\s*<Picture\s+[1-9]\d*>|"
         r"<Subject\s+[1-9]\d*>|\[Shot\s+[1-9]\d*\]|"
         r"\bThe (?:camera|final state)\b|$)",
-        lambda match: f" ({match.group(1)}) ",
+        " ",
         body,
     )
     return re.sub(r"[ \t]{2,}", " ", value).strip()
-
-
-def _sort_frame_picture_citations(
-    body: str,
-    manifest: ReferenceManifest,
-) -> str:
-    """Keep citation slots in place while restoring connected-frame order."""
-
-    order = {
-        asset.label: index
-        for index, asset in enumerate(manifest.pictures)
-    }
-    if len(order) < 2:
-        return body
-
-    label_pattern = re.compile(r"<Picture\s+[1-9]\d*>")
-    labels = [
-        match.group(0)
-        for match in label_pattern.finditer(body)
-        if match.group(0) in order
-    ]
-    sorted_labels = sorted(labels, key=order.__getitem__)
-    if labels == sorted_labels:
-        return body
-
-    replacements = iter(sorted_labels)
-
-    def replace(match: re.Match[str]) -> str:
-        label = match.group(0)
-        if label not in order:
-            return label
-        return next(replacements)
-
-    return label_pattern.sub(replace, body)
 
 
 def _ensure_ref_picture_coverage(
@@ -410,20 +344,19 @@ def _ensure_ref_picture_coverage(
 ) -> str:
     """Ground any omitted Picture label in its own analyzed visual evidence."""
 
+    # Ordered frames are semantic target states.  Rewriting, moving, or adding
+    # their labels can make an incorrect description look formally valid while
+    # leaving the visible actions attached to the wrong images.  Frames mode
+    # therefore validates model output and repairs it through Gemma instead of
+    # mutating citation meaning in Python.
+    if semantic_only:
+        return text
+
     bounds = _ref_detail_bounds(text)
     if bounds is None:
         return text
     start, end = bounds
     body = _remove_static_picture_insertions(text[start:end].strip())
-    if semantic_only:
-        body = _sort_frame_picture_citations(body, manifest)
-        return (
-            text[:start].rstrip()
-            + "\n"
-            + body
-            + "\n\n"
-            + text[end:].lstrip()
-        )
     for index, asset in enumerate(manifest.pictures):
         if asset.label in body:
             continue
@@ -433,7 +366,6 @@ def _ensure_ref_picture_coverage(
             asset.socket,
             raw_prompt,
             observations,
-            allow_observation_only=semantic_only,
         )
         if action_span is not None:
             body = _attach_picture_to_action(body, action_span, asset.label)
@@ -892,6 +824,127 @@ def _validate_frame_picture_order(
     return []
 
 
+_FRAME_GROUNDING_STOPWORDS = {
+    "against",
+    "background",
+    "character",
+    "depicted",
+    "depicts",
+    "figure",
+    "frame",
+    "image",
+    "observation",
+    "picture",
+    "reliable",
+    "rendered",
+    "scene",
+    "shown",
+    "shows",
+    "state",
+    "style",
+    "subject",
+    "visible",
+} | _TRANSITION_STOPWORDS
+
+
+def _frame_grounding_tokens(text: str) -> set[str]:
+    """Return compact content stems for a visual-state consistency check."""
+
+    result: set[str] = set()
+    for token in re.findall(r"[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'-]{2,}", text.lower()):
+        if token in _FRAME_GROUNDING_STOPWORDS:
+            continue
+        stem = token
+        if len(stem) > 5 and stem.endswith("ing"):
+            stem = stem[:-3]
+            if stem.endswith(("wav", "mov", "smil", "clos", "driv", "giv")):
+                stem += "e"
+        elif len(stem) > 4 and stem.endswith("ed"):
+            stem = stem[:-2]
+        elif len(stem) > 4 and stem.endswith(
+            ("ses", "xes", "zes", "ches", "shes", "oes")
+        ):
+            stem = stem[:-2]
+        elif len(stem) > 4 and stem.endswith("s"):
+            stem = stem[:-1]
+        if len(stem) >= 3:
+            result.add(stem)
+    return result
+
+
+def _validate_frame_prompt_contract(
+    text: str,
+    manifest: ReferenceManifest,
+    observations: dict[str, str],
+) -> list[str]:
+    """Validate Picture-to-state meaning without rewriting model prose."""
+
+    issues: list[str] = []
+    bounds = _ref_detail_bounds(text)
+    if bounds is None:
+        return issues
+    start, end = bounds
+    detail = text[start:end]
+    if re.search(
+        r"\bcontributes\s+this\s+concrete\s+visible\s+state\b",
+        detail,
+        flags=re.IGNORECASE,
+    ):
+        issues.append(
+            "Rewrite static `contributes this concrete visible state` insertions "
+            "as direct, continuous target-video action with the Picture citation "
+            "at the state it reaches."
+        )
+
+    observation_tokens = {
+        asset.label: _frame_grounding_tokens(
+            str(observations.get(asset.socket, "") or "")
+        )
+        for asset in manifest.pictures
+    }
+    token_frequency: dict[str, int] = {}
+    for tokens in observation_tokens.values():
+        for token in tokens:
+            token_frequency[token] = token_frequency.get(token, 0) + 1
+    maximum_frequency = max(1, len(manifest.pictures) // 3)
+    spans = _action_sentence_spans(detail)
+    for asset_index, asset in enumerate(manifest.pictures):
+        if asset_index == 0:
+            # The opening frame often contains only identity and composition
+            # shared by every later frame, so lexical distinctiveness is too
+            # weak for a safe semantic verdict.
+            continue
+        distinctive = {
+            token
+            for token in observation_tokens[asset.label]
+            if token_frequency.get(token, 0) <= maximum_frequency
+        }
+        if not distinctive:
+            continue
+        cited_sentences = " ".join(
+            detail[left:right]
+            for left, right in spans
+            if asset.label in detail[left:right]
+        )
+        if not cited_sentences:
+            continue
+        # One shared word such as "raises" is weak evidence and can occur in a
+        # different action.  Two independent visual terms are reliable enough
+        # to catch a swapped state without demanding an exact paraphrase.
+        required_overlap = 2 if len(distinctive) >= 2 else 0
+        if required_overlap and len(
+            distinctive & _frame_grounding_tokens(cited_sentences)
+        ) < required_overlap:
+            examples = ", ".join(sorted(distinctive)[:6])
+            issues.append(
+                f"{asset.label} is cited beside prose that does not match its own "
+                f"observed state. Rebind it using concrete evidence from its ledger "
+                f"row (distinctive terms include: {examples}); never relabel another "
+                "frame's action."
+            )
+    return issues
+
+
 def _with_additional_issues(
     validation: ValidationResult,
     issues: list[str],
@@ -1172,7 +1225,12 @@ def compose_ref_prompt(
         initial = _with_additional_issues(
             initial,
             validate_dialogue_event_ownership(initial.text, raw_prompt)
-            + _validate_frame_picture_order(initial.text, manifest),
+            + _validate_frame_picture_order(initial.text, manifest)
+            + _validate_frame_prompt_contract(
+                initial.text,
+                manifest,
+                observations,
+            ),
         )
     final = initial
     repaired = False
@@ -1217,7 +1275,12 @@ def compose_ref_prompt(
             final = _with_additional_issues(
                 final,
                 validate_dialogue_event_ownership(final.text, raw_prompt)
-                + _validate_frame_picture_order(final.text, manifest),
+                + _validate_frame_picture_order(final.text, manifest)
+                + _validate_frame_prompt_contract(
+                    final.text,
+                    manifest,
+                    observations,
+                ),
             )
         repaired = True
     if strict_validation and not final.valid:
