@@ -8,11 +8,9 @@ import comfy.model_management
 from comfy_api.latest import io
 
 from .engine.analyzers import (
-    analyze_base_media,
     analyze_reference_media,
 )
 from .engine.composer import (
-    compose_base_prompt,
     compose_ref_prompt,
     compose_t2v_prompt,
 )
@@ -20,7 +18,6 @@ from .engine.constants import SKILL_CHOICES
 from .engine.gemma import GemmaRunner, SamplingConfig
 from .engine.manifests import (
     ReferenceManifest,
-    determine_base_mode,
     seconds_to_aligned_frame_count,
     validate_whole_duration_seconds,
 )
@@ -275,112 +272,6 @@ def _reference_media_inputs() -> list[Any]:
             ),
         ),
     ]
-
-
-class RPH3I2VPromptWriter(io.ComfyNode):
-    @classmethod
-    def define_schema(cls) -> io.Schema:
-        return io.Schema(
-            node_id="RPH3I2VPromptWriter",
-            display_name="RP H3-I2V Prompt Writer",
-            category="RP/MiniMax H3",
-            description=(
-                "Uses a generative multimodal Gemma 4 CLIP to analyze optional "
-                "H3 keyframes and rewrite a raw request into strict T2VA, I2VA, "
-                "FL2VA, or L2VA prompt structure."
-            ),
-            search_aliases=["H3 prompt", "Gemma prompt writer", "I2V prompt"],
-            inputs=_common_inputs()
-            + [
-                io.Image.Input(
-                    "first_frame",
-                    optional=True,
-                    tooltip="Literal first video frame; only batch element 0 is analyzed.",
-                ),
-                io.Image.Input(
-                    "last_frame",
-                    optional=True,
-                    tooltip="Literal final video frame; only batch element 0 is analyzed.",
-                ),
-            ],
-            outputs=[
-                io.String.Output(display_name="prompt"),
-                io.Int.Output(display_name="aligned_length"),
-                io.String.Output(display_name="analysis_report"),
-                io.Image.Output(display_name="first_frame"),
-                io.Image.Output(display_name="last_frame"),
-            ],
-        )
-
-    @classmethod
-    def execute(
-        cls,
-        clip,
-        skill,
-        duration_seconds,
-        prompt,
-        max_token_length,
-        media_analysis_tokens,
-        sampling,
-        temperature,
-        top_k,
-        top_p,
-        min_p,
-        repetition_penalty,
-        seed,
-        strict_validation,
-        first_frame=None,
-        last_frame=None,
-    ) -> io.NodeOutput:
-        duration_seconds = validate_whole_duration_seconds(duration_seconds)
-        aligned_length = seconds_to_aligned_frame_count(duration_seconds)
-        mode = determine_base_mode(first_frame, last_frame)
-        runner = GemmaRunner(clip)
-        observations = analyze_base_media(
-            runner,
-            mode=mode,
-            first_frame=first_frame,
-            last_frame=last_frame,
-            max_new_tokens=media_analysis_tokens,
-            seed=seed,
-            after_call=_check_interrupted,
-        )
-        result = compose_base_prompt(
-            runner,
-            raw_prompt=prompt,
-            mode=mode,
-            length=aligned_length,
-            selected_skill_label=skill,
-            observations=observations,
-            max_new_tokens=max_token_length,
-            sampling=_sampling_config(
-                sampling=sampling,
-                temperature=temperature,
-                top_k=top_k,
-                top_p=top_p,
-                min_p=min_p,
-                repetition_penalty=repetition_penalty,
-                seed=seed,
-            ),
-            requested_duration_seconds=duration_seconds,
-            strict_validation=strict_validation,
-            after_call=_check_interrupted,
-        )
-        report = result.analysis_report(
-            mode=mode,
-            length=aligned_length,
-            requested_duration_seconds=duration_seconds,
-            observations=observations,
-        )
-        node_output = io.NodeOutput(
-            result.prompt,
-            aligned_length,
-            report,
-            first_frame,
-            last_frame,
-        )
-        _release_clip_vram(clip)
-        return node_output
 
 
 class RPH3I2VFramesPromptWriter(io.ComfyNode):

@@ -759,7 +759,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "# MiniMax H3 Prompt Writers\n\n**Repository:**  \nhttps://github.com/raffaele-pet/ComfyUI-RPNodes\n\nThese three nodes use **Gemma 4** to analyze the request and any connected media, generating optimized prompts for **MiniMax H3**.\n\n## RP H3-T2V Prompt Writer\n\nGenerates a complete **Text-to-Video** prompt. Optional images, videos, and audio are used only as creative guidance during analysis.\n\nThe final prompt is fully self-contained and contains no `Picture`, `Video`, `Audio`, or `Subject` reference tags.\n\n## RP H3-I2V Prompt Writer\n\nGenerates **Image-to-Video** prompts using the first frame, the last frame, or both.\n\nThe prompt structure is automatically adapted to the connected frame combination.\n\n## RP H3-REF2V Prompt Writer\n\nGenerates **Reference-to-Video** prompts from connected images, videos, and audio.\n\nIt preserves the `<Picture N>`, `<Video N>`, `<Audio N>`, and `<Subject N>` tags required by MiniMax H3 to associate each element with its corresponding source."
+        "# MiniMax H3 Prompt Writers\n\n**Repository:**  \nhttps://github.com/raffaele-pet/ComfyUI-RPNodes\n\nThese three nodes use **Gemma 4** to analyze the request and any connected media, generating optimized prompts for **MiniMax H3**.\n\n## RP H3-T2V Prompt Writer\n\nGenerates a complete **Text-to-Video** prompt. Optional images, videos, and audio are used only as creative guidance during analysis.\n\nThe final prompt is fully self-contained and contains no `Picture`, `Video`, `Audio`, or `Subject` reference tags.\n\n## RP H3-I2V Frames Prompt Writer\n\nGenerates **Image-to-Video** prompts from one to nine ordered images. With **RP H3-Keyframes** it supports multiframe generation; without it, it works as a standard first/last-frame prompt writer.\n\n## RP H3-REF2V Prompt Writer\n\nGenerates **Reference-to-Video** prompts from connected images, videos, and audio.\n\nIt preserves the `<Picture N>`, `<Video N>`, `<Audio N>`, and `<Subject N>` tags required by MiniMax H3 to associate each element with its corresponding source."
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -782,14 +782,14 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "# MiniMax H3 Prompt Writers\n\n**Repository:**  \nhttps://github.com/raffaele-pet/ComfyUI-RPNodes\n\nQuesti tre nodi utilizzano **Gemma 4** per analizzare la richiesta e gli eventuali contenuti multimediali, generando prompt ottimizzati per **MiniMax H3**.\n\n## RP H3-T2V Prompt Writer\n\nGenera un prompt **Text-to-Video** completo. Immagini, video e audio opzionali vengono utilizzati soltanto come riferimenti creativi durante l’analisi.\n\nIl prompt finale è autonomo e non contiene tag `Picture`, `Video`, `Audio` o `Subject`.\n\n## RP H3-I2V Prompt Writer\n\nGenera prompt **Image-to-Video** utilizzando il primo fotogramma, l’ultimo fotogramma oppure entrambi.\n\nLa struttura del prompt viene adattata automaticamente alla combinazione di frame collegata.\n\n## RP H3-REF2V Prompt Writer\n\nGenera prompt **Reference-to-Video** usando immagini, video e audio.\n\nMantiene i tag `<Picture N>`, `<Video N>`, `<Audio N>` e `<Subject N>` necessari a MiniMax H3 per associare correttamente ogni elemento alla relativa sorgente."
+        "# MiniMax H3 Prompt Writers\n\n**Repository:**  \nhttps://github.com/raffaele-pet/ComfyUI-RPNodes\n\nQuesti tre nodi utilizzano **Gemma 4** per analizzare la richiesta e gli eventuali contenuti multimediali, generando prompt ottimizzati per **MiniMax H3**.\n\n## RP H3-T2V Prompt Writer\n\nGenera un prompt **Text-to-Video** completo. Immagini, video e audio opzionali vengono utilizzati soltanto come riferimenti creativi durante l’analisi.\n\nIl prompt finale è autonomo e non contiene tag `Picture`, `Video`, `Audio` o `Subject`.\n\n## RP H3-I2V Frames Prompt Writer\n\nGenera prompt **Image-to-Video** da una a nove immagini ordinate. Con **RP H3-Keyframes** supporta la generazione multiframe; senza, funziona come un normale prompt writer first/last frame.\n\n## RP H3-REF2V Prompt Writer\n\nGenera prompt **Reference-to-Video** usando immagini, video e audio.\n\nMantiene i tag `<Picture N>`, `<Video N>`, `<Audio N>` e `<Subject N>` necessari a MiniMax H3 per associare correttamente ogni elemento alla relativa sorgente."
       ],
       "color": "#432",
       "bgcolor": "#653"
     },
     {
       "id": 7,
-      "type": "RPH3I2VPromptWriter",
+      "type": "RPH3I2VFramesPromptWriter",
       "pos": [
         3200,
         430
@@ -808,13 +808,17 @@
           "link": 6
         },
         {
-          "name": "first_frame",
+          "label": "frame_1",
+          "localized_name": "frames.frame_1",
+          "name": "frames.frame_1",
           "shape": 7,
           "type": "IMAGE",
           "link": 7
         },
         {
-          "name": "last_frame",
+          "label": "frame_2",
+          "localized_name": "frames.frame_2",
+          "name": "frames.frame_2",
           "shape": 7,
           "type": "IMAGE",
           "link": 17
@@ -837,22 +841,12 @@
           "name": "analysis_report",
           "type": "STRING",
           "links": []
-        },
-        {
-          "name": "first_frame",
-          "type": "IMAGE",
-          "links": []
-        },
-        {
-          "name": "last_frame",
-          "type": "IMAGE",
-          "links": []
         }
       ],
       "properties": {
         "aux_id": "raffaele-pet/ComfyUI-RPNodes",
         "ver": "062eeddea7a6a500075b31075c746d9f5e817565",
-        "Node name for S&R": "RPH3I2VPromptWriter"
+        "Node name for S&R": "RPH3I2VFramesPromptWriter"
       },
       "widgets_values": [
         "Auto — choose the best H3 skill",
@@ -1083,7 +1077,7 @@
   "groups": [
     {
       "id": 1,
-      "title": "RP H3-I2V Prompt Writer",
+      "title": "RP H3-I2V Frames Prompt Writer",
       "bounding": [
         2100,
         300,

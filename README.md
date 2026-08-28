@@ -6,7 +6,7 @@ A collection of utility nodes for ComfyUI:
   and `RP Image Minimum 1K`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 prompt writing:** `RP H3-T2V Prompt Writer`,
-  `RP H3-I2V Prompt Writer`, and `RP H3-REF2V Prompt Writer`
+  `RP H3-I2V Frames Prompt Writer`, and `RP H3-REF2V Prompt Writer`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
@@ -111,12 +111,10 @@ provided through the package requirements.
 
 ## MiniMax H3 prompt writing
 
-Four Gemma-powered nodes turn a plain-language request and optional media into
+Three Gemma-powered nodes turn a plain-language request and optional media into
 a structured prompt for MiniMax H3 video generation.
 
-![RP H3-T2V, I2V, and REF2V Prompt Writer nodes](./minimaxh3_prompt_writer/images/minimaxh3_prompt_nodes.png)
-
-The bundled workflow presents the original three prompt writers side by side
+The bundled workflow presents the three prompt writers side by side
 and includes compact English and Italian Markdown notes with the repository
 link.
 
@@ -129,43 +127,13 @@ inputs grow automatically up to 9 images, 3 videos, 3 paired soundtracks, and 3
 standalone audio clips. Every visual input receives a corresponding timed
 Storyboard contribution in the finished prompt.
 
-### RP H3-I2V Prompt Writer
-
-Creates the appropriate T2VA, I2VA, FL2VA, or L2VA prompt from the text request
-and optional first and last frames. Both static frame inputs also have matching
-pass-through outputs.
-
 ### RP H3-I2V Frames Prompt Writer
 
-Creates an I2V prompt from an ordered sequence of up to nine frame images. The
-node initially shows `frame_1`; connecting it reveals `frame_2`, and the inputs
-continue growing in the same way through `frame_9`. Every connected frame is
-mapped internally to the native REF2V image sockets and represented by its
-matching Picture label. The node then uses the same manifest, media analysis,
-payload, composition, canonicalization, repair, and validation path as
-`RP H3-REF2V Prompt Writer`. Its six output sections are therefore unchanged,
-including the field name `detailed_description`. It follows the full-reference
-format, including a short style introduction before `[Shot 1]`, while
-developing the action in target-video playback order. The node outputs only
-`prompt`, `aligned_length`, and `analysis_report`; it does not pass the frame
-images through. The shared REF2V composition pass also supplies a missing
-dialogue language tag without changing the spoken text. A missing Picture
-citation is first restored only when its own analyzed visual evidence matches a
-concrete action sentence. If Gemma still omits it after the normal repair pass,
-the node attaches the citation within the interval bounded by its nearest
-earlier and later keyframes and reports that fallback in `quality_warnings`.
-It never fills the gap with invented generic transition prose. Each frame
-analysis is supplied once in an ordered frame ledger, permanently bound to its
-matching Picture label; the node never silently exchanges labels. The raw
-request is separately converted into an ordered event ledger, so each line
-remains attached to its own action and exact spoken text. This allows several
-events to occur between two frames without merging their dialogue. Only
-structural schema errors can trigger the single Gemma repair pass.
-Non-structural review hints, such as a suspicious first-citation order, are
-written to `quality_warnings` in `analysis_report` and never block or regenerate
-an otherwise usable prompt. Each adjacent `frame_n` pair is treated as two
-states of one continuous movement unless the request or the images establish a
-real cut.
+Creates an I2V prompt from one to nine ordered images, with frame inputs growing
+automatically as they are connected. With `RP H3-Keyframes` it supports
+multiframe generation. Without `RP H3-Keyframes` it works as a standard
+first/last-frame prompt writer; connect the same one or two images to the native
+H3 first/last-frame inputs.
 
 ### RP H3-REF2V Prompt Writer
 
@@ -181,7 +149,7 @@ T2V uses contiguous second-based Storyboard ranges; REF2V timestamps later
 shots. `duration_seconds` drives both prompt timing and the H3-compatible
 `aligned_length`.
 
-All four nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
+All three nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
 loaded as `stable_diffusion`. The native H3 generation node must keep its
 separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
 `prompt`, the H3-compatible `aligned_length`, and an `analysis_report`. Each
