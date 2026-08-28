@@ -801,6 +801,20 @@ def ref_system_prompt_with_i2v_description(
         "  visibly occur in playback order. Do not substitute a static reference",
         1,
     )
+    generic_soundscape_rules = """- `overall_soundscape` is a compact English paragraph for ambience, physical
+  actions, and nonverbal human or animal sounds only. State an Audio
+  copy/reference relationship here only when it supplies those diegetic layers.
+  Do not include audience-only music, dialogue, singing, or synchronized music
+  already described in the shot. Use N/A only for explicitly requested total
+  silence."""
+    i2v_soundscape_rules = """- `overall_soundscape` contains only explicitly requested ambience, physical
+  sounds, and nonverbal sounds. If none are explicitly requested, output exactly
+  N/A."""
+    if generic_soundscape_rules not in contract:
+        raise RuntimeError("REF2V overall_soundscape contract block not found")
+    contract = contract.replace(
+        generic_soundscape_rules, i2v_soundscape_rules, 1
+    )
     requested_duration = _requested_duration(length, requested_duration_seconds)
     requested_duration_text = _compact_seconds(requested_duration)
     duration = effective_duration(length)
