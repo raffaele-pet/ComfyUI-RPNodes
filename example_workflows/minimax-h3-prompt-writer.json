@@ -851,6 +851,7 @@
       "widgets_values": [
         "Auto — choose the best H3 skill",
         3,
+        "",
         2048,
         256,
         false,

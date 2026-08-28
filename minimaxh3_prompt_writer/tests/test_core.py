@@ -14,6 +14,7 @@ from engine.analyzers import (
 from engine.chronology import (
     extract_visible_text_strings,
     ordered_event_ledger,
+    split_numbered_prompts,
     validate_dialogue_event_ownership,
 )
 from engine.constants import SKILL_CHOICES, SKILL_CORE, get_skill_profile
@@ -133,6 +134,23 @@ He puts a sign aside and says "Follow me!".
         ledger = ordered_event_ledger(prompt)
         self.assertEqual(ledger[0]["visible_verbatim_strings"], ["I Love ComfyUI"])
         self.assertIn("I Love ComfyUI", ledger[0]["protected_verbatim_strings"])
+
+    def test_legacy_numbered_request_migrates_without_duplicate_dialogue(self):
+        raw = """1. Personaggio.
+2. Il personaggio saluta dicendo "Hello everyone! I'm Raph!".
+3. Il personaggio prende una tazza e beve.
+4. Un robot arriva e il personaggio dice "Not now, Pat!".
+5. Il personaggio si gira sorpreso.
+6. Il personaggio punta e ride.
+7. Mostra un cartello dove c'è scritto I Love ComfyUI.
+8. Zoom-in; il personaggio dice "Follow me!".
+9. Zoom-out."""
+        prompts = split_numbered_prompts(raw)
+        self.assertEqual(list(prompts), list(range(1, 10)))
+        self.assertIn("Hello everyone! I'm Raph!", prompts[2])
+        self.assertNotIn("Hello everyone! I'm Raph!", prompts[3])
+        self.assertIn("I Love ComfyUI", prompts[7])
+        self.assertIn("Follow me!", prompts[8])
 
     def test_frames_dialogue_validator_rejects_lines_merged_across_events(self):
         raw = """The character waves and says "Hello everyone! I'm Raph!".

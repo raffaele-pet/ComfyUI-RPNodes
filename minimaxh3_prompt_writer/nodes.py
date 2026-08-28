@@ -15,6 +15,7 @@ from .engine.composer import (
     compose_t2v_prompt,
 )
 from .engine.constants import SKILL_CHOICES
+from .engine.chronology import split_numbered_prompts
 from .engine.gemma import GemmaRunner, SamplingConfig
 from .engine.manifests import (
     ReferenceManifest,
@@ -237,9 +238,9 @@ def _common_inputs(*, include_frame_prompts: bool = False) -> list[Any]:
         ),
     ]
     if include_frame_prompts:
-        # I2V intent lives only in prompt_1...prompt_9. The frontend migration
-        # removes the former global prompt value from positional workflows.
-        del inputs[3]
+        # Keep the historical prompt widget at its original serialized index.
+        # The frontend hides it and Python uses it only to migrate old numbered
+        # requests; appending new fields preserves every parameter position.
         inputs.extend(_ordered_prompt_inputs())
     return inputs
 
@@ -346,6 +347,7 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         clip,
         skill,
         duration_seconds,
+        prompt,
         max_token_length,
         media_analysis_tokens,
         sampling,
@@ -394,6 +396,11 @@ class RPH3I2VPromptWriter(io.ComfyNode):
             slot: str(supplied_prompts[slot - 1] or "").strip()
             for slot, _ in connected
         }
+        if not any(frame_prompts.values()) and str(prompt or "").strip():
+            legacy_prompts = split_numbered_prompts(prompt)
+            frame_prompts = {
+                slot: legacy_prompts.get(slot, "") for slot, _ in connected
+            }
         missing_prompts = [
             f"prompt_{slot}" for slot, value in frame_prompts.items() if not value
         ]

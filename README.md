@@ -133,10 +133,12 @@ Creates an I2V prompt from one to nine ordered images, with frame inputs growing
 automatically as they are connected. With `RP H3-Keyframes` it supports
 multiframe generation. Without `RP H3-Keyframes` it works as a standard
 first/last-frame prompt writer; connect the same one or two images to the native
-H3 first/last-frame inputs. The node has no global prompt: every connected
-`frame_N` reveals and requires its matching non-empty `prompt_N` field. Gemma
-permanently binds each prompt, its protected dialogue/text, and the analyzed
-image to `<Picture N>`.
+H3 first/last-frame inputs. The node has no visible global prompt: every
+connected `frame_N` reveals and requires its matching non-empty `prompt_N`
+field. Gemma permanently binds each prompt, its protected dialogue/text, and
+the analyzed image to `<Picture N>`. A hidden compatibility value preserves the
+historical widget indices and automatically splits an old numbered `1. ... 9.`
+request into the matching prompt fields without shifting advanced parameters.
 All rows become one continuous chronological `[Shot 1]`, preserving identity,
 space, action, and camera motion. A later Shot is allowed only when a `prompt_N`
 explicitly requests a cut, scene/location change, or time jump.
