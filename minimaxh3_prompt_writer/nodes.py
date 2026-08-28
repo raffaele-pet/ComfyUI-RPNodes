@@ -91,8 +91,35 @@ def _connected_frames(frames: io.Autogrow.Type | None) -> list[tuple[int, Any]]:
     return connected
 
 
-def _common_inputs() -> list[Any]:
+def _frame_prompt_inputs() -> list[Any]:
     return [
+        io.String.Input(
+            f"frame_prompt_{index}",
+            multiline=True,
+            dynamic_prompts=False,
+            default="",
+            tooltip=(
+                f"Draft for frame_{index} only. Describe the intended action or "
+                "state around this exact frame; Gemma keeps it bound to "
+                f"<Picture {index}> and merges all frame drafts into one "
+                "continuous H3 video prompt."
+            ),
+        )
+        for index in range(1, 10)
+    ]
+
+
+def _common_inputs(*, include_frame_prompts: bool = False) -> list[Any]:
+    prompt_tooltip = (
+        "Global request in any language. Use it for the overall direction and "
+        "put frame-specific actions in the matching frame_prompt_N field. "
+        "Structural output is English; dialogue, lyrics, and visible text "
+        "remain verbatim."
+        if include_frame_prompts
+        else "Raw request in any language. Structural output is English; "
+        "dialogue, lyrics, and visible text remain verbatim."
+    )
+    inputs = [
         io.Clip.Input(
             "clip",
             tooltip=(
@@ -127,10 +154,7 @@ def _common_inputs() -> list[Any]:
             multiline=True,
             dynamic_prompts=False,
             default="",
-            tooltip=(
-                "Raw request in any language. Structural output is English; "
-                "dialogue, lyrics, and visible text remain verbatim."
-            ),
+            tooltip=prompt_tooltip,
         ),
         io.Int.Input(
             "max_token_length",
@@ -218,6 +242,11 @@ def _common_inputs() -> list[Any]:
             ),
         ),
     ]
+    if include_frame_prompts:
+        # Append rather than insert so positional widgets_values from workflows
+        # saved before per-frame drafts keep every historical widget index.
+        inputs.extend(_frame_prompt_inputs())
+    return inputs
 
 
 def _reference_media_inputs() -> list[Any]:
@@ -282,15 +311,16 @@ class RPH3I2VPromptWriter(io.ComfyNode):
             display_name="RP H3-I2V Prompt Writer",
             category="RP/MiniMax H3",
             description=(
-                "Analyzes up to nine ordered H3 frame images and rewrites a raw "
-                "request into a structured multimodal prompt that uses them all."
+                "Analyzes up to nine ordered H3 frame images, binds each local "
+                "draft to its matching frame, and writes one continuous "
+                "structured multimodal prompt that uses them all."
             ),
             search_aliases=[
                 "H3 frames prompt",
                 "Gemma prompt writer",
                 "I2V frames prompt",
             ],
-            inputs=_common_inputs()
+            inputs=_common_inputs(include_frame_prompts=True)
             + [
                 io.Autogrow.Input(
                     "frames",
@@ -333,6 +363,15 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         seed,
         strict_validation,
         frames: io.Autogrow.Type = None,
+        frame_prompt_1="",
+        frame_prompt_2="",
+        frame_prompt_3="",
+        frame_prompt_4="",
+        frame_prompt_5="",
+        frame_prompt_6="",
+        frame_prompt_7="",
+        frame_prompt_8="",
+        frame_prompt_9="",
     ) -> io.NodeOutput:
         connected = _connected_frames(frames)
         if not connected:
@@ -345,6 +384,21 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         # sockets are mapped to its native image sockets before all processing.
         ref_images = {
             f"ref_image_{slot - 1}": image for slot, image in connected
+        }
+        supplied_frame_prompts = (
+            frame_prompt_1,
+            frame_prompt_2,
+            frame_prompt_3,
+            frame_prompt_4,
+            frame_prompt_5,
+            frame_prompt_6,
+            frame_prompt_7,
+            frame_prompt_8,
+            frame_prompt_9,
+        )
+        frame_prompts = {
+            slot: str(supplied_frame_prompts[slot - 1] or "").strip()
+            for slot, _ in connected
         }
         manifest = ReferenceManifest.from_inputs(ref_images=ref_images)
         runner = GemmaRunner(clip)
@@ -378,6 +432,7 @@ class RPH3I2VPromptWriter(io.ComfyNode):
             strict_validation=strict_validation,
             after_call=_check_interrupted,
             i2v_detailed_description=True,
+            frame_prompts=frame_prompts,
         )
         report = result.analysis_report(
             mode="Frames2VA",

@@ -1223,11 +1223,23 @@ def compose_ref_prompt(
     strict_validation: bool = True,
     after_call: Callable[[], None] = _noop,
     i2v_detailed_description: bool = False,
+    frame_prompts: dict[int, str] | None = None,
 ) -> ComposeResult:
+    frame_prompts = {
+        int(index): str(value or "").strip()
+        for index, value in (frame_prompts or {}).items()
+        if str(value or "").strip()
+    }
+    intent_parts = [raw_prompt.strip()]
+    intent_parts.extend(
+        f"<Picture {index}> frame_prompt: {value}"
+        for index, value in sorted(frame_prompts.items())
+    )
+    complete_user_intent = "\n\n".join(part for part in intent_parts if part)
     skill = resolve_skill(
         runner,
         selected_skill_label,
-        raw_prompt=raw_prompt,
+        raw_prompt=complete_user_intent,
         observations=observations,
         seed=sampling.seed,
         after_call=after_call,
@@ -1251,6 +1263,7 @@ def compose_ref_prompt(
         media_observations=observations,
         requested_duration_seconds=requested_duration_seconds,
         ordered_frames=i2v_detailed_description,
+        frame_prompts=frame_prompts,
     )
     candidate = runner.generate_chat(
         system_prompt,
@@ -1265,20 +1278,20 @@ def compose_ref_prompt(
         length,
         manifest,
         requested_duration_seconds=requested_duration_seconds,
-        raw_user_request=raw_prompt,
+        raw_user_request=complete_user_intent,
     )
     if i2v_detailed_description:
         candidate = _remove_frame_picture_definitions(candidate)
         candidate = _remove_frame_non_picture_labels(candidate)
     candidate = _canonicalize_ref_generated_content(
         candidate,
-        raw_prompt=raw_prompt,
+        raw_prompt=complete_user_intent,
         observations=observations,
         manifest=manifest,
         semantic_picture_binding=i2v_detailed_description,
     )
     if i2v_detailed_description:
-        candidate = _ensure_frame_event_dialogue(candidate, raw_prompt)
+        candidate = _ensure_frame_event_dialogue(candidate, complete_user_intent)
         candidate, _ = _restore_ordered_frame_picture_coverage(
             candidate,
             manifest,
@@ -1308,14 +1321,14 @@ def compose_ref_prompt(
             length,
             manifest,
             requested_duration_seconds=requested_duration_seconds,
-            raw_user_request=raw_prompt,
+            raw_user_request=complete_user_intent,
         )
         if i2v_detailed_description:
             repaired_text = _remove_frame_picture_definitions(repaired_text)
             repaired_text = _remove_frame_non_picture_labels(repaired_text)
         repaired_text = _canonicalize_ref_generated_content(
             repaired_text,
-            raw_prompt=raw_prompt,
+            raw_prompt=complete_user_intent,
             observations=observations,
             manifest=manifest,
             semantic_picture_binding=i2v_detailed_description,
@@ -1323,7 +1336,7 @@ def compose_ref_prompt(
         if i2v_detailed_description:
             repaired_text = _ensure_frame_event_dialogue(
                 repaired_text,
-                raw_prompt,
+                complete_user_intent,
             )
             repaired_text, positional_frame_restorations = (
                 _restore_ordered_frame_picture_coverage(
@@ -1342,7 +1355,9 @@ def compose_ref_prompt(
         )
     quality_warnings: tuple[str, ...] = ()
     if i2v_detailed_description:
-        warnings = _frame_quality_warnings(final.text, manifest, raw_prompt)
+        warnings = _frame_quality_warnings(
+            final.text, manifest, complete_user_intent
+        )
         if positional_frame_restorations:
             warnings.append(
                 "After Gemma's repair, omitted frame citations were restored "

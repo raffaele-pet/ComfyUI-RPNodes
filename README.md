@@ -133,7 +133,12 @@ Creates an I2V prompt from one to nine ordered images, with frame inputs growing
 automatically as they are connected. With `RP H3-Keyframes` it supports
 multiframe generation. Without `RP H3-Keyframes` it works as a standard
 first/last-frame prompt writer; connect the same one or two images to the native
-H3 first/last-frame inputs.
+H3 first/last-frame inputs. Every connected `frame_N` reveals its own
+`frame_prompt_N` draft field. Gemma keeps that draft bound to the matching
+`<Picture N>` and combines all frame-specific directions with the global
+`prompt` into one continuous chronological H3 prompt, preserving identity,
+space, action, and camera continuity unless a discontinuity is explicitly
+requested or unavoidable in the ordered images.
 
 ### RP H3-REF2V Prompt Writer
 

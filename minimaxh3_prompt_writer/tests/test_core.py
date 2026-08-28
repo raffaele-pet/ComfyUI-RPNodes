@@ -2234,6 +2234,11 @@ class GemmaRunnerTests(unittest.TestCase):
                 "ref_image_2": "<Picture 3>: final pose.",
             },
             ordered_frames=True,
+            frame_prompts={
+                1: "The performer notices a sound.",
+                2: "The performer raises one hand.",
+                3: "The hand settles without a cut.",
+            },
         )
         self.assertIn("<Picture 3> <- ref_image_2", system)
         self.assertIn("detailed_description:", system)
@@ -2246,6 +2251,9 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("ordered_frame_ledger", system)
         self.assertIn("never exchange labels", system)
         self.assertIn("physically plausible motion", system)
+        self.assertIn("Keep every row's `picture_label`, `observed_state`,", system)
+        self.assertIn("one uninterrupted chronological", system)
+        self.assertIn("Do not add\n  a cut, reset, teleport", system)
         self.assertIn("Use `[keyframe completion]`", system)
         self.assertNotIn("ordered_adjacent_frame_pairs", system)
         self.assertNotIn("[Event 1]", system)
@@ -2253,6 +2261,11 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn('"socket": "ref_image_2"', payload)
         self.assertIn('"connected_input": "frame_3"', payload)
         self.assertIn('"observed_state":', payload)
+        self.assertIn('"frame_prompt": "The performer raises one hand."', payload)
+        self.assertLess(
+            payload.index("waving pose."),
+            payload.index("The performer raises one hand."),
+        )
         self.assertIn("final pose.", payload)
         self.assertIn('"mode": "Ref2VA"', payload)
 
