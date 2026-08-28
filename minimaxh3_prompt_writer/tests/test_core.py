@@ -12,12 +12,14 @@ from engine.analyzers import (
     ensure_analysis_records,
 )
 from engine.chronology import (
+    extract_visible_text_strings,
     ordered_event_ledger,
     validate_dialogue_event_ownership,
 )
 from engine.constants import SKILL_CHOICES, SKILL_CORE, get_skill_profile
 from engine.composer import (
     _ensure_frame_event_dialogue,
+    _frame_prompt_binding_issues,
     _materialize_frame_event_dialogue,
     _validate_frame_picture_order,
     compose_base_prompt,
@@ -121,6 +123,16 @@ He puts a sign aside and says "Follow me!".
             ledger[2]["protected_verbatim_strings"],
             ["Not now, Pat!"],
         )
+
+    def test_visible_sign_text_is_protected_without_quotes(self):
+        prompt = (
+            "Il personaggio prende un cartello da dietro la schiena dove c'è "
+            "scritto I Love ComfyUI."
+        )
+        self.assertEqual(extract_visible_text_strings(prompt), ["I Love ComfyUI"])
+        ledger = ordered_event_ledger(prompt)
+        self.assertEqual(ledger[0]["visible_verbatim_strings"], ["I Love ComfyUI"])
+        self.assertIn("I Love ComfyUI", ledger[0]["protected_verbatim_strings"])
 
     def test_frames_dialogue_validator_rejects_lines_merged_across_events(self):
         raw = """The character waves and says "Hello everyone! I'm Raph!".
@@ -2224,7 +2236,7 @@ class GemmaRunnerTests(unittest.TestCase):
             124, skill, manifest
         )
         payload = ref_user_payload(
-            raw_prompt="Animate the sequence.",
+            raw_prompt="",
             length=124,
             skill=skill,
             manifest=manifest,
@@ -2249,25 +2261,98 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("consecutive visible\n  states", system)
         self.assertIn("ordered_event_ledger", system)
         self.assertIn("ordered_frame_ledger", system)
-        self.assertIn("never exchange labels", system)
+        self.assertIn("Never exchange any of these values", system)
         self.assertIn("physically plausible motion", system)
-        self.assertIn("Keep every row's `picture_label`, `observed_state`,", system)
+        self.assertIn("ORDERED PROMPT INTENT IS PRIMARY", system)
         self.assertIn("one uninterrupted chronological", system)
-        self.assertIn("Do not add\n  a cut, reset, teleport", system)
+        self.assertIn("Do not emit `[Shot 2]`", system)
+        self.assertIn("Zoom-in and\n  zoom-out are continuous camera moves", system)
+        self.assertIn("Never create Subject 1, Subject 2", system)
         self.assertIn("Use `[keyframe completion]`", system)
         self.assertNotIn("ordered_adjacent_frame_pairs", system)
         self.assertNotIn("[Event 1]", system)
         self.assertIn(r'\u003cPicture 3>', payload)
         self.assertIn('"socket": "ref_image_2"', payload)
-        self.assertIn('"connected_input": "frame_3"', payload)
+        self.assertIn('"frame_input": "frame_3"', payload)
+        self.assertIn('"prompt_input": "prompt_3"', payload)
         self.assertIn('"observed_state":', payload)
-        self.assertIn('"frame_prompt": "The performer raises one hand."', payload)
+        self.assertIn('"prompt": "The performer raises one hand."', payload)
+        self.assertIn('"prompt_event_ledger":', payload)
         self.assertLess(
             payload.index("waving pose."),
             payload.index("The performer raises one hand."),
         )
         self.assertIn("final pose.", payload)
         self.assertIn('"mode": "Ref2VA"', payload)
+
+    def test_frame_prompt_binding_rejects_cuts_moved_dialogue_and_text_loss(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
+        malformed = """subject_definitions:
+<Subject 1> The character from <Picture 1>.
+<Subject 2> The character from <Picture 2>.
+<Subject 3> The character from <Picture 3>.
+
+summary:
+[keyframe completion] The character greets and raises a sign.
+
+retention_analysis:
+N/A
+
+detailed_description:
+[Shot 1] The character waits in <Picture 1>. [Shot 2] At 00:01.000, the character waves in <Picture 2>. The character reaches <Picture 3>, says "<d>[English] Hello!</d>", and raises a sign reading "I ComfyUI".
+
+overall_soundscape:
+Room tone.
+
+non_diegetic_music:
+N/A"""
+        issues = _frame_prompt_binding_issues(
+            malformed,
+            {
+                1: "Personaggio.",
+                2: 'Il personaggio saluta dicendo "Hello!".',
+                3: "Il personaggio mostra un cartello dove c'è scritto I Love ComfyUI.",
+            },
+            manifest,
+        )
+        self.assertTrue(any("one continuous Shot" in issue for issue in issues))
+        self.assertTrue(any("wrong Picture" in issue for issue in issues))
+        self.assertTrue(any("I Love ComfyUI" in issue for issue in issues))
+        self.assertTrue(any("split into one Subject" in issue for issue in issues))
+
+    def test_frame_prompt_binding_accepts_one_continuous_owned_sequence(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
+        candidate = """subject_definitions:
+<Subject 1> The same character established by <Picture 1>, <Picture 2>, and <Picture 3>.
+
+summary:
+[keyframe completion] The character greets and raises a sign.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity remains stable.
+
+detailed_description:
+[Shot 1] <Subject 1> waits in <Picture 1>, smoothly raises one hand as the action reaches <Picture 2>, and says "<d>[English] Hello!</d>". Without a cut, the same character lowers the hand, reaches behind the back, and arrives at <Picture 3> holding a sign whose visible text reads "I Love ComfyUI" exactly.
+
+overall_soundscape:
+Room tone and natural movement.
+
+non_diegetic_music:
+N/A"""
+        issues = _frame_prompt_binding_issues(
+            candidate,
+            {
+                1: "Personaggio.",
+                2: 'Il personaggio saluta dicendo "Hello!".',
+                3: "Il personaggio mostra un cartello dove c'è scritto I Love ComfyUI.",
+            },
+            manifest,
+        )
+        self.assertEqual(issues, [])
 
     def test_ref_contract_is_explicit_and_duration_scaled(self):
         manifest = ReferenceManifest.from_inputs(

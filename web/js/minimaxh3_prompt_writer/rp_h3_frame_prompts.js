@@ -2,7 +2,17 @@ import { app } from "/scripts/app.js";
 
 const TARGET = "RPH3I2VPromptWriter";
 const FRAME_INPUT_PATTERN = /^(?:frames\.)?frame_([1-9])$/;
-const FRAME_PROMPT_PATTERN = /^frame_prompt_([1-9])$/;
+const FRAME_PROMPT_PATTERN = /^prompt_([1-9])$/;
+
+function migrateGlobalPrompt(config) {
+  const values = config?.widgets_values;
+  if (!Array.isArray(values)) return;
+  // Historical layouts store: skill, duration, global prompt, token settings...
+  // The new layout removes only that third widget and keeps every later value.
+  if (typeof values[2] === "string" && typeof values[3] === "number") {
+    values.splice(2, 1);
+  }
+}
 
 function frameSlot(input) {
   const name = input?.label || input?.name || "";
@@ -66,7 +76,8 @@ app.registerExtension({
     };
 
     const originalConfigure = nodeType.prototype.onConfigure;
-    nodeType.prototype.onConfigure = function () {
+    nodeType.prototype.onConfigure = function (config) {
+      migrateGlobalPrompt(config);
       const result = originalConfigure?.apply(this, arguments);
       queueMicrotask(() => refreshFramePrompts(this));
       return result;

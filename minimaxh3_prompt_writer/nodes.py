@@ -91,10 +91,10 @@ def _connected_frames(frames: io.Autogrow.Type | None) -> list[tuple[int, Any]]:
     return connected
 
 
-def _frame_prompt_inputs() -> list[Any]:
+def _ordered_prompt_inputs() -> list[Any]:
     return [
         io.String.Input(
-            f"frame_prompt_{index}",
+            f"prompt_{index}",
             multiline=True,
             dynamic_prompts=False,
             default="",
@@ -110,15 +110,6 @@ def _frame_prompt_inputs() -> list[Any]:
 
 
 def _common_inputs(*, include_frame_prompts: bool = False) -> list[Any]:
-    prompt_tooltip = (
-        "Global request in any language. Use it for the overall direction and "
-        "put frame-specific actions in the matching frame_prompt_N field. "
-        "Structural output is English; dialogue, lyrics, and visible text "
-        "remain verbatim."
-        if include_frame_prompts
-        else "Raw request in any language. Structural output is English; "
-        "dialogue, lyrics, and visible text remain verbatim."
-    )
     inputs = [
         io.Clip.Input(
             "clip",
@@ -154,7 +145,10 @@ def _common_inputs(*, include_frame_prompts: bool = False) -> list[Any]:
             multiline=True,
             dynamic_prompts=False,
             default="",
-            tooltip=prompt_tooltip,
+            tooltip=(
+                "Raw request in any language. Structural output is English; "
+                "dialogue, lyrics, and visible text remain verbatim."
+            ),
         ),
         io.Int.Input(
             "max_token_length",
@@ -243,9 +237,10 @@ def _common_inputs(*, include_frame_prompts: bool = False) -> list[Any]:
         ),
     ]
     if include_frame_prompts:
-        # Append rather than insert so positional widgets_values from workflows
-        # saved before per-frame drafts keep every historical widget index.
-        inputs.extend(_frame_prompt_inputs())
+        # I2V intent lives only in prompt_1...prompt_9. The frontend migration
+        # removes the former global prompt value from positional workflows.
+        del inputs[3]
+        inputs.extend(_ordered_prompt_inputs())
     return inputs
 
 
@@ -312,8 +307,8 @@ class RPH3I2VPromptWriter(io.ComfyNode):
             category="RP/MiniMax H3",
             description=(
                 "Analyzes up to nine ordered H3 frame images, binds each local "
-                "draft to its matching frame, and writes one continuous "
-                "structured multimodal prompt that uses them all."
+                "required prompt_N draft to its matching frame, and writes one "
+                "continuous structured multimodal prompt that uses them all."
             ),
             search_aliases=[
                 "H3 frames prompt",
@@ -351,7 +346,6 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         clip,
         skill,
         duration_seconds,
-        prompt,
         max_token_length,
         media_analysis_tokens,
         sampling,
@@ -363,15 +357,15 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         seed,
         strict_validation,
         frames: io.Autogrow.Type = None,
-        frame_prompt_1="",
-        frame_prompt_2="",
-        frame_prompt_3="",
-        frame_prompt_4="",
-        frame_prompt_5="",
-        frame_prompt_6="",
-        frame_prompt_7="",
-        frame_prompt_8="",
-        frame_prompt_9="",
+        prompt_1="",
+        prompt_2="",
+        prompt_3="",
+        prompt_4="",
+        prompt_5="",
+        prompt_6="",
+        prompt_7="",
+        prompt_8="",
+        prompt_9="",
     ) -> io.NodeOutput:
         connected = _connected_frames(frames)
         if not connected:
@@ -385,21 +379,29 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         ref_images = {
             f"ref_image_{slot - 1}": image for slot, image in connected
         }
-        supplied_frame_prompts = (
-            frame_prompt_1,
-            frame_prompt_2,
-            frame_prompt_3,
-            frame_prompt_4,
-            frame_prompt_5,
-            frame_prompt_6,
-            frame_prompt_7,
-            frame_prompt_8,
-            frame_prompt_9,
+        supplied_prompts = (
+            prompt_1,
+            prompt_2,
+            prompt_3,
+            prompt_4,
+            prompt_5,
+            prompt_6,
+            prompt_7,
+            prompt_8,
+            prompt_9,
         )
         frame_prompts = {
-            slot: str(supplied_frame_prompts[slot - 1] or "").strip()
+            slot: str(supplied_prompts[slot - 1] or "").strip()
             for slot, _ in connected
         }
+        missing_prompts = [
+            f"prompt_{slot}" for slot, value in frame_prompts.items() if not value
+        ]
+        if missing_prompts:
+            raise ValueError(
+                "RP H3-I2V Prompt Writer: every connected frame requires its "
+                "matching draft; fill " + ", ".join(missing_prompts)
+            )
         manifest = ReferenceManifest.from_inputs(ref_images=ref_images)
         runner = GemmaRunner(clip)
         observations = analyze_reference_media(
@@ -413,7 +415,7 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         )
         result = compose_ref_prompt(
             runner,
-            raw_prompt=prompt,
+            raw_prompt="",
             length=aligned_length,
             selected_skill_label=skill,
             observations=observations,

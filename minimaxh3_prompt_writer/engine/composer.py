@@ -1014,6 +1014,131 @@ def _frame_quality_warnings(
     return list(dict.fromkeys(warnings))
 
 
+_EXPLICIT_DISCONTINUITY = re.compile(
+    r"\b(?:hard\s+cut|cut\s+to|scene\s+change|location\s+change|time\s+jump|"
+    r"stacco|taglio\s+netto|cambio\s+(?:di\s+)?scena|cambio\s+(?:di\s+)?luogo|"
+    r"salto\s+temporale)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _normalized_frame_string(text: str) -> str:
+    value = re.sub(r"^\s*\[[^\]\n]+\]\s*", "", str(text or "").strip())
+    value = value.replace("’", "'").replace("‘", "'")
+    return re.sub(r"\s+", " ", value).strip().casefold()
+
+
+def _frame_prompt_binding_issues(
+    text: str,
+    frame_prompts: dict[int, str],
+    manifest: ReferenceManifest,
+) -> list[str]:
+    """Validate continuity and exact prompt_N ownership inside Picture spans."""
+
+    if not frame_prompts:
+        return []
+    bounds = _ref_detail_bounds(text)
+    if bounds is None:
+        return []
+    start, end = bounds
+    body = text[start:end]
+    issues: list[str] = []
+
+    prompt_text = "\n".join(frame_prompts.values())
+    if not _EXPLICIT_DISCONTINUITY.search(prompt_text) and re.search(
+        r"\[Shot\s+(?:[2-9]|[1-9]\d+)\]", body, flags=re.IGNORECASE
+    ):
+        issues.append(
+            "Ordered prompt_N inputs request one continuous Shot: remove every "
+            "[Shot 2+] marker and express keyframe changes as smooth motion."
+        )
+
+    positions: dict[int, int] = {}
+    for index, asset in enumerate(manifest.pictures, 1):
+        match = re.search(re.escape(asset.label), body)
+        if match is not None:
+            positions[index] = match.start()
+    ordered_positions = [positions.get(index, -1) for index in range(1, len(manifest.pictures) + 1)]
+    if any(position < 0 for position in ordered_positions) or ordered_positions != sorted(
+        ordered_positions
+    ):
+        issues.append(
+            "Picture citations must occur once in prompt order before dialogue/text "
+            "ownership can be verified."
+        )
+        return list(dict.fromkeys(issues))
+
+    dialogue_matches = list(
+        re.finditer(r"<d>(.*?)</d>", body, flags=re.DOTALL | re.IGNORECASE)
+    )
+    for index, prompt in sorted(frame_prompts.items()):
+        if index not in positions:
+            continue
+        segment_start = positions[index]
+        segment_end = positions.get(index + 1, len(body))
+        segment = body[segment_start:segment_end]
+        for event in ordered_event_ledger(prompt):
+            for spoken in event["spoken_verbatim_strings"]:
+                normalized = _normalized_frame_string(str(spoken))
+                occurrences = [
+                    match
+                    for match in dialogue_matches
+                    if _normalized_frame_string(match.group(1)) == normalized
+                ]
+                if len(occurrences) != 1:
+                    issues.append(
+                        f"prompt_{index} dialogue `{spoken}` must appear exactly "
+                        f"once inside the <Picture {index}> action span."
+                    )
+                elif not (
+                    segment_start <= occurrences[0].start() < segment_end
+                ):
+                    issues.append(
+                        f"prompt_{index} dialogue `{spoken}` was assigned to the "
+                        f"wrong Picture; move it into the <Picture {index}> span."
+                    )
+            for visible in event.get("visible_verbatim_strings", []):
+                if str(visible) not in segment:
+                    issues.append(
+                        f"prompt_{index} visible text `{visible}` must remain "
+                        f"verbatim inside the <Picture {index}> action span."
+                    )
+
+    subject_start = re.search(r"(?m)^subject_definitions:(?=$|[ \t])", text)
+    subject_end = re.search(r"(?m)^summary:(?=$|[ \t])", text)
+    if subject_start is not None and subject_end is not None:
+        subject_lines = re.findall(
+            r"(?m)^\s*<Subject\s+[1-9]\d*>\s+.*$",
+            text[subject_start.end() : subject_end.start()],
+        )
+        singleton_sources = [
+            re.findall(r"<Picture\s+([1-9]\d*)>", line)
+            for line in subject_lines
+        ]
+        threshold = max(3, (7 * len(manifest.pictures) + 9) // 10)
+        if (
+            len(subject_lines) >= threshold
+            and all(len(sources) == 1 for sources in singleton_sources)
+            and len({sources[0] for sources in singleton_sources})
+            == len(singleton_sources)
+        ):
+            issues.append(
+                "The recurring character was split into one Subject per Picture. "
+                "Define it once as a continuous Subject with multi-Picture provenance."
+            )
+    return list(dict.fromkeys(issues))
+
+
+def _extend_validation(
+    validation: ValidationResult,
+    issues: list[str],
+) -> ValidationResult:
+    return ValidationResult(
+        validation.text,
+        tuple(dict.fromkeys((*validation.issues, *issues))),
+    )
+
+
 @dataclass(frozen=True)
 class ComposeResult:
     prompt: str
@@ -1232,7 +1357,7 @@ def compose_ref_prompt(
     }
     intent_parts = [raw_prompt.strip()]
     intent_parts.extend(
-        f"<Picture {index}> frame_prompt: {value}"
+        f"<Picture {index}> prompt_{index}: {value}"
         for index, value in sorted(frame_prompts.items())
     )
     complete_user_intent = "\n\n".join(part for part in intent_parts if part)
@@ -1291,7 +1416,8 @@ def compose_ref_prompt(
         semantic_picture_binding=i2v_detailed_description,
     )
     if i2v_detailed_description:
-        candidate = _ensure_frame_event_dialogue(candidate, complete_user_intent)
+        if not frame_prompts:
+            candidate = _ensure_frame_event_dialogue(candidate, raw_prompt)
         candidate, _ = _restore_ordered_frame_picture_coverage(
             candidate,
             manifest,
@@ -1299,6 +1425,11 @@ def compose_ref_prompt(
             require_semantic_match=True,
         )
     initial = validate_ref_prompt(candidate, length, manifest)
+    if i2v_detailed_description:
+        initial = _extend_validation(
+            initial,
+            _frame_prompt_binding_issues(initial.text, frame_prompts, manifest),
+        )
     final = initial
     repaired = False
     positional_frame_restorations: tuple[str, ...] = ()
@@ -1334,10 +1465,11 @@ def compose_ref_prompt(
             semantic_picture_binding=i2v_detailed_description,
         )
         if i2v_detailed_description:
-            repaired_text = _ensure_frame_event_dialogue(
-                repaired_text,
-                complete_user_intent,
-            )
+            if not frame_prompts:
+                repaired_text = _ensure_frame_event_dialogue(
+                    repaired_text,
+                    raw_prompt,
+                )
             repaired_text, positional_frame_restorations = (
                 _restore_ordered_frame_picture_coverage(
                     repaired_text,
@@ -1347,6 +1479,13 @@ def compose_ref_prompt(
                 )
             )
         final = validate_ref_prompt(repaired_text, length, manifest)
+        if i2v_detailed_description:
+            final = _extend_validation(
+                final,
+                _frame_prompt_binding_issues(
+                    final.text, frame_prompts, manifest
+                ),
+            )
         repaired = True
     if strict_validation and not final.valid:
         raise ValueError(
@@ -1355,9 +1494,7 @@ def compose_ref_prompt(
         )
     quality_warnings: tuple[str, ...] = ()
     if i2v_detailed_description:
-        warnings = _frame_quality_warnings(
-            final.text, manifest, complete_user_intent
-        )
+        warnings = _frame_quality_warnings(final.text, manifest, raw_prompt)
         if positional_frame_restorations:
             warnings.append(
                 "After Gemma's repair, omitted frame citations were restored "

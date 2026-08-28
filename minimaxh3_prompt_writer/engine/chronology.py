@@ -23,6 +23,13 @@ _SPEECH_CUE = re.compile(
     r"diz|dizem|dizendo|fala|pergunta|responde|sussurra|grita)\b",
     flags=re.IGNORECASE,
 )
+_VISIBLE_TEXT_CUE = re.compile(
+    r"(?:c['’]\s*è\s+scritto|con\s+scritto|mostra\s+(?:la\s+)?scritta|"
+    r"(?:the\s+)?(?:sign|screen|label|card)\s+(?:reads|says|displays)|"
+    r"written\s+on\s+(?:the\s+)?(?:sign|screen|label|card))\s*[:\-]?\s*"
+    r"[\"“]?([^\"”\n.!?]+)",
+    flags=re.IGNORECASE,
+)
 
 
 def _sentence_events(text: str) -> list[str]:
@@ -66,6 +73,13 @@ def extract_protected_strings(text: str) -> list[str]:
     return values
 
 
+def extract_visible_text_strings(text: str) -> list[str]:
+    """Return literal display text following common English/Italian cues."""
+
+    values = [match.group(1).strip() for match in _VISIBLE_TEXT_CUE.finditer(text)]
+    return [value for value in values if value]
+
+
 def ordered_event_ledger(raw_prompt: str) -> list[dict[str, object]]:
     """Turn a raw request into simple chronological beats for a small LLM.
 
@@ -90,14 +104,17 @@ def ordered_event_ledger(raw_prompt: str) -> list[dict[str, object]]:
 
     ledger: list[dict[str, object]] = []
     for index, event in enumerate(events, start=1):
-        protected = extract_protected_strings(event)
+        quoted = extract_protected_strings(event)
+        visible = extract_visible_text_strings(event)
+        protected = list(dict.fromkeys(quoted + visible))
         ledger.append(
             {
                 "event_index": index,
                 "source_text": event,
                 "protected_verbatim_strings": protected,
+                "visible_verbatim_strings": visible,
                 "spoken_verbatim_strings": (
-                    protected if protected and _SPEECH_CUE.search(event) else []
+                    quoted if quoted and _SPEECH_CUE.search(event) else []
                 ),
             }
         )

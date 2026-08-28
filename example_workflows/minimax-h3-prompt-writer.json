@@ -851,7 +851,6 @@
       "widgets_values": [
         "Auto — choose the best H3 skill",
         3,
-        "the girl is dancing",
         2048,
         256,
         false,
@@ -862,7 +861,16 @@
         1.05,
         42,
         "fixed",
-        true
+        true,
+        "The girl begins in a relaxed standing pose.",
+        "The same girl flows into a joyful dance while the camera follows continuously.",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
       ]
     },
     {
