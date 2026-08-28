@@ -52,6 +52,7 @@ const TARGETS = new Set([
 const STATIC_PANEL_HEIGHT = 112;
 const STATIC_WIDGET_HEIGHT = 136;
 const STATIC_NODE_HEIGHT = 730;
+const NODE_HORIZONTAL_PADDING = 20;
 
 function makePanel() {
   const root = document.createElement("div");
@@ -118,7 +119,14 @@ app.registerExtension({
         getMinHeight: () => STATIC_WIDGET_HEIGHT,
       });
       panelWidget.serialize = false;
-      panelWidget.computeSize = (width) => [width, STATIC_WIDGET_HEIGHT];
+      const panelWidth = (fallback = 0) =>
+        Math.max(10, (this.size?.[0] || fallback) - NODE_HORIZONTAL_PADDING);
+      const syncPanelWidth = () => {
+        const width = `${panelWidth()}px`;
+        panel.root.style.width = width;
+        panel.root.style.maxWidth = width;
+      };
+      panelWidget.computeSize = (width) => [panelWidth(width), STATIC_WIDGET_HEIGHT];
 
       const skillWidget = this.widgets?.find((widget) => widget.name === "skill");
       const formatDuration = () => {
@@ -148,13 +156,22 @@ app.registerExtension({
         };
       }
       refresh();
+      syncPanelWidth();
       applyStaticNodeSize();
+
+      const originalResize = this.onResize;
+      this.onResize = function () {
+        const resizeResult = originalResize?.apply(this, arguments);
+        syncPanelWidth();
+        return resizeResult;
+      };
 
       const originalConfigure = this.onConfigure;
       this.onConfigure = function () {
         const configureResult = originalConfigure?.apply(this, arguments);
         queueMicrotask(() => {
           refresh();
+          syncPanelWidth();
           applyStaticNodeSize();
         });
         return configureResult;
