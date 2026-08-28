@@ -30,9 +30,6 @@ _VISIBLE_TEXT_CUE = re.compile(
     r"[\"“]?([^\"”\n.!?]+)",
     flags=re.IGNORECASE,
 )
-_NUMBERED_PROMPT = re.compile(
-    r"(?ms)^\s*([1-9])\s*[.)]\s*(.+?)(?=^\s*[1-9]\s*[.)]\s*|\Z)"
-)
 
 
 def _sentence_events(text: str) -> list[str]:
@@ -81,20 +78,6 @@ def extract_visible_text_strings(text: str) -> list[str]:
 
     values = [match.group(1).strip() for match in _VISIBLE_TEXT_CUE.finditer(text)]
     return [value for value in values if value]
-
-
-def split_numbered_prompts(text: str) -> dict[int, str]:
-    """Migrate one legacy ``1. ... 9. ...`` request into ordered prompts."""
-
-    prompts = {
-        int(match.group(1)): match.group(2).strip()
-        for match in _NUMBERED_PROMPT.finditer(str(text or ""))
-        if match.group(2).strip()
-    }
-    if not prompts:
-        return {}
-    expected = set(range(1, max(prompts) + 1))
-    return prompts if set(prompts) == expected else {}
 
 
 def ordered_event_ledger(raw_prompt: str) -> list[dict[str, object]]:

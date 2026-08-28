@@ -1,4 +1,8 @@
 import { app } from "/scripts/app.js";
+import {
+  populateLegacyFramePrompts,
+  restoreWidgetValues,
+} from "./rp_h3_widget_migration.mjs";
 
 const TARGET = "RPH3I2VPromptWriter";
 const FRAME_INPUT_PATTERN = /^(?:frames\.)?frame_([1-9])$/;
@@ -33,55 +37,7 @@ function setWidgetVisible(widget, visible) {
   }
 }
 
-function hideLegacyPrompt(widget) {
-  if (!widget) return;
-  rememberWidgetLayout(widget);
-  const original = widget._rpH3FramePromptLayout;
-  // Keep the original widget type so ComfyUI continues serializing its value at
-  // the historical index while the control remains completely invisible.
-  widget.type = original.type;
-  widget.computeSize = () => [0, -4];
-  widget.hidden = true;
-}
-
-function splitNumberedPrompts(text) {
-  const source = String(text || "");
-  const markers = [...source.matchAll(/^\s*([1-9])\s*[.)]\s*/gm)];
-  if (!markers.length) return new Map();
-
-  const prompts = new Map();
-  for (let index = 0; index < markers.length; index += 1) {
-    const marker = markers[index];
-    const next = markers[index + 1];
-    const slot = Number(marker[1]);
-    const value = source
-      .slice(marker.index + marker[0].length, next?.index ?? source.length)
-      .trim();
-    if (value) prompts.set(slot, value);
-  }
-
-  const slots = [...prompts.keys()];
-  const complete = slots.every((slot, index) => slot === index + 1);
-  return complete ? prompts : new Map();
-}
-
-function populateFramePromptsFromLegacy(node) {
-  const legacy = (node.widgets || []).find((widget) => widget?.name === "prompt");
-  const promptWidgets = (node.widgets || []).filter((widget) =>
-    FRAME_PROMPT_PATTERN.test(widget?.name || ""),
-  );
-  if (!legacy || !promptWidgets.length) return;
-  if (promptWidgets.some((widget) => String(widget.value || "").trim())) return;
-
-  const prompts = splitNumberedPrompts(legacy.value);
-  for (const widget of promptWidgets) {
-    const slot = Number(FRAME_PROMPT_PATTERN.exec(widget.name)?.[1]);
-    if (prompts.has(slot)) widget.value = prompts.get(slot);
-  }
-}
-
 function refreshFramePrompts(node) {
-  populateFramePromptsFromLegacy(node);
   const connected = new Set(
     (node.inputs || [])
       .filter((input) => input.link != null)
@@ -90,10 +46,6 @@ function refreshFramePrompts(node) {
   );
 
   for (const widget of node.widgets || []) {
-    if (widget?.name === "prompt") {
-      hideLegacyPrompt(widget);
-      continue;
-    }
     const match = FRAME_PROMPT_PATTERN.exec(widget?.name || "");
     if (match) setWidgetVisible(widget, connected.has(match[1]));
   }
@@ -118,9 +70,13 @@ app.registerExtension({
     };
 
     const originalConfigure = nodeType.prototype.onConfigure;
-    nodeType.prototype.onConfigure = function () {
+    nodeType.prototype.onConfigure = function (config) {
       const result = originalConfigure?.apply(this, arguments);
-      queueMicrotask(() => refreshFramePrompts(this));
+      const legacyPrompt = restoreWidgetValues(this, config);
+      queueMicrotask(() => {
+        populateLegacyFramePrompts(this, legacyPrompt);
+        refreshFramePrompts(this);
+      });
       return result;
     };
 
