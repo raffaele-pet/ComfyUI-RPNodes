@@ -74,19 +74,19 @@ def _connected_frames(frames: io.Autogrow.Type | None) -> list[tuple[int, Any]]:
             slot = int(name.rsplit("_", 1)[1])
         except (IndexError, ValueError) as exc:
             raise ValueError(
-                f"RP H3-I2V Frames Prompt Writer: invalid input name {name!r}"
+                f"RP H3-I2V Prompt Writer: invalid input name {name!r}"
             ) from exc
         connected.append((slot, image))
     connected.sort(key=lambda item: item[0])
     slots = [slot for slot, _ in connected]
     if slots != list(range(1, len(connected) + 1)):
         raise ValueError(
-            "RP H3-I2V Frames Prompt Writer: frame inputs must be connected "
+            "RP H3-I2V Prompt Writer: frame inputs must be connected "
             "consecutively from frame_1"
         )
     if len(connected) > 9:
         raise ValueError(
-            "RP H3-I2V Frames Prompt Writer: at most 9 frames are supported"
+            "RP H3-I2V Prompt Writer: at most 9 frames are supported"
         )
     return connected
 
@@ -274,12 +274,12 @@ def _reference_media_inputs() -> list[Any]:
     ]
 
 
-class RPH3I2VFramesPromptWriter(io.ComfyNode):
+class RPH3I2VPromptWriter(io.ComfyNode):
     @classmethod
     def define_schema(cls) -> io.Schema:
         return io.Schema(
-            node_id="RPH3I2VFramesPromptWriter",
-            display_name="RP H3-I2V Frames Prompt Writer",
+            node_id="RPH3I2VPromptWriter",
+            display_name="RP H3-I2V Prompt Writer",
             category="RP/MiniMax H3",
             description=(
                 "Analyzes up to nine ordered H3 frame images and rewrites a raw "
@@ -337,7 +337,7 @@ class RPH3I2VFramesPromptWriter(io.ComfyNode):
         connected = _connected_frames(frames)
         if not connected:
             raise ValueError(
-                "RP H3-I2V Frames Prompt Writer: connect at least frame_1"
+                "RP H3-I2V Prompt Writer: connect at least frame_1"
             )
         duration_seconds = validate_whole_duration_seconds(duration_seconds)
         aligned_length = seconds_to_aligned_frame_count(duration_seconds)

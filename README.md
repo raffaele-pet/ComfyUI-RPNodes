@@ -6,7 +6,7 @@ A collection of utility nodes for ComfyUI:
   and `RP Image Minimum 1K`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 prompt writing:** `RP H3-T2V Prompt Writer`,
-  `RP H3-I2V Frames Prompt Writer`, and `RP H3-REF2V Prompt Writer`
+  `RP H3-I2V Prompt Writer`, and `RP H3-REF2V Prompt Writer`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
@@ -127,7 +127,7 @@ inputs grow automatically up to 9 images, 3 videos, 3 paired soundtracks, and 3
 standalone audio clips. Every visual input receives a corresponding timed
 Storyboard contribution in the finished prompt.
 
-### RP H3-I2V Frames Prompt Writer
+### RP H3-I2V Prompt Writer
 
 Creates an I2V prompt from one to nine ordered images, with frame inputs growing
 automatically as they are connected. With `RP H3-Keyframes` it supports
