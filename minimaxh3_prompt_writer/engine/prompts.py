@@ -859,8 +859,11 @@ def ref_system_prompt_with_i2v_description(
   requests a cut, scene change, location change, or time jump. Zoom-in and
   zoom-out are continuous camera moves inside the same Shot, not cuts.
 - `prompt_event_ledger` preserves each row's local event order and protected
-  strings. Keep dialogue from different rows in their matching Picture spans,
-  copy each spoken string exactly once in `<d>[Language] exact words</d>`, and
+  strings. Keep dialogue from each row in the transition neighborhood centered
+  on its matching Picture. The exact string may occur immediately before the
+  citation while motion reaches that frame, or immediately after it while the
+  anchored state acts, but it must not cross either adjacent Picture citation.
+  Copy each spoken string exactly once in `<d>[Language] exact words</d>`, and
   identify its physical speaker with one stable `(S1)`, `(S2)`, etc. ID.
 - `ordered_event_ledger` is a legacy fallback used only when an older API caller
   supplies one raw request and no prompt_N values; it never overrides a

@@ -1033,7 +1033,15 @@ def _frame_prompt_binding_issues(
     frame_prompts: dict[int, str],
     manifest: ReferenceManifest,
 ) -> list[str]:
-    """Validate continuity and exact prompt_N ownership inside Picture spans."""
+    """Validate continuity and exact prompt_N ownership near Picture anchors.
+
+    A prompt_N event may occur immediately before its Picture citation while
+    motion converges to that keyframe, or immediately after the citation while
+    the anchored state acts. Its valid neighborhood is therefore bounded by
+    the preceding and following Picture citations, not only by Picture N and
+    Picture N+1. This also gives the final connected Picture a usable left-hand
+    transition when no later input exists.
+    """
 
     if not frame_prompts:
         return []
@@ -1074,7 +1082,7 @@ def _frame_prompt_binding_issues(
     for index, prompt in sorted(frame_prompts.items()):
         if index not in positions:
             continue
-        segment_start = positions[index]
+        segment_start = positions.get(index - 1, 0)
         segment_end = positions.get(index + 1, len(body))
         segment = body[segment_start:segment_end]
         for event in ordered_event_ledger(prompt):
@@ -1095,13 +1103,15 @@ def _frame_prompt_binding_issues(
                 ):
                     issues.append(
                         f"prompt_{index} dialogue `{spoken}` was assigned to the "
-                        f"wrong Picture; move it into the <Picture {index}> span."
+                        f"wrong Picture neighborhood; keep it between the "
+                        f"adjacent anchors around <Picture {index}>."
                     )
             for visible in event.get("visible_verbatim_strings", []):
                 if str(visible) not in segment:
                     issues.append(
                         f"prompt_{index} visible text `{visible}` must remain "
-                        f"verbatim inside the <Picture {index}> action span."
+                        f"verbatim between the adjacent anchors around "
+                        f"<Picture {index}>."
                     )
 
     subject_start = re.search(r"(?m)^subject_definitions:(?=$|[ \t])", text)

@@ -137,9 +137,14 @@ H3 first/last-frame inputs. The global prompt is replaced by `prompt_1` through
 `prompt_9` in the same UI position, before the advanced parameters. Every
 connected `frame_N` reveals and requires its matching non-empty `prompt_N`
 field. Gemma permanently binds each prompt, its protected dialogue/text, and
-the analyzed image to `<Picture N>`. The frontend migrates both historical
-widget layouts by name and splits an old numbered `1. ... 9.` request into the
-matching prompt fields without shifting any parameter.
+the analyzed image to `<Picture N>`. A row's protected content may occur just
+before its Picture citation while motion reaches the frame, or just after it
+while that state acts; either adjacent Picture remains a hard ownership
+boundary. Trailing unconnected frames and their prompt fields are ignored, so
+the same mapping works with any consecutive count from one through nine. The
+frontend migrates both historical widget layouts by name and splits an old
+numbered `1. ... 9.` request into the matching prompt fields without shifting
+any parameter.
 All rows become one continuous chronological `[Shot 1]`, preserving identity,
 space, action, and camera motion. A later Shot is allowed only when a `prompt_N`
 explicitly requests a cut, scene/location change, or time jump.

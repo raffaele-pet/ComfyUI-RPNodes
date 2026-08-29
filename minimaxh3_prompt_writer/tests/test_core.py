@@ -2354,6 +2354,90 @@ N/A"""
         )
         self.assertEqual(issues, [])
 
+    def test_frame_prompt_binding_accepts_trailing_disconnect_for_one_to_nine(self):
+        for picture_count in range(1, 10):
+            with self.subTest(picture_count=picture_count):
+                manifest = ReferenceManifest.from_inputs(
+                    ref_images={
+                        f"ref_image_{index}": object()
+                        for index in range(picture_count)
+                    }
+                )
+                labels = ", ".join(
+                    f"<Picture {index}>"
+                    for index in range(1, picture_count + 1)
+                )
+                actions = " ".join(
+                    f'The continuing character says "<d>[English] Line {index}!'
+                    f'</d>" while moving smoothly into <Picture {index}>.'
+                    for index in range(1, picture_count + 1)
+                )
+                candidate = f"""subject_definitions:
+<Subject 1> is the same continuing character established by {labels}.
+
+summary:
+[keyframe completion] The character performs one continuous sequence.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity and appearance remain stable.
+
+detailed_description:
+[Shot 1] {actions}
+
+overall_soundscape:
+N/A
+
+non_diegetic_music:
+N/A"""
+                issues = _frame_prompt_binding_issues(
+                    candidate,
+                    {
+                        index: f'The character says "Line {index}!".'
+                        for index in range(1, picture_count + 1)
+                    },
+                    manifest,
+                )
+                self.assertEqual(issues, [])
+
+    def test_frame_prompt_binding_accepts_eight_frame_workflow_without_frame_nine(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(8)}
+        )
+        candidate = """subject_definitions:
+<Subject 1> is the same stylized man established by <Picture 1>, <Picture 2>, <Picture 3>, <Picture 4>, <Picture 5>, <Picture 6>, <Picture 7>, and <Picture 8>.
+<Subject 2> is the small robot introduced around <Picture 4>.
+
+summary:
+[keyframe completion] The man greets, drinks, reacts to a robot, presents a sign, and invites the viewer to follow.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity, orange hoodie, jeans, and stylized appearance remain stable.
+<Subject 2>: fully_preserved - The small robot remains recognizable.
+
+detailed_description:
+[Shot 1] <Subject 1> begins in a neutral standing pose and settles into <Picture 1>. He raises one hand, waves, and says "<d>[English] Hello everyone! I'm Raph!</d>" as the movement reaches <Picture 2>. He lowers the hand, retrieves a coffee cup, drinks, and arrives at <Picture 3>. <Subject 2> enters; <Subject 1> looks annoyed and says "<d>[English] Not now, Pat!</d>" while settling into <Picture 4>. He turns with a surprised expression toward <Picture 5>, then points and laughs with closed eyes while reaching <Picture 6>. He produces a sign whose visible text reads "I Love ComfyUI" and holds it in <Picture 7>. The camera zooms in continuously as he says "<d>[English] Follow me!</d>" and settles into the close framing of <Picture 8>.
+
+overall_soundscape:
+N/A
+
+non_diegetic_music:
+N/A"""
+        issues = _frame_prompt_binding_issues(
+            candidate,
+            {
+                1: "Personaggio.",
+                2: 'Il personaggio saluta tutti dicendo "Hello everyone! I\'m Raph!".',
+                3: "Il personaggio prende una tazza di caffè e beve.",
+                4: 'Un robottino arriva e il personaggio dice "Not now, Pat!".',
+                5: "Il personaggio si gira guardando qualcosa con sorpresa.",
+                6: "Il personaggio punta e ride con gli occhi chiusi.",
+                7: "Il personaggio prende un cartello dove c'è scritto I Love ComfyUI.",
+                8: 'Zoom-in sul personaggio che dice "Follow me!".',
+            },
+            manifest,
+        )
+        self.assertEqual(issues, [])
+
     def test_ref_contract_is_explicit_and_duration_scaled(self):
         manifest = ReferenceManifest.from_inputs(
             ref_video_0=object(),
