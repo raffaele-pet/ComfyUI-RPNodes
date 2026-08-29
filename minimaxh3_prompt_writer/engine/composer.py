@@ -994,11 +994,15 @@ def _frame_quality_warnings(
     text: str,
     manifest: ReferenceManifest,
     raw_prompt: str,
+    frame_prompts: dict[int, str] | None = None,
 ) -> list[str]:
     """Report review hints that must never trigger generation or failure."""
 
     warnings = validate_dialogue_event_ownership(text, raw_prompt)
     warnings.extend(_validate_frame_picture_order(text, manifest))
+    warnings.extend(
+        _frame_prompt_binding_warnings(text, frame_prompts or {}, manifest)
+    )
     bounds = _ref_detail_bounds(text)
     if bounds is not None:
         start, end = bounds
@@ -1107,6 +1111,10 @@ def _frame_prompt_binding_issues(
                         f"adjacent anchors around <Picture {index}>."
                     )
             for visible in event.get("visible_verbatim_strings", []):
+                if visible in event.get(
+                    "ambiguous_visible_verbatim_strings", []
+                ):
+                    continue
                 if str(visible) not in segment:
                     issues.append(
                         f"prompt_{index} visible text `{visible}` must remain "
@@ -1137,6 +1145,48 @@ def _frame_prompt_binding_issues(
                 "Define it once as a continuous Subject with multi-Picture provenance."
             )
     return list(dict.fromkeys(issues))
+
+
+def _frame_prompt_binding_warnings(
+    text: str,
+    frame_prompts: dict[int, str],
+    manifest: ReferenceManifest,
+) -> list[str]:
+    """Report uncertain prompt_N bindings without invalidating the H3 prompt."""
+
+    if not frame_prompts:
+        return []
+    bounds = _ref_detail_bounds(text)
+    if bounds is None:
+        return []
+    start, end = bounds
+    body = text[start:end]
+    positions: dict[int, int] = {}
+    for index, asset in enumerate(manifest.pictures, 1):
+        match = re.search(re.escape(asset.label), body)
+        if match is not None:
+            positions[index] = match.start()
+
+    warnings: list[str] = []
+    for index, prompt in sorted(frame_prompts.items()):
+        if index not in positions:
+            continue
+        segment_start = positions.get(index - 1, 0)
+        segment_end = positions.get(index + 1, len(body))
+        segment = body[segment_start:segment_end]
+        for event in ordered_event_ledger(prompt):
+            for visible in event.get("ambiguous_visible_verbatim_strings", []):
+                preservation = (
+                    "was preserved"
+                    if str(visible) in segment
+                    else "was not preserved exactly"
+                )
+                warnings.append(
+                    f"prompt_{index} has an ambiguous visible-text boundary near "
+                    f"`{visible}`; it {preservation} around <Picture {index}>, "
+                    "but this heuristic interpretation did not block execution."
+                )
+    return list(dict.fromkeys(warnings))
 
 
 def _extend_validation(
@@ -1504,7 +1554,12 @@ def compose_ref_prompt(
         )
     quality_warnings: tuple[str, ...] = ()
     if i2v_detailed_description:
-        warnings = _frame_quality_warnings(final.text, manifest, raw_prompt)
+        warnings = _frame_quality_warnings(
+            final.text,
+            manifest,
+            raw_prompt,
+            frame_prompts=frame_prompts,
+        )
         if positional_frame_restorations:
             warnings.append(
                 "After Gemma's repair, omitted frame citations were restored "

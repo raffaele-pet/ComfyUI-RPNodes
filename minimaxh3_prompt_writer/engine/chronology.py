@@ -26,10 +26,18 @@ _SPEECH_CUE = re.compile(
 _VISIBLE_TEXT_CUE = re.compile(
     r"(?:c['’]\s*è\s+scritto|con\s+scritto|mostra\s+(?:la\s+)?scritta|"
     r"(?:the\s+)?(?:sign|screen|label|card)\s+(?:reads|says|displays)|"
-    r"written\s+on\s+(?:the\s+)?(?:sign|screen|label|card))\s*[:\-]?\s*"
-    r"[\"“]?([^\"”\n.!?]+)",
+    r"written\s+on\s+(?:the\s+)?(?:sign|screen|label|card))\s*[:\-]?\s*",
     flags=re.IGNORECASE,
 )
+_VISIBLE_TEXT_ACTION_BOUNDARY = re.compile(
+    r"\s*[,;]?\s+"
+    r"(?:e(?:d)?|e\s+poi|poi|quindi|and|and\s+then|then)\s+"
+    r"(?=(?:(?:il\s+personaggio|lui|lei|he|she)\s+)?"
+    r"(?:dice|dicono|dicendo|parla|chiede|risponde|sussurra|grida|"
+    r"says?|speaks?|asks?|repl(?:y|ies)|whispers?|shouts?)\b)",
+    flags=re.IGNORECASE,
+)
+_VISIBLE_TEXT_QUOTES = {'"': '"', "“": "”", "«": "»", "„": "“"}
 
 
 def _sentence_events(text: str) -> list[str]:
@@ -73,11 +81,41 @@ def extract_protected_strings(text: str) -> list[str]:
     return values
 
 
+def _visible_text_claims(text: str) -> list[tuple[str, bool]]:
+    """Return visible strings and whether their right boundary was ambiguous."""
+
+    claims: list[tuple[str, bool]] = []
+    for cue in _VISIBLE_TEXT_CUE.finditer(text):
+        tail = text[cue.end() :]
+        if not tail:
+            continue
+
+        opening = tail[0]
+        if opening in _VISIBLE_TEXT_QUOTES:
+            closing = _VISIBLE_TEXT_QUOTES[opening]
+            closing_index = tail.find(closing, 1)
+            if closing_index >= 0:
+                value = tail[1:closing_index].strip()
+                if value:
+                    claims.append((value, False))
+                continue
+
+        sentence_end = re.search(r"[\n.!?]", tail)
+        fragment = tail[: sentence_end.start()] if sentence_end else tail
+        action_boundary = _VISIBLE_TEXT_ACTION_BOUNDARY.search(fragment)
+        ambiguous = action_boundary is not None
+        if action_boundary is not None:
+            fragment = fragment[: action_boundary.start()]
+        value = fragment.strip().strip('"“”«»„').strip()
+        if value:
+            claims.append((value, ambiguous))
+    return claims
+
+
 def extract_visible_text_strings(text: str) -> list[str]:
     """Return literal display text following common English/Italian cues."""
 
-    values = [match.group(1).strip() for match in _VISIBLE_TEXT_CUE.finditer(text)]
-    return [value for value in values if value]
+    return [value for value, _ in _visible_text_claims(text)]
 
 
 def ordered_event_ledger(raw_prompt: str) -> list[dict[str, object]]:
@@ -105,7 +143,11 @@ def ordered_event_ledger(raw_prompt: str) -> list[dict[str, object]]:
     ledger: list[dict[str, object]] = []
     for index, event in enumerate(events, start=1):
         quoted = extract_protected_strings(event)
-        visible = extract_visible_text_strings(event)
+        visible_claims = _visible_text_claims(event)
+        visible = [value for value, _ in visible_claims]
+        ambiguous_visible = [
+            value for value, ambiguous in visible_claims if ambiguous
+        ]
         protected = list(dict.fromkeys(quoted + visible))
         ledger.append(
             {
@@ -113,6 +155,7 @@ def ordered_event_ledger(raw_prompt: str) -> list[dict[str, object]]:
                 "source_text": event,
                 "protected_verbatim_strings": protected,
                 "visible_verbatim_strings": visible,
+                "ambiguous_visible_verbatim_strings": ambiguous_visible,
                 "spoken_verbatim_strings": (
                     quoted if quoted and _SPEECH_CUE.search(event) else []
                 ),

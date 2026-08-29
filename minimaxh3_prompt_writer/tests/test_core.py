@@ -20,6 +20,7 @@ from engine.constants import SKILL_CHOICES, SKILL_CORE, get_skill_profile
 from engine.composer import (
     _ensure_frame_event_dialogue,
     _frame_prompt_binding_issues,
+    _frame_prompt_binding_warnings,
     _materialize_frame_event_dialogue,
     _validate_frame_picture_order,
     compose_base_prompt,
@@ -133,6 +134,31 @@ He puts a sign aside and says "Follow me!".
         ledger = ordered_event_ledger(prompt)
         self.assertEqual(ledger[0]["visible_verbatim_strings"], ["I Love ComfyUI"])
         self.assertIn("I Love ComfyUI", ledger[0]["protected_verbatim_strings"])
+
+    def test_ambiguous_visible_text_stops_before_a_new_spoken_action(self):
+        prompt = (
+            "Il personaggio prende un cartello dove c'è scritto I Love ComfyUI "
+            "e dice in inglese."
+        )
+        self.assertEqual(extract_visible_text_strings(prompt), ["I Love ComfyUI"])
+        ledger = ordered_event_ledger(prompt)
+        self.assertEqual(ledger[0]["visible_verbatim_strings"], ["I Love ComfyUI"])
+        self.assertEqual(
+            ledger[0]["ambiguous_visible_verbatim_strings"],
+            ["I Love ComfyUI"],
+        )
+
+    def test_quoted_visible_text_remains_unambiguous(self):
+        prompt = (
+            'Il personaggio prende un cartello dove c\'è scritto '
+            '"I Love ComfyUI e dice in inglese".'
+        )
+        ledger = ordered_event_ledger(prompt)
+        self.assertEqual(
+            ledger[0]["visible_verbatim_strings"],
+            ["I Love ComfyUI e dice in inglese"],
+        )
+        self.assertEqual(ledger[0]["ambiguous_visible_verbatim_strings"], [])
 
     def test_frames_dialogue_validator_rejects_lines_merged_across_events(self):
         raw = """The character waves and says "Hello everyone! I'm Raph!".
@@ -2354,6 +2380,46 @@ N/A"""
         )
         self.assertEqual(issues, [])
 
+    def test_ambiguous_visible_text_binding_warns_without_invalidating(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
+        candidate = """subject_definitions:
+<Subject 1> The same character established by <Picture 1>, <Picture 2>, and <Picture 3>.
+
+summary:
+[keyframe completion] The character raises a sign.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity remains stable.
+
+detailed_description:
+[Shot 1] <Subject 1> waits in <Picture 1>, turns through <Picture 2>, and reaches <Picture 3> holding a sign whose visible text reads "I ComfyUI".
+
+overall_soundscape:
+Room tone.
+
+non_diegetic_music:
+N/A"""
+        frame_prompts = {
+            1: "Il personaggio aspetta.",
+            2: "Il personaggio si gira.",
+            3: (
+                "Il personaggio prende un cartello dove c'è scritto "
+                "I Love ComfyUI e dice in inglese."
+            ),
+        }
+        self.assertEqual(
+            _frame_prompt_binding_issues(candidate, frame_prompts, manifest),
+            [],
+        )
+        warnings = _frame_prompt_binding_warnings(
+            candidate, frame_prompts, manifest
+        )
+        self.assertTrue(any("prompt_3" in warning for warning in warnings))
+        self.assertTrue(any("was not preserved exactly" in warning for warning in warnings))
+        self.assertTrue(any("did not block execution" in warning for warning in warnings))
+
     def test_frame_prompt_binding_accepts_trailing_disconnect_for_one_to_nine(self):
         for picture_count in range(1, 10):
             with self.subTest(picture_count=picture_count):
@@ -2549,6 +2615,59 @@ class _ScriptedRunner:
 
 
 class ComposerRepairTests(unittest.TestCase):
+    def test_ambiguous_visible_text_warning_skips_repair_and_allows_output(self):
+        candidate = """subject_definitions:
+<Subject 1> The stylized character established by <Picture 1>.
+
+summary:
+[keyframe completion] The character presents a sign.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity and clothing remain stable.
+<Picture 1>: fully_preserved - The sign and pose remain exact.
+
+detailed_description:
+[Shot 1] <Subject 1> stands in <Picture 1> holding a sign whose visible text reads "I Love ComfyUI".
+
+overall_soundscape:
+Quiet room tone and soft fabric movement.
+
+non_diegetic_music:
+N/A"""
+        runner = _ScriptedRunner([candidate])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt="",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={
+                "ref_image_0": (
+                    "<Picture 1>: A stylized character holds an I Love ComfyUI sign."
+                )
+            },
+            manifest=ReferenceManifest.from_inputs(
+                ref_images={"ref_image_0": object()}
+            ),
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=42),
+            i2v_detailed_description=True,
+            frame_prompts={
+                1: (
+                    "Il personaggio tiene un cartello dove c'è scritto "
+                    "I Love ComfyUI e dice in inglese."
+                )
+            },
+        )
+        self.assertFalse(result.repaired)
+        self.assertEqual(len(runner.calls), 1)
+        self.assertTrue(result.final_validation.valid, result.final_validation.issues)
+        self.assertTrue(
+            any(
+                "ambiguous visible-text boundary" in warning
+                for warning in result.quality_warnings
+            )
+        )
+
     def test_frames_keeps_first_dialogue_after_semantic_picture_recovery(self):
         raw = """The character waves and says "Hello!".
 He lowers his hand and drinks."""

@@ -142,7 +142,11 @@ before its Picture citation while motion reaches the frame, or just after it
 while that state acts; either adjacent Picture remains a hard ownership
 boundary. Trailing unconnected frames and their prompt fields are ignored, so
 the same mapping works with any consecutive count from one through nine. The
-frontend migrates both historical widget layouts by name and splits an old
+visible-text parser keeps clearly delimited copy as a strict verbatim constraint.
+When an unquoted string runs into a new spoken action such as `e dice...` or
+`and says...`, it stops at that action boundary and reports the interpretation
+in `quality_warnings` without triggering a repair pass or stopping execution.
+The frontend migrates both historical widget layouts by name and splits an old
 numbered `1. ... 9.` request into the matching prompt fields without shifting
 any parameter.
 All rows become one continuous chronological `[Shot 1]`, preserving identity,

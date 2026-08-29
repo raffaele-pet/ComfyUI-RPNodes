@@ -232,7 +232,9 @@ def _common_inputs(*, include_frame_prompts: bool = False) -> list[Any]:
             advanced=True,
             tooltip=(
                 "Validate schema, labels, timestamps, fields, and 7000-character "
-                "limit; run one repair pass and fail loudly if still invalid."
+                "limit; run one repair pass and fail loudly if still invalid. "
+                "Ambiguous visible-text boundaries are reported as warnings "
+                "without stopping the workflow."
             ),
         ),
     ]

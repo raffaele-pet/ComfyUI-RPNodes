@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-BUNDLE_VERSION = "2.0.3+variable-frame-neighborhoods.2026-08-29"
+BUNDLE_VERSION = "2.0.4+confidence-aware-visible-text.2026-08-29"
 H3_SKILLS_COMMIT = "d21241f0a4b3acbb34c97dae47fa417b7065e438"
 COMFYUI_REFERENCE_COMMIT = "7972b5ba7f1597f68261be33c912f5e5dba8b9c0"
 FPS = 24
