@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   FRAME_PROMPTS_FIRST_WIDGET_NAMES,
+  GLOBAL_FRAME_PROMPTS_FIRST_WIDGET_NAMES,
   PARAMETERS_FIRST_WIDGET_NAMES,
   populateLegacyFramePrompts,
   restoreWidgetValues,
@@ -12,7 +13,7 @@ const parameters = [2048, 256, false, 0.7, 64, 0.95, 0.05, 1.05, 42, "fixed", tr
 
 function makeNode() {
   return {
-    widgets: FRAME_PROMPTS_FIRST_WIDGET_NAMES.map((name) => ({
+    widgets: GLOBAL_FRAME_PROMPTS_FIRST_WIDGET_NAMES.map((name) => ({
       name,
       value: `wrong:${name}`,
     })),
@@ -78,6 +79,31 @@ test("round-trips the stable prompts-first layout", () => {
     widgets_values: ["Auto", 15, ...prompts, ...parameters],
   });
 
+  assertParameters(node);
+  assert.deepEqual(
+    prompts.map((_, index) => value(node, `prompt_${index + 1}`)),
+    prompts,
+  );
+  assert.equal(value(node, "global_prompt"), "");
+});
+
+test("round-trips the global plus frame-prompts layout", () => {
+  const node = makeNode();
+  const prompts = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
+  restoreWidgetValues(node, {
+    widgets_values: [
+      "Auto",
+      15,
+      "One continuous shot with soft piano.",
+      ...prompts,
+      ...parameters,
+    ],
+  });
+
+  assert.equal(
+    value(node, "global_prompt"),
+    "One continuous shot with soft piano.",
+  );
   assertParameters(node);
   assert.deepEqual(
     prompts.map((_, index) => value(node, `prompt_${index + 1}`)),

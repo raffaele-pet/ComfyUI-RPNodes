@@ -33,10 +33,19 @@ export const PARAMETERS_FIRST_WIDGET_NAMES = [
   ...PROMPT_NAMES,
 ];
 
-// Stable layout: prompt_1...prompt_9 replace the old prompt in the UI.
+// Previous stable layout: prompt_1...prompt_9 replaced the old prompt.
 export const FRAME_PROMPTS_FIRST_WIDGET_NAMES = [
   "skill",
   "duration_seconds",
+  ...PROMPT_NAMES,
+  ...PARAMETER_NAMES,
+];
+
+// Current layout: one sequence-wide prompt plus the nine frame-local prompts.
+export const GLOBAL_FRAME_PROMPTS_FIRST_WIDGET_NAMES = [
+  "skill",
+  "duration_seconds",
+  "global_prompt",
   ...PROMPT_NAMES,
   ...PARAMETER_NAMES,
 ];
@@ -64,6 +73,14 @@ export function splitNumberedPrompts(text) {
 
 export function detectWidgetLayout(values) {
   if (!Array.isArray(values)) return null;
+  if (
+    typeof values[2] === "string" &&
+    typeof values[3] === "string" &&
+    typeof values[12] === "number" &&
+    typeof values[14] === "boolean"
+  ) {
+    return GLOBAL_FRAME_PROMPTS_FIRST_WIDGET_NAMES;
+  }
   if (
     typeof values[2] === "string" &&
     typeof values[3] === "string" &&
@@ -97,7 +114,7 @@ export function restoreWidgetValues(node, config) {
   const widgets = new Map(
     (node.widgets || []).map((widget) => [widget?.name, widget]),
   );
-  for (const name of PROMPT_NAMES) {
+  for (const name of ["global_prompt", ...PROMPT_NAMES]) {
     const widget = widgets.get(name);
     if (widget) widget.value = "";
   }

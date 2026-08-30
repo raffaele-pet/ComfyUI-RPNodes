@@ -133,11 +133,14 @@ Creates an I2V prompt from one to nine ordered images, with frame inputs growing
 automatically as they are connected. With `RP H3-Keyframes` it supports
 multiframe generation. Without `RP H3-Keyframes` it works as a standard
 first/last-frame prompt writer; connect the same one or two images to the native
-H3 first/last-frame inputs. The global prompt is replaced by `prompt_1` through
-`prompt_9` in the same UI position, before the advanced parameters. Every
-connected `frame_N` reveals and requires its matching non-empty `prompt_N`
-field. Gemma permanently binds each prompt, its protected dialogue/text, and
-the analyzed image to `<Picture N>`. A row's protected content may occur just
+H3 first/last-frame inputs. `global_prompt` supplies sequence-wide direction
+such as continuity, cuts, style, camera, pacing, ambience, physical sound, and
+music. It is followed by `prompt_1` through `prompt_9`, which remain bound to
+their individual frames. Every connected `frame_N` reveals and requires its
+matching non-empty `prompt_N` field. Gemma permanently binds each local prompt,
+its protected dialogue/text, and the analyzed image to `<Picture N>`, while
+applying compatible global direction across the complete sequence. A row's
+protected content may occur just
 before its Picture citation while motion reaches the frame, or just after it
 while that state acts; either adjacent Picture remains a hard ownership
 boundary. Trailing unconnected frames and their prompt fields are ignored, so
@@ -146,12 +149,14 @@ visible-text parser keeps clearly delimited copy as a strict verbatim constraint
 When an unquoted string runs into a new spoken action such as `e dice...` or
 `and says...`, it stops at that action boundary and reports the interpretation
 in `quality_warnings` without triggering a repair pass or stopping execution.
-The frontend migrates both historical widget layouts by name and splits an old
+The frontend migrates all historical widget layouts by name and splits an old
 numbered `1. ... 9.` request into the matching prompt fields without shifting
 any parameter.
 All rows become one continuous chronological `[Shot 1]`, preserving identity,
-space, action, and camera motion. A later Shot is allowed only when a `prompt_N`
-explicitly requests a cut, scene/location change, or time jump.
+space, action, and camera motion. A later Shot is allowed only when
+`global_prompt` or a `prompt_N` explicitly requests a cut, scene/location
+change, or time jump. Every ordered Picture is defined as a concrete first
+frame, keyframe, or last-frame anchor and receives its own retention line.
 
 ### RP H3-REF2V Prompt Writer
 
@@ -173,7 +178,8 @@ separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
 `prompt`, the H3-compatible `aligned_length`, and an `analysis_report`. Each
 connected image, video, or audio asset is analyzed independently so every input
 has its own traceable observation. The shared defaults are `max_token_length =
-2048`, `media_analysis_tokens = 256`, and fixed `seed = 42`.
+2048`, `media_analysis_tokens = 256`, fixed `seed = 42`, and
+`strict_validation = false`.
 After writing the prompt, the nodes offload their dedicated Gemma CLIP before
 downstream H3 generation to release VRAM.
 

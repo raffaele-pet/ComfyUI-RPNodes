@@ -595,21 +595,6 @@ def _canonicalize_ref_generated_content(
     )
 
 
-def _remove_frame_picture_definitions(text: str) -> str:
-    start = re.search(r"(?m)^subject_definitions:(?=$|[ \t])", text)
-    end = re.search(r"(?m)^summary:(?=$|[ \t])", text)
-    if start is None or end is None or start.end() >= end.start():
-        return text
-    body = text[start.end() : end.start()]
-    kept = [
-        line
-        for line in body.splitlines()
-        if not re.match(r"^\s*<Picture\s+[1-9]\d*>\s*:", line)
-    ]
-    normalized = "\n".join(kept).strip() or "N/A"
-    return text[: start.end()] + "\n" + normalized + "\n\n" + text[end.start() :]
-
-
 _FRAME_EVENT_MARKER_RE = re.compile(
     r"\[(?:\[\s*)?(?:EVENT|E)[ _-]?([1-9]\d*)\s*\](?:\])?",
     flags=re.IGNORECASE,
@@ -1036,6 +1021,7 @@ def _frame_prompt_binding_issues(
     text: str,
     frame_prompts: dict[int, str],
     manifest: ReferenceManifest,
+    global_prompt: str = "",
 ) -> list[str]:
     """Validate continuity and exact prompt_N ownership near Picture anchors.
 
@@ -1056,7 +1042,7 @@ def _frame_prompt_binding_issues(
     body = text[start:end]
     issues: list[str] = []
 
-    prompt_text = "\n".join(frame_prompts.values())
+    prompt_text = "\n".join((global_prompt, *frame_prompts.values()))
     if not _EXPLICIT_DISCONTINUITY.search(prompt_text) and re.search(
         r"\[Shot\s+(?:[2-9]|[1-9]\d+)\]", body, flags=re.IGNORECASE
     ):
@@ -1367,7 +1353,7 @@ def compose_base_prompt(
     )
     final = initial
     repaired = False
-    if not initial.valid:
+    if strict_validation and not initial.valid:
         repaired_text = _repair(
             runner,
             mode=mode,
@@ -1466,7 +1452,6 @@ def compose_ref_prompt(
         raw_user_request=complete_user_intent,
     )
     if i2v_detailed_description:
-        candidate = _remove_frame_picture_definitions(candidate)
         candidate = _remove_frame_non_picture_labels(candidate)
     candidate = _canonicalize_ref_generated_content(
         candidate,
@@ -1488,12 +1473,17 @@ def compose_ref_prompt(
     if i2v_detailed_description:
         initial = _extend_validation(
             initial,
-            _frame_prompt_binding_issues(initial.text, frame_prompts, manifest),
+            _frame_prompt_binding_issues(
+                initial.text,
+                frame_prompts,
+                manifest,
+                global_prompt=raw_prompt,
+            ),
         )
     final = initial
     repaired = False
     positional_frame_restorations: tuple[str, ...] = ()
-    if not initial.valid:
+    if strict_validation and not initial.valid:
         repaired_text = _repair(
             runner,
             mode="Ref2VA",
@@ -1515,7 +1505,6 @@ def compose_ref_prompt(
             raw_user_request=complete_user_intent,
         )
         if i2v_detailed_description:
-            repaired_text = _remove_frame_picture_definitions(repaired_text)
             repaired_text = _remove_frame_non_picture_labels(repaired_text)
         repaired_text = _canonicalize_ref_generated_content(
             repaired_text,
@@ -1543,7 +1532,10 @@ def compose_ref_prompt(
             final = _extend_validation(
                 final,
                 _frame_prompt_binding_issues(
-                    final.text, frame_prompts, manifest
+                    final.text,
+                    frame_prompts,
+                    manifest,
+                    global_prompt=raw_prompt,
                 ),
             )
         repaired = True
@@ -1637,7 +1629,7 @@ def compose_t2v_prompt(
     )
     final = initial
     repaired = False
-    if not initial.valid:
+    if strict_validation and not initial.valid:
         repaired_text = _repair(
             runner,
             mode="T2V",

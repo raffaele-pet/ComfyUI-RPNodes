@@ -109,6 +109,21 @@ def _ordered_prompt_inputs() -> list[Any]:
     ]
 
 
+def _global_frame_prompt_input() -> Any:
+    return io.String.Input(
+        "global_prompt",
+        multiline=True,
+        dynamic_prompts=False,
+        default="",
+        tooltip=(
+            "Instructions shared by the complete frame sequence, such as one "
+            "continuous shot, cuts, style, camera, pacing, ambience, sound, or "
+            "music. Gemma applies them across every prompt_N without replacing "
+            "the local event bound to each frame."
+        ),
+    )
+
+
 def _common_inputs(*, include_frame_prompts: bool = False) -> list[Any]:
     inputs = [
         io.Clip.Input(
@@ -228,21 +243,23 @@ def _common_inputs(*, include_frame_prompts: bool = False) -> list[Any]:
         ),
         io.Boolean.Input(
             "strict_validation",
-            default=True,
+            default=False,
             advanced=True,
             tooltip=(
-                "Validate schema, labels, timestamps, fields, and 7000-character "
-                "limit; run one repair pass and fail loudly if still invalid. "
+                "When enabled, validate schema, labels, timestamps, fields, and "
+                "the 7000-character limit; run one repair pass and fail loudly "
+                "if still invalid. Disabled returns Gemma's canonicalized first "
+                "pass without a second generation. "
                 "Ambiguous visible-text boundaries are reported as warnings "
                 "without stopping the workflow."
             ),
         ),
     ]
     if include_frame_prompts:
-        # I2V replaces the one global prompt with prompt_1...prompt_9 in the
+        # I2V keeps one sequence-wide prompt beside prompt_1...prompt_9 in the
         # same UI position. The frontend restores historical positional
         # workflows by widget name before they are displayed.
-        inputs[3:4] = _ordered_prompt_inputs()
+        inputs[3:4] = [_global_frame_prompt_input(), *_ordered_prompt_inputs()]
     return inputs
 
 
@@ -348,6 +365,7 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         clip,
         skill,
         duration_seconds,
+        global_prompt,
         prompt_1,
         prompt_2,
         prompt_3,
@@ -417,7 +435,7 @@ class RPH3I2VPromptWriter(io.ComfyNode):
         )
         result = compose_ref_prompt(
             runner,
-            raw_prompt="",
+            raw_prompt=global_prompt,
             length=aligned_length,
             selected_skill_label=skill,
             observations=observations,

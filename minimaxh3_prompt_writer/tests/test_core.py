@@ -2262,7 +2262,7 @@ class GemmaRunnerTests(unittest.TestCase):
             124, skill, manifest
         )
         payload = ref_user_payload(
-            raw_prompt="",
+            raw_prompt="One continuous shot with soft piano.",
             length=124,
             skill=skill,
             manifest=manifest,
@@ -2287,12 +2287,17 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("consecutive visible\n  states", system)
         self.assertIn("ordered_event_ledger", system)
         self.assertIn("ordered_frame_ledger", system)
-        self.assertIn("Never exchange any of these values", system)
+        self.assertIn("Never exchange these values", system)
         self.assertIn("physically plausible motion", system)
-        self.assertIn("ORDERED PROMPT INTENT IS PRIMARY", system)
+        self.assertIn("GLOBAL AND ORDERED PROMPT INTENT IS PRIMARY", system)
+        self.assertIn("`global_prompt` supplies sequence-wide direction", system)
+        self.assertIn("define every ordered Picture on", system)
+        self.assertIn("A Picture\n  is an anchor, not an action", system)
+        self.assertIn("no double quotes around the `<d>` block", system)
+        self.assertIn("grounded ambience", system)
         self.assertIn("one uninterrupted chronological", system)
         self.assertIn("Do not emit `[Shot 2]`", system)
-        self.assertIn("Zoom-in and\n  zoom-out are continuous camera moves", system)
+        self.assertIn("Zoom-in and zoom-out are continuous camera moves", system)
         self.assertIn("Never create Subject 1, Subject 2", system)
         self.assertIn("Use `[keyframe completion]`", system)
         self.assertNotIn("ordered_adjacent_frame_pairs", system)
@@ -2301,6 +2306,10 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn('"socket": "ref_image_2"', payload)
         self.assertIn('"frame_input": "frame_3"', payload)
         self.assertIn('"prompt_input": "prompt_3"', payload)
+        self.assertIn('"temporal_role": "last frame"', payload)
+        self.assertIn(
+            '"global_prompt": "One continuous shot with soft piano."', payload
+        )
         self.assertIn('"observed_state":', payload)
         self.assertIn('"prompt": "The performer raises one hand."', payload)
         self.assertIn('"prompt_event_ledger":', payload)
@@ -2379,6 +2388,39 @@ N/A"""
             manifest,
         )
         self.assertEqual(issues, [])
+
+    def test_global_prompt_can_explicitly_request_a_cut(self):
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={"ref_image_0": object(), "ref_image_1": object()}
+        )
+        candidate = """subject_definitions:
+<Subject 1> is the same performer established by <Picture 1> and <Picture 2>.
+<Picture 1> is the first frame of [Shot 1].
+<Picture 2> is the first frame of [Shot 2].
+
+summary:
+[keyframe completion] The performer changes location after a hard cut.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity remains stable.
+<Picture 1> ([Shot 1] first frame): fully_preserved - The opening pose remains anchored.
+<Picture 2> ([Shot 2] first frame): fully_preserved - The new-location pose remains anchored.
+
+detailed_description:
+[Shot 1] <Subject 1> begins in <Picture 1> and turns toward the camera. [Shot 2] At 00:02.000, a hard cut reveals the same performer in the new location established by <Picture 2>.
+
+overall_soundscape:
+Quiet room tone changes across the cut.
+
+non_diegetic_music:
+N/A"""
+        issues = _frame_prompt_binding_issues(
+            candidate,
+            {1: "The performer turns.", 2: "The performer is elsewhere."},
+            manifest,
+            global_prompt="Use a hard cut to a new location after frame 1.",
+        )
+        self.assertFalse(any("one continuous Shot" in issue for issue in issues))
 
     def test_ambiguous_visible_text_binding_warns_without_invalidating(self):
         manifest = ReferenceManifest.from_inputs(
@@ -2615,6 +2657,53 @@ class _ScriptedRunner:
 
 
 class ComposerRepairTests(unittest.TestCase):
+    def test_disabled_strict_validation_skips_all_repair_generations(self):
+        base_runner = _ScriptedRunner(["incomplete"])
+        base = compose_base_prompt(
+            base_runner,
+            raw_prompt="A bird turns.",
+            mode="T2VA",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={},
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=1),
+            strict_validation=False,
+        )
+        self.assertFalse(base.repaired)
+        self.assertEqual(len(base_runner.calls), 1)
+
+        manifest = ReferenceManifest.from_inputs(ref_image_0=object())
+        ref_runner = _ScriptedRunner(["incomplete"])
+        ref = compose_ref_prompt(
+            ref_runner,
+            raw_prompt="A bird turns.",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={"ref_image_0": "<Picture 1>: A blue bird."},
+            manifest=manifest,
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=1),
+            strict_validation=False,
+        )
+        self.assertFalse(ref.repaired)
+        self.assertEqual(len(ref_runner.calls), 1)
+
+        t2v_runner = _ScriptedRunner(["incomplete"])
+        t2v = compose_t2v_prompt(
+            t2v_runner,
+            raw_prompt="A bird turns.",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations={},
+            manifest=ReferenceManifest.from_inputs(require_reference=False),
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=1),
+            strict_validation=False,
+        )
+        self.assertFalse(t2v.repaired)
+        self.assertEqual(len(t2v_runner.calls), 1)
+
     def test_ambiguous_visible_text_warning_skips_repair_and_allows_output(self):
         candidate = """subject_definitions:
 <Subject 1> The stylized character established by <Picture 1>.
@@ -2770,7 +2859,7 @@ N/A"""
             any("first citation" in warning for warning in result.quality_warnings)
         )
         subject_body = result.prompt.split("summary:", 1)[0]
-        self.assertNotIn("<Picture 1>:", subject_body)
+        self.assertIn("<Picture 1>:", subject_body)
         detail = result.prompt.split("detailed_description:\n", 1)[1]
         self.assertLess(detail.index("<Picture 1>"), detail.index("<Picture 3>"))
         self.assertLess(detail.index("<Picture 3>"), detail.index("<Picture 2>"))
