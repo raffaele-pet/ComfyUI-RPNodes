@@ -792,20 +792,40 @@ def ref_system_prompt_with_i2v_description(
   (for example an adult and a cub), bind them as distinct Subjects even when a
   compact observation names only their shared species. The user's role names
   are authoritative; unsupported visual details are not."""
-    ordered_target_rules = """GLOBAL AND ORDERED PROMPT INTENT IS PRIMARY
-- `global_prompt` supplies sequence-wide direction shared by every row, such as
-  visual style, shot continuity or requested cuts, camera behavior, pacing,
-  ambience, physical sound, and music. Apply it across the complete target.
-- The consecutive prompt_1 through prompt_N rows define the local events. Enact
-  every actor, action, direction, interaction, exact string, and outcome once at
-  its bound Picture and in row order. Global direction never erases, moves, or
-  reassigns a row's local event or protected string.
-- Ordered Pictures are consecutive states of one target-video timeline. They
-  provide identity, appearance, composition, and pose evidence; never turn them
-  into a slideshow or independent scenes.
-- Repeated role words such as character, personaggio, he, she, or they refer to
-  the same continuing Subject unless a prompt_N explicitly introduces another
-  participant. Small visual-analysis differences never establish a new identity."""
+    ordered_target_rules = """ORDERED FRAMES — NON-NEGOTIABLE FIRST-PASS CHECKLIST
+Satisfy every item while drafting; do not rely on a later repair pass.
+1. Apply `global_prompt` across the complete video. Keep each prompt_N event and
+   protected string at its own Picture row; global direction never erases or
+   moves local content.
+2. In `subject_definitions`, define recurring content once as Subjects and also
+   define every Picture on its own line with exactly `is the first frame of`,
+   `is a keyframe of`, or `is the last frame of` followed by its real [Shot N].
+3. Begin `summary` with `[keyframe completion]` and describe one continuous
+   target video using the Subject and Picture labels. Never call continuous
+   material a sequence of vignettes, scenes, stills, or independent segments.
+4. In `retention_analysis`, put exactly one entry on each physical line and no
+   duplicate labels. Picture lines use `<Picture N> ([Shot N] role): marker -
+   concrete explanation`, where role is `first frame`, `keyframe`, or
+   `last frame` and marker is one allowed visible-reference marker.
+5. Default to one `[Shot 1]`. Add another Shot only when global_prompt or a
+   prompt_N explicitly requests a cut, location/time change, or discontinuity.
+6. Pictures are visual anchors, never actions. Between every adjacent pair,
+   write observable limb, gaze, expression, prop, subject, and camera motion.
+   Never substitute `Picture N shows`, `transitions to Picture N`, `moves into
+   Picture N`, `scene shifts to Picture N`, or `depicted in Picture N`.
+7. Every physical speaker uses the exact order `<Subject N> (Sx) says,
+   <d>[Language] exact words</d>` or another vocal verb. Reuse the same Sx; put
+   no quotes around <d>, no Sx after </d>, and no duplicated speech carrier.
+8. `overall_soundscape` contains only ambience and physical/nonverbal sounds,
+   never the audience-only score. `non_diegetic_music` converts requested music
+   into concrete instruments, tempo/rhythm, volume, and dynamics.
+9. With six or more Pictures, normally write 350–500 English words in
+   `detailed_description`, spending the detail on motion between anchors.
+
+Ordered Pictures are consecutive states of one target-video timeline. Repeated
+role words such as character, personaggio, he, she, or they refer to the same
+continuing Subject unless a prompt_N explicitly introduces another participant.
+Small visual-analysis differences never establish a new identity."""
     if generic_target_rules not in contract:
         raise RuntimeError("REF2V target-intent contract block not found")
     contract = contract.replace(

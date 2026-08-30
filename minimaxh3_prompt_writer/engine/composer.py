@@ -613,6 +613,273 @@ def _remove_frame_non_picture_labels(text: str) -> str:
     return re.sub(r"[ \t]+(?=[,.;:])", "", value)
 
 
+def _frame_picture_role(index: int, picture_count: int) -> str:
+    if picture_count == 1:
+        return "keyframe"
+    if index == 1:
+        return "first frame"
+    if index == picture_count:
+        return "last frame"
+    return "keyframe"
+
+
+def _frame_picture_shot(text: str, label: str) -> int:
+    bounds = _ref_detail_bounds(text)
+    if bounds is None:
+        return 1
+    start, end = bounds
+    body = text[start:end]
+    occurrence = body.find(label)
+    if occurrence < 0:
+        return 1
+    shots = list(
+        re.finditer(r"\[Shot\s+([1-9]\d*)\]", body[:occurrence], re.IGNORECASE)
+    )
+    return int(shots[-1].group(1)) if shots else 1
+
+
+def _compact_frame_observation(observation: str, label: str) -> str:
+    value = re.sub(
+        rf"^\s*{re.escape(label)}\s*:\s*",
+        "",
+        str(observation or ""),
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    value = re.sub(r"\s+", " ", value).strip(" -:\t\r\n")
+    if not value:
+        return "the connected image's concrete composition and visible state."
+    if len(value) > 160:
+        value = value[:160].rsplit(" ", 1)[0].rstrip(" ,;:") + "."
+    elif value[-1] not in ".!?":
+        value += "."
+    return value
+
+
+def _ensure_frame_picture_definitions(
+    text: str,
+    manifest: ReferenceManifest,
+    observations: dict[str, str],
+) -> str:
+    """Materialize concrete Picture definitions without another Gemma pass."""
+
+    start = re.search(r"(?m)^subject_definitions:(?=$|[ \t])", text)
+    end = re.search(r"(?m)^summary:(?=$|[ \t])", text)
+    if start is None or end is None or start.end() >= end.start():
+        return text
+    body = text[start.end() : end.start()]
+    other_lines: list[str] = []
+    picture_lines: dict[int, str] = {}
+    for line in (line.strip() for line in body.splitlines() if line.strip()):
+        match = re.match(r"^<Picture\s+([1-9]\d*)>(?=$|[ \t:]).*$", line)
+        if match is None:
+            if line.casefold() not in {"n/a", "none"}:
+                other_lines.append(line)
+            continue
+        index = int(match.group(1))
+        if not 1 <= index <= len(manifest.pictures):
+            continue
+        if index in picture_lines:
+            continue
+        if re.match(
+            rf"^<Picture\s+{index}>\s+is\s+(?:the|a)\s+"
+            r"(?:first frame|keyframe|last frame)\s+of\s+\[Shot\s+[1-9]\d*\]",
+            line,
+            flags=re.IGNORECASE,
+        ):
+            picture_lines[index] = line
+            continue
+        description = re.sub(
+            rf"^\s*<Picture\s+{index}>\s*(?::|\bis\b)\s*",
+            "",
+            line,
+            count=1,
+            flags=re.IGNORECASE,
+        ).strip()
+        if not description:
+            asset = manifest.pictures[index - 1]
+            description = _compact_frame_observation(
+                observations.get(asset.socket, ""), asset.label
+            )
+        else:
+            description = _compact_frame_observation(
+                description, f"<Picture {index}>"
+            )
+        role = _frame_picture_role(index, len(manifest.pictures))
+        shot = _frame_picture_shot(text, f"<Picture {index}>")
+        article = "a" if role == "keyframe" else "the"
+        picture_lines[index] = (
+            f"<Picture {index}> is {article} {role} of [Shot {shot}], providing "
+            f"this concrete visual anchor: {description}"
+        )
+
+    for index, asset in enumerate(manifest.pictures, 1):
+        if index in picture_lines:
+            continue
+        role = _frame_picture_role(index, len(manifest.pictures))
+        shot = _frame_picture_shot(text, asset.label)
+        observation = _compact_frame_observation(
+            observations.get(asset.socket, ""), asset.label
+        )
+        article = "a" if role == "keyframe" else "the"
+        picture_lines[index] = (
+            f"{asset.label} is {article} {role} of [Shot {shot}], providing "
+            f"this concrete visual anchor: {observation}"
+        )
+
+    ordered_pictures = [
+        picture_lines[index]
+        for index in range(1, len(manifest.pictures) + 1)
+        if index in picture_lines
+    ]
+    normalized = "\n".join((*other_lines, *ordered_pictures)).strip() or "N/A"
+    return text[: start.end()] + "\n" + normalized + "\n\n" + text[end.start() :]
+
+
+_FRAME_RETENTION_ENTRY_RE = re.compile(
+    r"(?P<label><(?P<kind>Subject|Picture)\s+(?P<index>[1-9]\d*)>)"
+    r"(?:\s*\((?P<annotation>[^)\r\n]*)\))?\s*:\s*"
+    r"(?:(?P<role>first[ -]frame|opening[ -]frame|keyframe|last[ -]frame)\s*:\s*)?"
+    r"(?P<marker>fully[_ ]preserved|partially[_ ]preserved|"
+    r"attribute[_ ]transfer|weak[_ ]reference)\s*(?:-|:)\s*",
+    flags=re.IGNORECASE,
+)
+
+
+def _normalize_frame_retention(
+    text: str,
+    manifest: ReferenceManifest,
+    observations: dict[str, str],
+) -> str:
+    """Split compact Gemma retention prose into canonical one-line entries."""
+
+    start = re.search(r"(?m)^retention_analysis:(?=$|[ \t])", text)
+    end = re.search(r"(?m)^detailed_description:(?=$|[ \t])", text)
+    if start is None or end is None or start.end() >= end.start():
+        return text
+    body = text[start.end() : end.start()]
+    matches = list(_FRAME_RETENTION_ENTRY_RE.finditer(body))
+    if not matches:
+        return text
+
+    entries: dict[str, str] = {}
+    order: list[str] = []
+    for position, match in enumerate(matches):
+        label = f"<{match.group('kind').capitalize()} {int(match.group('index'))}>"
+        if label in entries:
+            continue
+        description_end = (
+            matches[position + 1].start()
+            if position + 1 < len(matches)
+            else len(body)
+        )
+        description = re.sub(
+            r"\s+", " ", body[match.end() : description_end]
+        ).strip(" -:\t\r\n")
+        if not description:
+            description = "The reference-critical visible state remains anchored."
+        marker = match.group("marker").lower().replace(" ", "_")
+        if match.group("kind").casefold() == "picture":
+            index = int(match.group("index"))
+            role = _frame_picture_role(index, len(manifest.pictures))
+            shot = _frame_picture_shot(text, label)
+            line = f"{label} ([Shot {shot}] {role}): {marker} - {description}"
+        else:
+            line = f"{label}: {marker} - {description}"
+        entries[label] = line
+        order.append(label)
+
+    for index, asset in enumerate(manifest.pictures, 1):
+        if asset.label in entries:
+            continue
+        role = _frame_picture_role(index, len(manifest.pictures))
+        shot = _frame_picture_shot(text, asset.label)
+        description = _compact_frame_observation(
+            observations.get(asset.socket, ""), asset.label
+        )
+        entries[asset.label] = (
+            f"{asset.label} ([Shot {shot}] {role}): fully_preserved - "
+            f"{description}"
+        )
+        order.append(asset.label)
+
+    normalized = "\n".join(entries[label] for label in order)
+    return text[: start.end()] + "\n" + normalized + "\n\n" + text[end.start() :]
+
+
+_FRAME_VOCAL_ACTION = (
+    r"(?:says?|asks?|replies|responds|shouts?|whispers?|exclaims?|"
+    r"calls\s+out|states|utters|sings?)"
+)
+
+
+def _normalize_frame_dialogue_speakers(text: str) -> str:
+    """Add stable Subject speaker IDs and remove harmless Gemma syntax noise."""
+
+    bounds = _ref_detail_bounds(text)
+    if bounds is None:
+        return text
+    start, end = bounds
+    body = text[start:end]
+    body = re.sub(
+        r"[\"“”]\s*(<d>.*?</d>)\s*[\"“”]",
+        r"\1",
+        body,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    body = re.sub(
+        rf"\b(?:saying|stating|speaking)\s*,\s*"
+        rf"(?=<Subject\s+[1-9]\d*>\s*(?:\(S[1-9]\d*\)\s*)?{_FRAME_VOCAL_ACTION}\b)",
+        "",
+        body,
+        flags=re.IGNORECASE,
+    )
+
+    subject_speakers: dict[int, int] = {}
+    used_speakers = {
+        int(value) for value in re.findall(r"\(S([1-9]\d*)\)", text)
+    }
+    for match in re.finditer(
+        r"<Subject\s+([1-9]\d*)>\s*\(S([1-9]\d*)\)", text
+    ):
+        subject_id = int(match.group(1))
+        speaker_id = int(match.group(2))
+        subject_speakers.setdefault(subject_id, speaker_id)
+        used_speakers.add(speaker_id)
+
+    next_speaker = 1
+
+    def add_speaker(match: re.Match[str]) -> str:
+        nonlocal next_speaker
+        subject_id = int(match.group(2))
+        if subject_id not in subject_speakers:
+            while next_speaker in used_speakers:
+                next_speaker += 1
+            subject_speakers[subject_id] = next_speaker
+            used_speakers.add(next_speaker)
+            next_speaker += 1
+        return f"{match.group(1)} (S{subject_speakers[subject_id]})"
+
+    body = re.sub(
+        rf"(<Subject\s+([1-9]\d*)>)(?!\s*\(S[1-9]\d*\))"
+        rf"(?=\s*{_FRAME_VOCAL_ACTION}\b)",
+        add_speaker,
+        body,
+        flags=re.IGNORECASE,
+    )
+    return text[:start] + body + text[end:]
+
+
+def _normalize_ordered_frame_output(
+    text: str,
+    manifest: ReferenceManifest,
+    observations: dict[str, str],
+) -> str:
+    value = _ensure_frame_picture_definitions(text, manifest, observations)
+    value = _normalize_frame_retention(value, manifest, observations)
+    return _normalize_frame_dialogue_speakers(value)
+
+
 def _frame_dialogue_spans(body: str) -> list[tuple[int, int]]:
     """Locate outer dialogue regions even when Gemma nests H3 tags."""
 
@@ -1469,6 +1736,11 @@ def compose_ref_prompt(
             observations,
             require_semantic_match=True,
         )
+        candidate = _normalize_ordered_frame_output(
+            candidate,
+            manifest,
+            observations,
+        )
     initial = validate_ref_prompt(candidate, length, manifest)
     if i2v_detailed_description:
         initial = _extend_validation(
@@ -1526,6 +1798,11 @@ def compose_ref_prompt(
                     observations,
                     require_semantic_match=False,
                 )
+            )
+            repaired_text = _normalize_ordered_frame_output(
+                repaired_text,
+                manifest,
+                observations,
             )
         final = validate_ref_prompt(repaired_text, length, manifest)
         if i2v_detailed_description:

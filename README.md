@@ -156,7 +156,12 @@ All rows become one continuous chronological `[Shot 1]`, preserving identity,
 space, action, and camera motion. A later Shot is allowed only when
 `global_prompt` or a `prompt_N` explicitly requests a cut, scene/location
 change, or time jump. Every ordered Picture is defined as a concrete first
-frame, keyframe, or last-frame anchor and receives its own retention line.
+frame, keyframe, or last-frame anchor and receives its own retention line. A
+compact first-pass checklist keeps these rules prominent for Gemma 4. Lightweight
+local normalization fills any omitted Picture definitions from the existing
+image observations, splits and deduplicates retention entries, and restores
+stable `(Sx)` identifiers on explicit Subject dialogue. These operations add no
+extra model generation and remain active when `strict_validation` is disabled.
 
 ### RP H3-REF2V Prompt Writer
 

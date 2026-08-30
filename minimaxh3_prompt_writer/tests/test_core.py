@@ -2289,8 +2289,8 @@ class GemmaRunnerTests(unittest.TestCase):
         self.assertIn("ordered_frame_ledger", system)
         self.assertIn("Never exchange these values", system)
         self.assertIn("physically plausible motion", system)
-        self.assertIn("GLOBAL AND ORDERED PROMPT INTENT IS PRIMARY", system)
-        self.assertIn("`global_prompt` supplies sequence-wide direction", system)
+        self.assertIn("NON-NEGOTIABLE FIRST-PASS CHECKLIST", system)
+        self.assertIn("Apply `global_prompt` across the complete video", system)
         self.assertIn("define every ordered Picture on", system)
         self.assertIn("A Picture\n  is an anchor, not an action", system)
         self.assertIn("no double quotes around the `<d>` block", system)
@@ -2704,6 +2704,74 @@ class ComposerRepairTests(unittest.TestCase):
         self.assertFalse(t2v.repaired)
         self.assertEqual(len(t2v_runner.calls), 1)
 
+    def test_frames_cheaply_normalize_picture_retention_and_speakers(self):
+        candidate = """subject_definitions:
+<Subject 1> is the recurring performer from <Picture 1>, <Picture 2>, and <Picture 3>.
+<Subject 2> is the robot visible in <Picture 2>.
+
+summary:
+[keyframe completion] A continuous character sequence unfolds.
+
+retention_analysis:
+<Subject 1>: fully_preserved - Identity remains stable. <Subject 2>: fully_preserved: The gray robot remains stable. <Picture 1>: first frame: fully_preserved: The opening pose remains exact. <Picture 2>: keyframe: fully_preserved: The robot interaction remains exact. <Picture 3>: last frame: fully_preserved: The closing pose remains exact.
+<Subject 2>: fully_preserved - the reference-critical visible identity and attributes remain consistent.
+
+detailed_description:
+Bright stylized 3D animation against a blue background. [Shot 1] <Subject 1> begins in <Picture 1>, then greets the viewer as <Subject 1> says, "<d>[English] Hello!</d>". A robot arrives in <Picture 2>. The performer raises a sign and, saying, <Subject 1> says, <d>[English] Follow me!</d>, settles into <Picture 3>.
+
+overall_soundscape:
+Soft movement sounds.
+
+non_diegetic_music:
+N/A"""
+        manifest = ReferenceManifest.from_inputs(
+            ref_images={f"ref_image_{index}": object() for index in range(3)}
+        )
+        observations = {
+            "ref_image_0": "<Picture 1>: The performer stands centered.",
+            "ref_image_1": "<Picture 2>: The performer faces a gray robot.",
+            "ref_image_2": "<Picture 3>: The performer holds a sign.",
+        }
+        runner = _ScriptedRunner([candidate])
+        result = compose_ref_prompt(
+            runner,
+            raw_prompt="One continuous shot.",
+            length=124,
+            selected_skill_label=SKILL_CORE,
+            observations=observations,
+            manifest=manifest,
+            max_new_tokens=2048,
+            sampling=SamplingConfig(do_sample=False, seed=1),
+            strict_validation=False,
+            i2v_detailed_description=True,
+            frame_prompts={
+                1: 'The performer says "Hello!".',
+                2: "A robot arrives.",
+                3: 'The performer says "Follow me!".',
+            },
+        )
+        self.assertEqual(len(runner.calls), 1)
+        subject_body = result.prompt.split("summary:", 1)[0]
+        self.assertIn("<Picture 1> is the first frame of [Shot 1]", subject_body)
+        self.assertIn("<Picture 2> is a keyframe of [Shot 1]", subject_body)
+        self.assertIn("<Picture 3> is the last frame of [Shot 1]", subject_body)
+        retention = result.prompt.split("retention_analysis:\n", 1)[1].split(
+            "\n\ndetailed_description:", 1
+        )[0]
+        self.assertEqual(retention.count("<Subject 2>:"), 1)
+        self.assertIn(
+            "<Picture 1> ([Shot 1] first frame): fully_preserved -", retention
+        )
+        self.assertIn(
+            "<Picture 3> ([Shot 1] last frame): fully_preserved -", retention
+        )
+        detail = result.prompt.split("detailed_description:\n", 1)[1].split(
+            "\n\noverall_soundscape:", 1
+        )[0]
+        self.assertEqual(detail.count("<Subject 1> (S1) says"), 2)
+        self.assertNotIn('"<d>', detail)
+        self.assertNotIn("saying, <Subject 1>", detail)
+
     def test_ambiguous_visible_text_warning_skips_repair_and_allows_output(self):
         candidate = """subject_definitions:
 <Subject 1> The stylized character established by <Picture 1>.
@@ -2859,7 +2927,7 @@ N/A"""
             any("first citation" in warning for warning in result.quality_warnings)
         )
         subject_body = result.prompt.split("summary:", 1)[0]
-        self.assertIn("<Picture 1>:", subject_body)
+        self.assertIn("<Picture 1> is", subject_body)
         detail = result.prompt.split("detailed_description:\n", 1)[1]
         self.assertLess(detail.index("<Picture 1>"), detail.index("<Picture 3>"))
         self.assertLess(detail.index("<Picture 3>"), detail.index("<Picture 2>"))
