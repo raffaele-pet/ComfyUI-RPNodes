@@ -4,7 +4,8 @@ A collection of utility nodes for ComfyUI:
 
 - **Image sizing and resizing:** `RP Smart Image Size`, `RP Smart Image Resize`,
   and `RP Image Minimum 1K`
-- **Image folder processing:** `RP Load Images from Folder` and
+- **Image folder processing:** `RP Load Images from Folder`,
+  `RP Load Prompt from File`, `RP Save Image to Folder (No Loop)`, and
   `RP Save Images to Folder`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
@@ -111,9 +112,8 @@ provided through the package requirements.
 
 ## Image folder processing
 
-`RP Load Images from Folder` and `RP Save Images to Folder` use the same
-integrated, one-item-at-a-time flow as the video frame nodes without extracting
-or rebuilding a video.
+The image-folder nodes provide an integrated, one-item-at-a-time flow without
+extracting or rebuilding a video.
 
 ### RP Load Images from Folder
 
@@ -137,6 +137,25 @@ Relative destination paths are resolved from `ComfyUI/output`.
 Source and destination folders must be different. `clear_output_folder` removes
 supported image files from the destination at the start of the run, while
 `overwrite` controls whether matching destination filenames may be replaced.
+
+### RP Load Prompt from File
+
+Reads one prompt block for the current image by using the index stored in
+`image_context`. Prompt blocks are separated by a line containing the selected
+separator, `*` by default. When `require_matching_count` is enabled, execution
+stops if the number of prompt blocks differs from the number of source images.
+
+### RP Save Image to Folder (No Loop)
+
+Saves an intermediate image and returns the same image unchanged so processing
+can continue downstream. This node never advances or starts the folder loop and
+is intended for one or more intermediate saves inside the processing chain.
+
+Only one `RP Save Images to Folder` should be connected to a given
+`RP Load Images from Folder`. Place it at the end of the complete chain as the
+loop controller. Use `RP Save Image to Folder (No Loop)` for every intermediate
+save. The loop controller reports an error if another loop controller is
+connected to the same loader.
 
 ## MiniMax H3 keyframes
 

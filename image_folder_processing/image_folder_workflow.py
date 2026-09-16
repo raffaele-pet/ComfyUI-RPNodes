@@ -79,6 +79,28 @@ def _resolve_output_folder(value):
     return folder
 
 
+def _resolve_prompt_file(value):
+    text = str(value or "").strip().strip('"')
+    if not text:
+        raise ValueError("Prompt file cannot be empty.")
+    prompt_file = Path(text).expanduser()
+    if not prompt_file.is_absolute():
+        prompt_file = _input_directory() / prompt_file
+    prompt_file = prompt_file.resolve()
+    if not prompt_file.is_file():
+        raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
+    return prompt_file
+
+
+def _prompt_blocks(prompt_file, separator):
+    separator = str(separator or "").strip()
+    if not separator:
+        raise ValueError("Prompt separator cannot be empty.")
+    text = prompt_file.read_text(encoding="utf-8-sig")
+    pattern = rf"(?m)^\s*{re.escape(separator)}\s*$"
+    return [block.strip() for block in re.split(pattern, text) if block.strip()]
+
+
 def _natural_key(path):
     return [
         int(part) if part.isdigit() else part.casefold()
@@ -182,6 +204,39 @@ def _save_image(image, path, overwrite):
         temporary.unlink(missing_ok=True)
 
 
+def _save_context_image(
+    image,
+    image_context,
+    output_folder,
+    clear_output_folder,
+    overwrite,
+):
+    context = dict(image_context)
+    index = int(context["index"])
+    image_count = int(context["image_count"])
+    if image_count < 1 or index < 0 or index >= image_count:
+        raise ValueError("image_context contains an invalid index or image count.")
+
+    source_directory = Path(context["source_directory"]).expanduser().resolve()
+    output_directory = _resolve_output_folder(output_folder)
+    if source_directory == output_directory:
+        raise ValueError("Source and output image folders must be different.")
+    if clear_output_folder and output_directory == _output_directory():
+        raise ValueError(
+            "Do not use the ComfyUI/output root with clear_output_folder enabled. "
+            "Choose a dedicated subfolder such as 'processed_images'."
+        )
+    if clear_output_folder and index == 0:
+        _clear_images(output_directory)
+
+    image_filename = Path(str(context["image_filename"])).name
+    if not image_filename:
+        raise ValueError("image_context does not contain a valid image filename.")
+    output_path = output_directory / image_filename
+    _save_image(image, output_path, bool(overwrite))
+    return index, image_count, output_directory, output_path
+
+
 class RPLoadImagesFromFolder:
     @classmethod
     def INPUT_TYPES(cls):
@@ -248,6 +303,98 @@ class RPLoadImagesFromFolder:
         )
 
 
+class RPLoadPromptFromFile:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image_context": ("RP_IMAGE_FOLDER_CONTEXT",),
+                "prompt_file": ("STRING", {"default": "prompts.txt"}),
+                "separator": ("STRING", {"default": "*"}),
+                "require_matching_count": ("BOOLEAN", {"default": True}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "INT")
+    RETURN_NAMES = ("prompt", "prompt_number")
+    FUNCTION = "load_prompt"
+    CATEGORY = "image/RPNodes"
+
+    @classmethod
+    def IS_CHANGED(cls, **_kwargs):
+        return float("nan")
+
+    def load_prompt(
+        self,
+        image_context,
+        prompt_file,
+        separator="*",
+        require_matching_count=True,
+    ):
+        context = dict(image_context)
+        index = int(context["index"])
+        image_count = int(context["image_count"])
+        resolved_file = _resolve_prompt_file(prompt_file)
+        prompts = _prompt_blocks(resolved_file, separator)
+
+        if not prompts:
+            raise ValueError(f"No prompts found in '{resolved_file}'.")
+        if require_matching_count and len(prompts) != image_count:
+            raise ValueError(
+                f"Prompt/image count mismatch: found {len(prompts)} prompts in "
+                f"'{resolved_file}' but the image folder contains {image_count} images."
+            )
+        if index < 0 or index >= len(prompts):
+            raise IndexError(
+                f"Prompt {index + 1} is missing in '{resolved_file}'. "
+                f"The file contains {len(prompts)} prompts."
+            )
+
+        return (prompts[index], index + 1)
+
+
+class RPSaveImageToFolder:
+    """Save one stage inline without starting or advancing the folder loop."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "image_context": ("RP_IMAGE_FOLDER_CONTEXT",),
+                "output_folder": ("STRING", {"default": "processed_images"}),
+                "clear_output_folder": ("BOOLEAN", {"default": False}),
+                "overwrite": ("BOOLEAN", {"default": False}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING")
+    RETURN_NAMES = ("image", "saved_image_path")
+    FUNCTION = "save"
+    CATEGORY = "image/RPNodes"
+
+    @classmethod
+    def IS_CHANGED(cls, **_kwargs):
+        return float("nan")
+
+    def save(
+        self,
+        image,
+        image_context,
+        output_folder,
+        clear_output_folder,
+        overwrite,
+    ):
+        _, _, _, output_path = _save_context_image(
+            image,
+            image_context,
+            output_folder,
+            clear_output_folder,
+            overwrite,
+        )
+        return (image, str(output_path))
+
+
 class RPSaveImagesToFolder:
     @classmethod
     def INPUT_TYPES(cls):
@@ -294,6 +441,34 @@ class RPSaveImagesToFolder:
             if child_id not in contained:
                 contained[child_id] = True
                 self._collect_contained(child_id, upstream, contained)
+
+    def _validate_single_loop_controller(self, flow, dynprompt):
+        if dynprompt is None or not hasattr(dynprompt, "all_node_ids"):
+            return
+        if not isinstance(flow, (list, tuple)) or len(flow) != 2:
+            return
+
+        open_node = flow[0]
+        controllers = []
+        for node_id in dynprompt.all_node_ids():
+            node_info = dynprompt.get_node(node_id)
+            if node_info.get("class_type") != "RPSaveImagesToFolder":
+                continue
+            candidate_flow = node_info.get("inputs", {}).get("flow")
+            if (
+                isinstance(candidate_flow, (list, tuple))
+                and len(candidate_flow) == 2
+                and candidate_flow[0] == open_node
+            ):
+                controllers.append(node_id)
+
+        if len(controllers) > 1:
+            raise ValueError(
+                "Multiple RP Save Images to Folder loop controllers are connected "
+                "to the same RP Load Images from Folder node. Keep exactly one loop "
+                "controller at the end of the complete processing chain and use "
+                "RP Save Image to Folder (No Loop) for intermediate saves."
+            )
 
     def _next_iteration(self, flow, next_index, dynprompt, unique_id):
         if GraphBuilder is None or is_link is None:
@@ -345,29 +520,14 @@ class RPSaveImagesToFolder:
         dynprompt=None,
         unique_id=None,
     ):
-        context = dict(image_context)
-        index = int(context["index"])
-        image_count = int(context["image_count"])
-        if image_count < 1 or index < 0 or index >= image_count:
-            raise ValueError("image_context contains an invalid index or image count.")
-
-        source_directory = Path(context["source_directory"]).expanduser().resolve()
-        output_directory = _resolve_output_folder(output_folder)
-        if source_directory == output_directory:
-            raise ValueError("Source and output image folders must be different.")
-        if clear_output_folder and output_directory == _output_directory():
-            raise ValueError(
-                "Do not use the ComfyUI/output root with clear_output_folder enabled. "
-                "Choose a dedicated subfolder such as 'processed_images'."
-            )
-        if clear_output_folder and index == 0:
-            _clear_images(output_directory)
-
-        image_filename = Path(str(context["image_filename"])).name
-        if not image_filename:
-            raise ValueError("image_context does not contain a valid image filename.")
-        output_path = output_directory / image_filename
-        _save_image(processed_image, output_path, bool(overwrite))
+        self._validate_single_loop_controller(flow, dynprompt)
+        index, image_count, output_directory, output_path = _save_context_image(
+            processed_image,
+            image_context,
+            output_folder,
+            clear_output_folder,
+            overwrite,
+        )
 
         if index + 1 < image_count:
             return self._next_iteration(flow, index + 1, dynprompt, unique_id)
@@ -377,10 +537,14 @@ class RPSaveImagesToFolder:
 
 NODE_CLASS_MAPPINGS = {
     "RPLoadImagesFromFolder": RPLoadImagesFromFolder,
+    "RPLoadPromptFromFile": RPLoadPromptFromFile,
+    "RPSaveImageToFolder": RPSaveImageToFolder,
     "RPSaveImagesToFolder": RPSaveImagesToFolder,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "RPLoadImagesFromFolder": "RP Load Images from Folder",
+    "RPLoadPromptFromFile": "RP Load Prompt from File",
+    "RPSaveImageToFolder": "RP Save Image to Folder (No Loop)",
     "RPSaveImagesToFolder": "RP Save Images to Folder",
 }

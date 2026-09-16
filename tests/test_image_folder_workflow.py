@@ -63,6 +63,9 @@ class _DynamicPrompt:
     def get_node(self, node_id):
         return self.nodes[node_id]
 
+    def all_node_ids(self):
+        return set(self.nodes)
+
 
 class ImageFolderWorkflowTests(unittest.TestCase):
     def setUp(self):
@@ -111,6 +114,30 @@ class ImageFolderWorkflowTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "No supported images"):
             workflow.RPLoadImagesFromFolder().load("empty")
 
+    def test_prompt_loader_selects_block_using_image_context_index(self):
+        prompt_file = self.root / "prompts.txt"
+        prompt_file.write_text(
+            "First prompt\nwith two lines\n\n*\n\nSecond prompt\n\n*\n\nThird prompt\n",
+            encoding="utf-8",
+        )
+        loader = workflow.RPLoadPromptFromFile()
+        context = {"index": 1, "image_count": 3}
+
+        prompt, number = loader.load_prompt(context, str(prompt_file), "*", True)
+
+        self.assertEqual(prompt, "Second prompt")
+        self.assertEqual(number, 2)
+
+    def test_prompt_loader_rejects_prompt_image_count_mismatch(self):
+        prompt_file = self.root / "prompts.txt"
+        prompt_file.write_text("First\n*\nSecond\n", encoding="utf-8")
+        context = {"index": 0, "image_count": 3}
+
+        with self.assertRaisesRegex(ValueError, "Prompt/image count mismatch"):
+            workflow.RPLoadPromptFromFile().load_prompt(
+                context, str(prompt_file), "*", True
+            )
+
     def test_saver_preserves_filename_and_format_and_controls_overwrite(self):
         source = self.input_directory / "source"
         self._write_image(source / "photo.jpg", (20, 40, 60))
@@ -151,6 +178,50 @@ class ImageFolderWorkflowTests(unittest.TestCase):
             False,
             True,
         )
+
+    def test_inline_saver_saves_and_passes_image_through_without_looping(self):
+        source = self.input_directory / "source"
+        self._write_image(source / "photo.png", (20, 40, 60))
+        loaded = workflow.RPLoadImagesFromFolder().load("source")
+
+        returned_image, saved_path = workflow.RPSaveImageToFolder().save(
+            loaded[1], loaded[4], "intermediate", False, False
+        )
+
+        self.assertIs(returned_image, loaded[1])
+        self.assertEqual(Path(saved_path).name, "photo.png")
+        self.assertTrue(Path(saved_path).is_file())
+
+    def test_loop_saver_rejects_two_controllers_for_the_same_loader(self):
+        source = self.input_directory / "source"
+        self._write_image(source / "photo.png", (20, 40, 60))
+        loaded = workflow.RPLoadImagesFromFolder().load("source")
+        nodes = {
+            "loader": {
+                "class_type": "RPLoadImagesFromFolder",
+                "inputs": {"images_folder": "source"},
+            },
+            "saver-a": {
+                "class_type": "RPSaveImagesToFolder",
+                "inputs": {"flow": ["loader", 0]},
+            },
+            "saver-b": {
+                "class_type": "RPSaveImagesToFolder",
+                "inputs": {"flow": ["loader", 0]},
+            },
+        }
+
+        with self.assertRaisesRegex(ValueError, "Multiple RP Save Images"):
+            workflow.RPSaveImagesToFolder().save(
+                ["loader", 0],
+                loaded[1],
+                loaded[4],
+                "results",
+                False,
+                False,
+                dynprompt=_DynamicPrompt(nodes),
+                unique_id="saver-a",
+            )
 
     def test_saver_clears_only_destination_images_at_first_iteration(self):
         source = self.input_directory / "source"
