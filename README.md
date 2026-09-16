@@ -4,9 +4,9 @@ A collection of utility nodes for ComfyUI:
 
 - **Image sizing and resizing:** `RP Smart Image Size`, `RP Smart Image Resize`,
   and `RP Image Minimum 1K`
-- **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **Image folder processing:** `RP Load Images from Folder` and
   `RP Save Images to Folder`
+- **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
