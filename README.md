@@ -5,10 +5,13 @@ A collection of utility nodes for ComfyUI:
 - **Image sizing and resizing:** `RP Smart Image Size`, `RP Smart Image Resize`,
   and `RP Image Minimum 1K`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
+- **Image folder processing:** `RP Load Images from Folder` and
+  `RP Save Images to Folder`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
-`video_frame_processing`, with the keyframe node in `h3_keyframes`. Shared
+`video_frame_processing`, the folder-processing nodes in
+`image_folder_processing`, and the keyframe node in `h3_keyframes`. Shared
 browser extensions live under `web`, and example workflows remain together in
 `example_workflows`.
 
@@ -106,6 +109,35 @@ an in-node preview.
 Source and processed frames remain accessible under `ComfyUI/output`. FFmpeg is
 provided through the package requirements.
 
+## Image folder processing
+
+`RP Load Images from Folder` and `RP Save Images to Folder` use the same
+integrated, one-item-at-a-time flow as the video frame nodes without extracting
+or rebuilding a video.
+
+### RP Load Images from Folder
+
+Reads supported images from one folder in natural filename order and sends one
+`IMAGE` and `MASK` through the workflow at a time. Relative source paths are
+resolved from `ComfyUI/input`. Supported formats are BMP, JPEG, PNG, TIFF, and
+WebP.
+
+### RP Save Images to Folder
+
+Saves each processed image to the selected destination, preserving its original
+filename and format, then advances the integrated flow to the next source image.
+Relative destination paths are resolved from `ComfyUI/output`.
+
+### Connecting the pair
+
+- `flow` to `flow`
+- `image_context` to `image_context`
+- `image` through the processing nodes to `processed_image`
+
+Source and destination folders must be different. `clear_output_folder` removes
+supported image files from the destination at the start of the run, while
+`overwrite` controls whether matching destination filenames may be replaced.
+
 ## MiniMax H3 keyframes
 
 ### RP H3-Keyframes
@@ -140,9 +172,9 @@ python -m pip install -r ComfyUI-RPNodes/requirements.txt
 ```
 
 Restart ComfyUI and refresh the browser. The image-sizing nodes are available
-under `image/resolution`; the video-processing nodes are available under
-`video/RPNodes`; the MiniMax H3 keyframe node is available under
-`RP/MiniMax H3`.
+under `image/resolution`; the image-folder nodes are available under
+`image/RPNodes`; the video-processing nodes are available under `video/RPNodes`;
+the MiniMax H3 keyframe node is available under `RP/MiniMax H3`.
 
 ## Example workflows
 
