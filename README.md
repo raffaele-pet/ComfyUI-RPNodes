@@ -5,15 +5,12 @@ A collection of utility nodes for ComfyUI:
 - **Image sizing and resizing:** `RP Smart Image Size`, `RP Smart Image Resize`,
   and `RP Image Minimum 1K`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
-- **MiniMax H3 prompt writing:** `RP H3-T2V Prompt Writer`,
-  `RP H3-I2V Prompt Writer`, and `RP H3-REF2V Prompt Writer`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
-`video_frame_processing`, with the H3 prompt-writing nodes in
-`minimaxh3_prompt_writer` and the keyframe node in `h3_keyframes`. Shared
-browser extensions live under `web`, and all example workflows remain together
-in `example_workflows`.
+`video_frame_processing`, with the keyframe node in `h3_keyframes`. Shared
+browser extensions live under `web`, and example workflows remain together in
+`example_workflows`.
 
 ## Image sizing and resizing
 
@@ -109,85 +106,6 @@ an in-node preview.
 Source and processed frames remain accessible under `ComfyUI/output`. FFmpeg is
 provided through the package requirements.
 
-## MiniMax H3 prompt writing
-
-Three Gemma-powered nodes turn a plain-language request and optional media into
-a structured prompt for MiniMax H3 video generation.
-
-The bundled workflow presents the three prompt writers side by side
-and includes compact English and Italian Markdown notes with the repository
-link.
-
-### RP H3-T2V Prompt Writer
-
-Creates a standalone text-to-video prompt. Optional images, video frame batches,
-and audio help Gemma describe appearance, motion, and sound, but the final prompt
-contains no Picture, Video, Audio, Subject, reference, or socket tags. Reference
-inputs grow automatically up to 9 images, 3 videos, 3 paired soundtracks, and 3
-standalone audio clips. Every visual input receives a corresponding timed
-Storyboard contribution in the finished prompt.
-
-### RP H3-I2V Prompt Writer
-
-Creates an I2V prompt from one to nine ordered images, with frame inputs growing
-automatically as they are connected. With `RP H3-Keyframes` it supports
-multiframe generation. Without `RP H3-Keyframes` it works as a standard
-first/last-frame prompt writer; connect the same one or two images to the native
-H3 first/last-frame inputs. `global_prompt` supplies sequence-wide direction
-such as continuity, cuts, style, camera, pacing, ambience, physical sound, and
-music. It is followed by `prompt_1` through `prompt_9`, which remain bound to
-their individual frames. Every connected `frame_N` reveals and requires its
-matching non-empty `prompt_N` field. Gemma permanently binds each local prompt,
-its protected dialogue/text, and the analyzed image to `<Picture N>`, while
-applying compatible global direction across the complete sequence. A row's
-protected content may occur just
-before its Picture citation while motion reaches the frame, or just after it
-while that state acts; either adjacent Picture remains a hard ownership
-boundary. Trailing unconnected frames and their prompt fields are ignored, so
-the same mapping works with any consecutive count from one through nine. The
-visible-text parser keeps clearly delimited copy as a strict verbatim constraint.
-When an unquoted string runs into a new spoken action such as `e dice...` or
-`and says...`, it stops at that action boundary and reports the interpretation
-in `quality_warnings` without triggering a repair pass or stopping execution.
-The frontend migrates all historical widget layouts by name and splits an old
-numbered `1. ... 9.` request into the matching prompt fields without shifting
-any parameter.
-All rows become one continuous chronological `[Shot 1]`, preserving identity,
-space, action, and camera motion. A later Shot is allowed only when
-`global_prompt` or a `prompt_N` explicitly requests a cut, scene/location
-change, or time jump. Every ordered Picture is defined as a concrete first
-frame, keyframe, or last-frame anchor and receives its own retention line. A
-compact first-pass checklist keeps these rules prominent for Gemma 4. Lightweight
-local normalization fills any omitted Picture definitions from the existing
-image observations, splits and deduplicates retention entries, and restores
-stable `(Sx)` identifiers on explicit Subject dialogue. These operations add no
-extra model generation and remain active when `strict_validation` is disabled.
-
-### RP H3-REF2V Prompt Writer
-
-Creates a Reference-to-Video prompt from connected reference images, video
-frame batches, paired video audio, and standalone audio while keeping MiniMax's
-Picture, Video, and Audio labels consistent. Its reference inputs grow to the
-same native H3 limits and retain their canonical order when nodes are copied or
-pasted. Reference media is not passed through: connect each source separately
-to this writer and to `MiniMax H3 Reference to Video`. Every connected source
-must contribute in the narrative or sound sections, not only in metadata.
-
-T2V uses contiguous second-based Storyboard ranges; REF2V timestamps later
-shots. `duration_seconds` drives both prompt timing and the H3-compatible
-`aligned_length`.
-
-All three nodes use a dedicated `gemma4_e4b_it_fp8_scaled.safetensors` CLIP
-loaded as `stable_diffusion`. The native H3 generation node must keep its
-separate Qwen3-VL CLIP loaded as `minimax`. Their outputs are the generated
-`prompt`, the H3-compatible `aligned_length`, and an `analysis_report`. Each
-connected image, video, or audio asset is analyzed independently so every input
-has its own traceable observation. The shared defaults are `max_token_length =
-2048`, `media_analysis_tokens = 256`, fixed `seed = 42`, and
-`strict_validation = false`.
-After writing the prompt, the nodes offload their dedicated Gemma CLIP before
-downstream H3 generation to release VRAM.
-
 ## MiniMax H3 keyframes
 
 ### RP H3-Keyframes
@@ -223,7 +141,8 @@ python -m pip install -r ComfyUI-RPNodes/requirements.txt
 
 Restart ComfyUI and refresh the browser. The image-sizing nodes are available
 under `image/resolution`; the video-processing nodes are available under
-`video/RPNodes`; all MiniMax H3 nodes are available under `RP/MiniMax H3`.
+`video/RPNodes`; the MiniMax H3 keyframe node is available under
+`RP/MiniMax H3`.
 
 ## Example workflows
 
@@ -232,7 +151,6 @@ workflows for each node category:
 
 - [`smart-image-size-resize.json`](./example_workflows/smart-image-size-resize.json)
 - [`video-frames-process-video.json`](./example_workflows/video-frames-process-video.json)
-- [`minimax-h3-prompt-writer.json`](./example_workflows/minimax-h3-prompt-writer.json)
 
 Drag a JSON file onto the ComfyUI canvas or load it through the workflow menu.
 
