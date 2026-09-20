@@ -214,5 +214,8 @@ Drag a JSON file onto the ComfyUI canvas or load it through the workflow menu.
 
 - The resolution database includes both manufacturer-published presets and
   practical model-aware dimensions for additional aspect ratios.
+- Qwen-Image-2.1 keeps the manufacturer-published native 2K sizes. Its other
+  presets are calculated from the selected square pixel budget on a 32-pixel
+  grid, matching the model's official ComfyUI workflow.
 - Very wide or tall formats may be less stable than a model's native training
   ratios.
