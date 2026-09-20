@@ -27,6 +27,14 @@ function replaceComboValues(widget, values, preferred) {
 }
 
 
+function preferredDimension(items, preferred) {
+    if (typeof preferred !== "string") return preferred;
+    const preferredRatio = preferred.split(" ", 1)[0];
+    const matchingItem = items.find((item) => item.ratio === preferredRatio);
+    return matchingItem ? formatDimension(matchingItem) : preferred;
+}
+
+
 function redraw(node) {
     const computed = node.computeSize();
     node.setSize([Math.max(node.size[0], computed[0]), computed[1]]);
@@ -70,7 +78,11 @@ function configureMenus(node, data) {
 
     function updateDimensions(preferred, preferredWidth, preferredHeight) {
         const items = data[model.value]?.[resolution.value] ?? [];
-        replaceComboValues(dimensions, items.map(formatDimension), preferred);
+        replaceComboValues(
+            dimensions,
+            items.map(formatDimension),
+            preferredDimension(items, preferred)
+        );
         updateSizeWidgets(preferredWidth, preferredHeight);
         redraw(node);
     }
@@ -101,7 +113,7 @@ function configureMenus(node, data) {
     const resolutionCallback = resolution.callback;
     resolution.callback = function (value, ...args) {
         resolutionCallback?.call(this, value, ...args);
-        updateDimensions(undefined, undefined, undefined);
+        updateDimensions(dimensions.value, undefined, undefined);
     };
 
     const dimensionsCallback = dimensions.callback;

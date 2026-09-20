@@ -30,10 +30,14 @@ resolution database and dependent controls.
 - HiDream-O1-Image / Dev
 - Ideogram 4
 - Krea 2
+- Qwen-Image-2.1
 - Qwen-Image-2512
 - Qwen-Image-Edit-2511
 - SDXL
 - Z-Image-Turbo
+
+For Qwen-Image-2.1, the resolution menu shows the megapixel class, its K
+equivalent where applicable, and the corresponding square dimensions.
 
 ### RP Smart Image Size
 

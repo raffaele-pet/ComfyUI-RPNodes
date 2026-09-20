@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 
@@ -34,6 +35,10 @@ def unique_dimensions():
 
 
 def resolution_output(resolution):
+    if isinstance(resolution, str):
+        square_size = re.search(r"\((\d+)\s*[x×]\s*\1\)", resolution)
+        if square_size:
+            return square_size.group(1)
     if isinstance(resolution, str) and resolution.upper().endswith("K"):
         try:
             return str(round(float(resolution[:-1]) * 1024))
