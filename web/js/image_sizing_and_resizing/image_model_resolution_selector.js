@@ -35,6 +35,26 @@ function preferredDimension(items, preferred) {
 }
 
 
+function resolutionSide(value) {
+    if (typeof value !== "string") return undefined;
+
+    const squareMatch = value.match(/\((\d+)\s*[x×]\s*\1\)/);
+    if (squareMatch) return Number(squareMatch[1]);
+
+    const kMatch = value.match(/^(\d+(?:\.\d+)?)K$/i);
+    if (kMatch) return Math.round(Number(kMatch[1]) * 1024);
+
+    return /^\d+$/.test(value) ? Number(value) : undefined;
+}
+
+
+function preferredResolutionValue(values, preferred) {
+    if (values.includes(preferred)) return preferred;
+    const preferredSide = resolutionSide(preferred);
+    return values.find((value) => resolutionSide(value) === preferredSide) ?? preferred;
+}
+
+
 function redraw(node) {
     const computed = node.computeSize();
     node.setSize([Math.max(node.size[0], computed[0]), computed[1]]);
@@ -89,7 +109,11 @@ function configureMenus(node, data) {
 
     function updateResolutions(preferredResolution, preferredDimensions, preferredWidth, preferredHeight) {
         const values = Object.keys(data[model.value] ?? {});
-        replaceComboValues(resolution, values, preferredResolution);
+        replaceComboValues(
+            resolution,
+            values,
+            preferredResolutionValue(values, preferredResolution)
+        );
         updateDimensions(preferredDimensions, preferredWidth, preferredHeight);
     }
 

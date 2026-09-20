@@ -18,8 +18,33 @@ QWEN_21_TIERS = {
     "4 MP ~ 2K (2048 × 2048)": 2048,
 }
 
+ALL_RESOLUTION_LABELS = {
+    "1 MP ~ 1K (1024 × 1024)": 1024,
+    "1.56 MP ~ 1.25K (1280 × 1280)": 1280,
+    "1.68 MP (1328 × 1328)": 1328,
+    "2 MP (1440 × 1440)": 1440,
+    "2.25 MP ~ 1.5K (1536 × 1536)": 1536,
+    "3 MP (1760 × 1760)": 1760,
+    "4 MP ~ 2K (2048 × 2048)": 2048,
+}
+
 
 class SmartImageSizeTests(unittest.TestCase):
+    def test_all_models_use_descriptive_resolution_labels(self):
+        self.assertEqual(
+            set(smart_image_size.unique_resolutions()), set(ALL_RESOLUTION_LABELS)
+        )
+
+        for model_resolutions in smart_image_size.RESOLUTIONS.values():
+            for label, items in model_resolutions.items():
+                square = items[0]
+                self.assertEqual(square["ratio"], "1:1")
+                self.assertEqual(square["width"], square["height"])
+                self.assertEqual(ALL_RESOLUTION_LABELS[label], square["width"])
+                self.assertEqual(
+                    smart_image_size.resolution_output(label), str(square["width"])
+                )
+
     def test_qwen_image_21_has_all_resolution_tiers_and_ratios(self):
         tiers = smart_image_size.RESOLUTIONS["Qwen-Image-2.1"]
 
@@ -64,7 +89,18 @@ class SmartImageSizeTests(unittest.TestCase):
         self.assertEqual(native_2k["16:9"], (2752, 1536))
         self.assertEqual(native_2k["9:16"], (1536, 2752))
 
-    def test_existing_k_resolution_outputs_are_unchanged(self):
+    def test_legacy_resolution_values_are_still_supported(self):
         self.assertEqual(smart_image_size.resolution_output("1K"), "1024")
         self.assertEqual(smart_image_size.resolution_output("1.5K"), "1536")
         self.assertEqual(smart_image_size.resolution_output("2K"), "2048")
+        self.assertEqual(smart_image_size.resolution_output("1328"), "1328")
+
+        flux_resolutions = smart_image_size.RESOLUTIONS["FLUX.2 Klein"]
+        self.assertEqual(
+            smart_image_size.resolve_resolution(flux_resolutions, "1536"),
+            "2.25 MP ~ 1.5K (1536 × 1536)",
+        )
+        self.assertEqual(
+            smart_image_size.resolve_resolution(flux_resolutions, "1.5K"),
+            "2.25 MP ~ 1.5K (1536 × 1536)",
+        )

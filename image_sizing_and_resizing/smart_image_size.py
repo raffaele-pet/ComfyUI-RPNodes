@@ -34,16 +34,39 @@ def unique_dimensions():
     return result
 
 
+def resolution_side(resolution):
+    if not isinstance(resolution, str):
+        return None
+
+    square_size = re.search(r"\((\d+)\s*[x×]\s*\1\)", resolution)
+    if square_size:
+        return int(square_size.group(1))
+
+    k_size = re.fullmatch(r"(\d+(?:\.\d+)?)K", resolution, re.IGNORECASE)
+    if k_size:
+        return round(float(k_size.group(1)) * 1024)
+
+    if resolution.isdigit():
+        return int(resolution)
+    return None
+
+
+def resolve_resolution(model_resolutions, resolution):
+    if resolution in model_resolutions:
+        return resolution
+
+    requested_side = resolution_side(resolution)
+    if requested_side is not None:
+        for available_resolution in model_resolutions:
+            if resolution_side(available_resolution) == requested_side:
+                return available_resolution
+    return next(iter(model_resolutions))
+
+
 def resolution_output(resolution):
-    if isinstance(resolution, str):
-        square_size = re.search(r"\((\d+)\s*[x×]\s*\1\)", resolution)
-        if square_size:
-            return square_size.group(1)
-    if isinstance(resolution, str) and resolution.upper().endswith("K"):
-        try:
-            return str(round(float(resolution[:-1]) * 1024))
-        except ValueError:
-            pass
+    side = resolution_side(resolution)
+    if side is not None:
+        return str(side)
     return str(resolution)
 
 
@@ -68,8 +91,7 @@ class SmartImageSize:
             model = next(iter(RESOLUTIONS))
 
         available_resolutions = RESOLUTIONS[model]
-        if resolution not in available_resolutions:
-            resolution = next(iter(available_resolutions))
+        resolution = resolve_resolution(available_resolutions, resolution)
 
         available_dimensions = available_resolutions[resolution]
         selected = next(

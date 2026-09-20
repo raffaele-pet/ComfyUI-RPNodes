@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from .smart_image_size import (
     RESOLUTIONS,
     dimension_text,
+    resolve_resolution,
     resolution_output,
     unique_dimensions,
     unique_resolutions,
@@ -36,8 +37,7 @@ def _find_dimensions(model, resolution, dimensions):
     if model not in RESOLUTIONS:
         model = next(iter(RESOLUTIONS))
     model_resolutions = RESOLUTIONS[model]
-    if resolution not in model_resolutions:
-        resolution = next(iter(model_resolutions))
+    resolution = resolve_resolution(model_resolutions, resolution)
     items = model_resolutions[resolution]
     selected = next((item for item in items if dimension_text(item) == dimensions), items[0])
     return model, resolution, items, selected

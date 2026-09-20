@@ -36,8 +36,9 @@ resolution database and dependent controls.
 - SDXL
 - Z-Image-Turbo
 
-For Qwen-Image-2.1, the resolution menu shows the megapixel class, its K
-equivalent where applicable, and the corresponding square dimensions.
+The resolution menus show the megapixel class, its K equivalent where
+applicable, and the corresponding square dimensions. Each model only exposes
+the resolution tiers it supports.
 
 ### RP Smart Image Size
 
