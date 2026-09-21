@@ -4,6 +4,7 @@ import { api } from "/scripts/api.js";
 
 const NODE_NAME = "RPImageComparer";
 const NATIVE_PREVIEW_WIDGET = "$$canvas-image-preview";
+const RESIZE_HANDLE_SIZE = 20;
 
 
 function imageDataToUrl(data, preview = true) {
@@ -37,13 +38,22 @@ function isOverComparePreview(node, pos) {
     return Array.isArray(pos)
         && Number.isFinite(previewY)
         && pos[1] >= previewY
-        && pos[1] <= node.size[1];
+        && pos[1] <= node.size[1]
+        && !isOverResizeHandle(node, pos);
 }
 
 
-function setPointerCursor(event, canvas, enabled) {
+function isOverResizeHandle(node, pos) {
+    return Array.isArray(pos)
+        && pos[0] >= node.size[0] - RESIZE_HANDLE_SIZE
+        && pos[1] >= node.size[1] - RESIZE_HANDLE_SIZE;
+}
+
+
+function setCompareCursor(event, canvas, cursor) {
+    if (cursor == null) return;
     const element = canvas?.canvas ?? event?.currentTarget ?? event?.target;
-    if (element?.style) element.style.cursor = enabled ? "pointer" : "";
+    if (element?.style) element.style.cursor = cursor;
 }
 
 
@@ -403,7 +413,7 @@ app.registerExtension({
         nodeType.prototype.onMouseLeave = function (event, pos, canvas) {
             const result = originalMouseLeave?.apply(this, arguments);
             this.isPointerOver = false;
-            setPointerCursor(event, canvas, false);
+            setCompareCursor(event, canvas, "");
             this.setDirtyCanvas?.(true, false);
             return result;
         };
@@ -414,12 +424,15 @@ app.registerExtension({
             if (!pos) return result;
             this.pointerOverPos = [...pos];
             this.imageIndex = pos[0] > this.size[0] / 2 ? 1 : 0;
-            setPointerCursor(
-                event,
-                canvas,
-                this.properties.comparer_mode === "Click"
-                    && isOverComparePreview(this, pos),
-            );
+            const overPreview = isOverComparePreview(this, pos);
+            const compareCursor = !overPreview
+                ? null
+                : this.properties.comparer_mode === "Click"
+                    ? "pointer"
+                    : this.properties.comparer_mode === "Slide"
+                        ? "crosshair"
+                        : null;
+            setCompareCursor(event, canvas, compareCursor);
             this.setDirtyCanvas?.(true, false);
             return result;
         };
