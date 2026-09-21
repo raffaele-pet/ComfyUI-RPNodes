@@ -45,9 +45,15 @@ def _find_dimensions(model, resolution, dimensions):
 
 def _closest_dimensions(items, width, height):
     source_ratio = width / max(1, height)
+
+    def nominal_ratio(item):
+        # Pixel-grid rounding can make preset dimensions differ slightly from their declared ratio.
+        ratio_width, ratio_height = item["ratio"].split(":", 1)
+        return int(ratio_width) / max(1, int(ratio_height))
+
     return min(
         items,
-        key=lambda item: abs(math.log(source_ratio / (item["width"] / item["height"]))),
+        key=lambda item: abs(math.log(source_ratio / nominal_ratio(item))),
     )
 
 
@@ -204,6 +210,12 @@ def _actual_ratio(width, height):
     return f"{ratio.numerator}:{ratio.denominator}"
 
 
+def _reported_aspect_ratio(selection_mode, keep_proportion, selected, width, height):
+    if selection_mode == "automatic" and keep_proportion not in ("resize", "total_pixels"):
+        return selected["ratio"]
+    return _actual_ratio(width, height)
+
+
 class SmartImageResize:
     @classmethod
     def INPUT_TYPES(cls):
@@ -330,7 +342,9 @@ class SmartImageResize:
             output_image.cpu(),
             output_width,
             output_height,
-            _actual_ratio(output_width, output_height),
+            _reported_aspect_ratio(
+                selection_mode, keep_proportion, selected, output_width, output_height
+            ),
             output_resolution,
             output_mask.cpu(),
         )
