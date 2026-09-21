@@ -66,8 +66,8 @@ def resolve_resolution(model_resolutions, resolution):
 def resolution_output(resolution):
     side = resolution_side(resolution)
     if side is not None:
-        return str(side)
-    return str(resolution)
+        return side
+    return int(resolution)
 
 
 class SmartImageSize:
@@ -81,7 +81,7 @@ class SmartImageSize:
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "STRING", "STRING")
+    RETURN_TYPES = ("INT", "INT", "STRING", "INT")
     RETURN_NAMES = ("width", "height", "aspect_ratio", "resolution")
     FUNCTION = "get_resolution"
     CATEGORY = "image/resolution"

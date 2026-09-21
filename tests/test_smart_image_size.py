@@ -53,7 +53,7 @@ class SmartImageSizeTests(unittest.TestCase):
                 self.assertEqual(square["width"], square["height"])
                 self.assertEqual(ALL_RESOLUTION_LABELS[label], square["width"])
                 self.assertEqual(
-                    smart_image_size.resolution_output(label), str(square["width"])
+                    smart_image_size.resolution_output(label), square["width"]
                 )
 
     def test_qwen_image_21_has_all_resolution_tiers_and_ratios(self):
@@ -103,12 +103,12 @@ class SmartImageSizeTests(unittest.TestCase):
             square = smart_image_size.RESOLUTIONS["Qwen-Image-2.1"][tier][0]
             self.assertEqual(square["ratio"], "1:1")
             self.assertEqual((square["width"], square["height"]), (side, side))
-            self.assertEqual(smart_image_size.resolution_output(tier), str(side))
+            self.assertEqual(smart_image_size.resolution_output(tier), side)
             self.assertEqual(
                 node.get_resolution(
                     "Qwen-Image-2.1", tier, smart_image_size.dimension_text(square)
                 ),
-                (side, side, "1:1", str(side)),
+                (side, side, "1:1", side),
             )
 
         native_2k = {
@@ -123,10 +123,11 @@ class SmartImageSizeTests(unittest.TestCase):
         self.assertEqual(native_2k["9:16"], (1536, 2752))
 
     def test_legacy_resolution_values_are_still_supported(self):
-        self.assertEqual(smart_image_size.resolution_output("1K"), "1024")
-        self.assertEqual(smart_image_size.resolution_output("1.5K"), "1536")
-        self.assertEqual(smart_image_size.resolution_output("2K"), "2048")
-        self.assertEqual(smart_image_size.resolution_output("1328"), "1328")
+        self.assertEqual(smart_image_size.SmartImageSize.RETURN_TYPES[3], "INT")
+        self.assertEqual(smart_image_size.resolution_output("1K"), 1024)
+        self.assertEqual(smart_image_size.resolution_output("1.5K"), 1536)
+        self.assertEqual(smart_image_size.resolution_output("2K"), 2048)
+        self.assertEqual(smart_image_size.resolution_output("1328"), 1328)
 
         flux_resolutions = smart_image_size.RESOLUTIONS["FLUX.2 Klein"]
         self.assertEqual(

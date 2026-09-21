@@ -245,7 +245,7 @@ class SmartImageResize:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "STRING", "MASK")
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "INT", "MASK")
     RETURN_NAMES = ("IMAGE", "width", "height", "aspect_ratio", "resolution", "mask")
     FUNCTION = "resize"
     CATEGORY = "image/resolution"
@@ -285,7 +285,7 @@ class SmartImageResize:
 
         if resolution is not None and int(resolution) > 0:
             width, height = _dimensions_from_longer_side(selected, resolution)
-            output_resolution = str(int(resolution))
+            output_resolution = int(resolution)
         else:
             output_resolution = resolution_output(resolution_preset)
 

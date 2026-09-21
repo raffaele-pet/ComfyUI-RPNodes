@@ -32,6 +32,28 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
         )
 
         self.assertEqual(result[1:4], (928, 1152, "4:5"))
+        self.assertEqual(result[4], 1024)
+
+    def test_resolution_outputs_are_integers(self):
+        self.assertEqual(SmartImageResize.RETURN_TYPES[4], "INT")
+
+        result = SmartImageResize().resize(
+            model="FLUX.2 Klein",
+            resolution_preset="1 MP ~ 1K (1024 × 1024)",
+            selection_mode="automatic",
+            dimensions="",
+            width=1,
+            height=1,
+            upscale_method="nearest-exact",
+            keep_proportion="stretch",
+            pad_color="0, 0, 0",
+            crop_position="center",
+            image=torch.zeros((1, 16, 16, 3)),
+            resolution=256,
+        )
+
+        self.assertEqual(result[4], 256)
+        self.assertIsInstance(result[4], int)
 
     def test_automatic_selection_uses_nominal_aspect_ratio(self):
         source_width, source_height = 896, 1152
