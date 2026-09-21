@@ -25,6 +25,13 @@ function removeNativeCanvasPreview(node) {
 }
 
 
+function compareModeLabel(mode) {
+    if (mode === "Click") return "Compare mode: Click";
+    if (mode === "Side-by-side") return "Compare mode: Side-by-side";
+    return "Compare mode: Wipe";
+}
+
+
 class ImageComparerWidget {
     constructor(node) {
         this.name = "rp_image_comparer";
@@ -330,6 +337,21 @@ app.registerExtension({
                 return originalAddCustomWidget(widget);
             };
             removeNativeCanvasPreview(this);
+            this.rpCompareModeButton = this.addWidget(
+                "button",
+                compareModeLabel(this.properties.comparer_mode),
+                null,
+                () => {
+                    this.properties.comparer_mode = this.properties.comparer_mode === "Click"
+                        ? "Slide"
+                        : "Click";
+                    this.rpCompareModeButton.name = compareModeLabel(
+                        this.properties.comparer_mode,
+                    );
+                    this.setDirtyCanvas?.(true, true);
+                },
+                { serialize: false },
+            );
             this.rpComparerWidget = this.addCustomWidget(new ImageComparerWidget(this));
             const computed = this.computeSize?.() ?? this.size ?? [320, 360];
             this.setSize?.([
