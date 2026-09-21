@@ -60,7 +60,7 @@ class SmartImageSizeTests(unittest.TestCase):
         tiers = smart_image_size.RESOLUTIONS["Qwen-Image-2.1"]
 
         self.assertEqual(list(tiers), list(QWEN_21_TIERS))
-        self.assertTrue(all(len(items) == 19 for items in tiers.values()))
+        self.assertTrue(all(len(items) == 21 for items in tiers.values()))
         self.assertTrue(
             all(
                 item["width"] % 32 == 0 and item["height"] % 32 == 0
@@ -73,6 +73,17 @@ class SmartImageSizeTests(unittest.TestCase):
         self.assertTrue(
             all([item["ratio"] for item in items] == ratios for items in tiers.values())
         )
+
+    def test_all_models_include_seven_nine_orientations(self):
+        for model_resolutions in smart_image_size.RESOLUTIONS.values():
+            for items in model_resolutions.values():
+                by_ratio = {item["ratio"]: item for item in items}
+                portrait = by_ratio["7:9"]
+                landscape = by_ratio["9:7"]
+                self.assertEqual(portrait["label"], "Portrait Classic")
+                self.assertEqual(landscape["label"], "Landscape Classic")
+                self.assertEqual(portrait["width"], landscape["height"])
+                self.assertEqual(portrait["height"], landscape["width"])
 
     def test_qwen_image_21_derived_sizes_use_pixel_budget_and_32_pixel_grid(self):
         tiers = smart_image_size.RESOLUTIONS["Qwen-Image-2.1"]

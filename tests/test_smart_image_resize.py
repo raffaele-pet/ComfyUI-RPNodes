@@ -31,7 +31,7 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
             image=torch.zeros((1, 144, 112, 3)),
         )
 
-        self.assertEqual(result[1:4], (928, 1152, "4:5"))
+        self.assertEqual(result[1:4], (896, 1152, "7:9"))
         self.assertEqual(result[4], 1024)
 
     def test_resolution_outputs_are_integers(self):
@@ -61,7 +61,10 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
         for model in ("FLUX.2 Klein", "Qwen-Image-2.1"):
             items = next(iter(RESOLUTIONS[model].values()))
             selected = _closest_dimensions(items, source_width, source_height)
-            self.assertEqual(selected["ratio"], "4:5")
+            self.assertEqual(selected["ratio"], "7:9")
+
+            selected = _closest_dimensions(items, source_height, source_width)
+            self.assertEqual(selected["ratio"], "9:7")
 
     def test_automatic_target_canvas_reports_selected_standard_ratio(self):
         items = next(iter(RESOLUTIONS["Qwen-Image-2.1"].values()))
@@ -75,7 +78,7 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
                 selected["width"],
                 selected["height"],
             ),
-            "4:5",
+            "7:9",
         )
 
     def test_modes_that_preserve_source_shape_still_report_actual_ratio(self):
