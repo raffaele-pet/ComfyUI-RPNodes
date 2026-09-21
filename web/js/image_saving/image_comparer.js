@@ -6,10 +6,6 @@ const NODE_NAME = "RPImageComparer";
 const NATIVE_PREVIEW_WIDGET = "$$canvas-image-preview";
 const RESIZE_HANDLE_SIZE = 20;
 const IMAGE_INFO_HEIGHT = 24;
-const COMMON_ASPECT_RATIOS = [
-    [1, 1], [5, 4], [4, 3], [3, 2], [16, 10], [16, 9], [21, 9],
-    [4, 5], [3, 4], [2, 3], [10, 16], [9, 16], [9, 21],
-];
 
 
 function imageDataToUrl(data, preview = true) {
@@ -68,13 +64,13 @@ function setCompareCursor(event, canvas, cursor) {
 
 
 function aspectRatioLabel(width, height) {
-    const ratio = width / height;
-    const [ratioWidth, ratioHeight] = COMMON_ASPECT_RATIOS.reduce((best, current) => {
-        const bestDistance = Math.abs(Math.log((best[0] / best[1]) / ratio));
-        const currentDistance = Math.abs(Math.log((current[0] / current[1]) / ratio));
-        return currentDistance < bestDistance ? current : best;
-    });
-    return `${ratioWidth}:${ratioHeight}`;
+    let a = Math.abs(Math.trunc(width));
+    let b = Math.abs(Math.trunc(height));
+    while (b !== 0) {
+        [a, b] = [b, a % b];
+    }
+    const divisor = Math.max(1, a);
+    return `${Math.trunc(width) / divisor}:${Math.trunc(height) / divisor}`;
 }
 
 
