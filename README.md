@@ -7,6 +7,7 @@ A collection of utility nodes for ComfyUI:
 - **Image folder processing:** `RP Load Images from Folder`,
   `RP Load Prompt from File`, `RP Save Image to Folder (No Loop)`, and
   `RP Save Images to Folder`
+- **Image saving:** `RP Image Comparer`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
 
@@ -15,6 +16,25 @@ Python nodes are grouped in `image_sizing_and_resizing` and
 `image_folder_processing`, and the keyframe node in `h3_keyframes`. Shared
 browser extensions live under `web`, and example workflows remain together in
 `example_workflows`.
+
+## Image saving
+
+### RP Image Comparer
+
+Compares two images in the same node using the Image Comparer interaction from
+rgthree. In the default `Slide` mode, move the pointer over the preview to
+reveal either side; switch the `comparer_mode` property to `Click` to reveal
+the second image while pressing the pointer.
+
+The `Display name` field identifies the image or model and defaults to `#1`.
+The `Save name` field controls the browser-download filename and defaults to
+`%display_name-date:yyyy-MM-dd_HHmmss%`. For example, a display name of
+`qwen_image_2.1` produces a filename such as
+`qwen_image_2.1-2026-09-21_155258.png`.
+
+Right-click the left or right half of the preview and choose `Save Image` to
+download the corresponding image. If either input contains a batch, use the
+labels above the preview to select the two images to compare.
 
 ## Image sizing and resizing
 
@@ -197,8 +217,9 @@ python -m pip install -r ComfyUI-RPNodes/requirements.txt
 
 Restart ComfyUI and refresh the browser. The image-sizing nodes are available
 under `image/resolution`; the image-folder nodes are available under
-`image/RPNodes`; the video-processing nodes are available under `video/RPNodes`;
-the MiniMax H3 keyframe node is available under `RP/MiniMax H3`.
+`image/RPNodes`; the image comparer is available under `image/saving`; the
+video-processing nodes are available under `video/RPNodes`; the MiniMax H3
+keyframe node is available under `RP/MiniMax H3`.
 
 ## Example workflows
 
