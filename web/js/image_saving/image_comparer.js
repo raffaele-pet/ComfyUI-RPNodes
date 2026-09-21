@@ -426,7 +426,9 @@ app.registerExtension({
             const result = originalMouseMove?.apply(this, arguments);
             if (!pos) return result;
             this.pointerOverPos = [...pos];
-            this.imageIndex = pos[0] > this.size[0] / 2 ? 1 : 0;
+            this.imageIndex = this.properties.comparer_mode === "Click"
+                ? (this.isClickShowingAfter ? 1 : 0)
+                : (pos[0] > this.size[0] / 2 ? 1 : 0);
             const overPreview = isOverComparePreview(this, pos);
             const compareCursor = !overPreview
                 ? null
