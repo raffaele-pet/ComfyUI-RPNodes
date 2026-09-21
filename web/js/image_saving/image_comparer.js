@@ -45,8 +45,11 @@ function isOverComparePreview(node, pos) {
 
 function isOverResizeHandle(node, pos) {
     return Array.isArray(pos)
-        && pos[0] >= node.size[0] - RESIZE_HANDLE_SIZE
-        && pos[1] >= node.size[1] - RESIZE_HANDLE_SIZE;
+        && pos[1] >= node.size[1] - RESIZE_HANDLE_SIZE
+        && (
+            pos[0] <= RESIZE_HANDLE_SIZE
+            || pos[0] >= node.size[0] - RESIZE_HANDLE_SIZE
+        );
 }
 
 
