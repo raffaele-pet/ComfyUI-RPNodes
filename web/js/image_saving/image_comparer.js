@@ -32,6 +32,21 @@ function compareModeLabel(mode) {
 }
 
 
+function isOverComparePreview(node, pos) {
+    const previewY = node.rpComparerWidget?.previewY;
+    return Array.isArray(pos)
+        && Number.isFinite(previewY)
+        && pos[1] >= previewY
+        && pos[1] <= node.size[1];
+}
+
+
+function setPointerCursor(event, canvas, enabled) {
+    const element = canvas?.canvas ?? event?.currentTarget ?? event?.target;
+    if (element?.style) element.style.cursor = enabled ? "pointer" : "";
+}
+
+
 class ImageComparerWidget {
     constructor(node) {
         this.name = "rp_image_comparer";
@@ -130,9 +145,10 @@ class ImageComparerWidget {
             ctx.restore();
             y += 20;
         }
+        this.previewY = y;
 
         if (node.properties?.comparer_mode === "Click") {
-            this.drawImage(ctx, this.selected[node.isPointerDown ? 1 : 0], y);
+            this.drawImage(ctx, this.selected[node.isClickShowingAfter ? 1 : 0], y);
         } else if (node.properties?.comparer_mode === "Side-by-side") {
             this.drawSideBySide(ctx, y);
         } else {
@@ -327,7 +343,7 @@ app.registerExtension({
                     }
                 },
             });
-            this.isPointerDown = false;
+            this.isClickShowingAfter = false;
             this.isPointerOver = false;
             this.pointerOverPos = [0, 0];
             this.rpDownloadName = "#1";
@@ -345,6 +361,8 @@ app.registerExtension({
                     this.properties.comparer_mode = this.properties.comparer_mode === "Click"
                         ? "Slide"
                         : "Click";
+                    this.isClickShowingAfter = false;
+                    this.imageIndex = 0;
                     this.rpCompareModeButton.name = compareModeLabel(
                         this.properties.comparer_mode,
                     );
@@ -382,35 +400,42 @@ app.registerExtension({
         };
 
         const originalMouseLeave = nodeType.prototype.onMouseLeave;
-        nodeType.prototype.onMouseLeave = function () {
+        nodeType.prototype.onMouseLeave = function (event, pos, canvas) {
             const result = originalMouseLeave?.apply(this, arguments);
             this.isPointerOver = false;
-            this.isPointerDown = false;
+            setPointerCursor(event, canvas, false);
             this.setDirtyCanvas?.(true, false);
             return result;
         };
 
         const originalMouseMove = nodeType.prototype.onMouseMove;
-        nodeType.prototype.onMouseMove = function (event, pos) {
+        nodeType.prototype.onMouseMove = function (event, pos, canvas) {
             const result = originalMouseMove?.apply(this, arguments);
             if (!pos) return result;
             this.pointerOverPos = [...pos];
             this.imageIndex = pos[0] > this.size[0] / 2 ? 1 : 0;
+            setPointerCursor(
+                event,
+                canvas,
+                this.properties.comparer_mode === "Click"
+                    && isOverComparePreview(this, pos),
+            );
             this.setDirtyCanvas?.(true, false);
             return result;
         };
 
         const originalMouseDown = nodeType.prototype.onMouseDown;
-        nodeType.prototype.onMouseDown = function (event) {
+        nodeType.prototype.onMouseDown = function (event, pos) {
             const result = originalMouseDown?.apply(this, arguments);
             if (event?.button != null && event.button !== 0) return result;
-            this.isPointerDown = true;
-            this.imageIndex = 1;
-            this.setDirtyCanvas?.(true, false);
-            window.addEventListener("pointerup", () => {
-                this.isPointerDown = false;
+            if (
+                this.properties.comparer_mode === "Click"
+                && isOverComparePreview(this, pos)
+            ) {
+                this.isClickShowingAfter = !this.isClickShowingAfter;
+                this.imageIndex = this.isClickShowingAfter ? 1 : 0;
                 this.setDirtyCanvas?.(true, false);
-            }, { once: true });
+            }
             return result;
         };
 
