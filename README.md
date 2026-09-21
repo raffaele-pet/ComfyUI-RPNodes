@@ -23,8 +23,9 @@ browser extensions live under `web`, and example workflows remain together in
 
 Compares two images in the same node using the Image Comparer interaction from
 rgthree. In the default `Slide` mode, move the pointer over the preview to
-reveal either side; switch the `comparer_mode` property to `Click` to reveal
-the second image while pressing the pointer.
+reveal either side. The `comparer_mode` property also provides `Click`, which
+reveals the second image while pressing the pointer, and `Side-by-side`, which
+shows both images next to each other.
 
 The `Display name` field identifies the image or model and defaults to `#1`.
 The `Save name` field controls the browser-download filename and defaults to

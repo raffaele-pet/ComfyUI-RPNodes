@@ -3,6 +3,7 @@ import { api } from "/scripts/api.js";
 
 
 const NODE_NAME = "RPImageComparer";
+const NATIVE_PREVIEW_WIDGET = "$$canvas-image-preview";
 
 
 function imageDataToUrl(data, preview = true) {
@@ -16,40 +17,11 @@ function imageDataToUrl(data, preview = true) {
 }
 
 
-function menuLabel(option) {
-    return typeof option?.content === "string" ? option.content : "";
-}
-
-
-function pngFilename(name) {
-    const basename = String(name || "#1").replace(/\.(?:png|jpe?g|webp)$/i, "");
-    return `${basename}.png`;
-}
-
-
-async function downloadSelectedImage(node) {
-    const image = node.imgs?.[node.imageIndex ?? 0] ?? node.imgs?.[0];
-    if (!image?.src) return;
-
-    const sourceUrl = image.rpDownloadUrl ?? image.src;
-    let href = sourceUrl;
-    let objectUrl = null;
-    try {
-        const response = await fetch(sourceUrl);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        objectUrl = URL.createObjectURL(await response.blob());
-        href = objectUrl;
-    } catch (error) {
-        console.warn("RP Image Comparer: using the preview URL for download.", error);
-    }
-
-    const link = document.createElement("a");
-    link.href = href;
-    link.download = pngFilename(node.rpDownloadName);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+function removeNativeCanvasPreview(node) {
+    const index = node.widgets?.findIndex((widget) => widget.name === NATIVE_PREVIEW_WIDGET) ?? -1;
+    if (index < 0) return;
+    node.widgets[index].onRemove?.();
+    node.widgets.splice(index, 1);
 }
 
 
@@ -154,12 +126,54 @@ class ImageComparerWidget {
 
         if (node.properties?.comparer_mode === "Click") {
             this.drawImage(ctx, this.selected[node.isPointerDown ? 1 : 0], y);
+        } else if (node.properties?.comparer_mode === "Side-by-side") {
+            this.drawSideBySide(ctx, y);
         } else {
             this.drawImage(ctx, this.selected[0], y);
             if (node.isPointerOver) {
                 this.drawImage(ctx, this.selected[1], y, node.pointerOverPos[0]);
             }
         }
+    }
+
+    drawSideBySide(ctx, y) {
+        const [nodeWidth, nodeHeight] = this.node.size;
+        const gap = 2;
+        const halfWidth = (nodeWidth - gap) / 2;
+        const height = Math.max(1, nodeHeight - y);
+        this.drawImageInBounds(ctx, this.selected[0], 0, y, halfWidth, height);
+        this.drawImageInBounds(
+            ctx,
+            this.selected[1],
+            halfWidth + gap,
+            y,
+            halfWidth,
+            height,
+        );
+
+        ctx.save();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+        ctx.fillRect(halfWidth, y, gap, height);
+        ctx.restore();
+    }
+
+    drawImageInBounds(ctx, image, x, y, width, height) {
+        if (!image?.img?.naturalWidth || !image?.img?.naturalHeight) return;
+        const scale = Math.min(
+            width / image.img.naturalWidth,
+            height / image.img.naturalHeight,
+        );
+        const drawWidth = image.img.naturalWidth * scale;
+        const drawHeight = image.img.naturalHeight * scale;
+        const drawX = x + (width - drawWidth) / 2;
+        const drawY = y + (height - drawHeight) / 2;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.clip();
+        ctx.drawImage(image.img, drawX, drawY, drawWidth, drawHeight);
+        ctx.restore();
     }
 
     drawImage(ctx, image, y, cropX) {
@@ -285,7 +299,7 @@ app.registerExtension({
 
         nodeType["@comparer_mode"] = {
             type: "combo",
-            values: ["Slide", "Click"],
+            values: ["Slide", "Click", "Side-by-side"],
         };
 
         const originalCreated = nodeType.prototype.onNodeCreated;
@@ -294,11 +308,28 @@ app.registerExtension({
             this.properties ??= {};
             this.properties.comparer_mode ??= "Slide";
             this.imageIndex = 0;
-            this.imgs = [];
+            this.rpComparerImages = this.imgs ?? [];
+            this.rpComparerControlsImages = false;
+            Object.defineProperty(this, "imgs", {
+                configurable: true,
+                enumerable: true,
+                get: () => this.rpComparerImages,
+                set: (images) => {
+                    if (!this.rpComparerControlsImages) {
+                        this.rpComparerImages = images ?? [];
+                    }
+                },
+            });
             this.isPointerDown = false;
             this.isPointerOver = false;
             this.pointerOverPos = [0, 0];
             this.rpDownloadName = "#1";
+            const originalAddCustomWidget = this.addCustomWidget.bind(this);
+            this.addCustomWidget = (widget) => {
+                if (widget?.name === NATIVE_PREVIEW_WIDGET) return widget;
+                return originalAddCustomWidget(widget);
+            };
+            removeNativeCanvasPreview(this);
             this.rpComparerWidget = this.addCustomWidget(new ImageComparerWidget(this));
             const computed = this.computeSize?.() ?? this.size ?? [320, 360];
             this.setSize?.([
@@ -313,7 +344,10 @@ app.registerExtension({
         nodeType.prototype.onExecuted = function (output) {
             const result = originalExecuted?.apply(this, arguments);
             this.rpDownloadName = output.download_name?.[0] ?? "#1";
+            this.rpComparerControlsImages = true;
             this.rpComparerWidget.value = { images: comparerImages(output) };
+            removeNativeCanvasPreview(this);
+            queueMicrotask(() => removeNativeCanvasPreview(this));
             return result;
         };
 
@@ -358,20 +392,5 @@ app.registerExtension({
             return result;
         };
 
-        const originalMenu = nodeType.prototype.getExtraMenuOptions;
-        nodeType.prototype.getExtraMenuOptions = function (_canvas, options) {
-            const result = originalMenu?.apply(this, arguments);
-            const menu = Array.isArray(result) ? result : options;
-            if (!Array.isArray(menu)) return result;
-
-            const saveOption = {
-                content: "Save Image",
-                callback: () => downloadSelectedImage(this),
-            };
-            const existing = menu.findIndex((option) => /^Save Image(?:\s|$)/i.test(menuLabel(option)));
-            if (existing >= 0) menu.splice(existing, 1, saveOption);
-            else menu.unshift(saveOption);
-            return result ?? menu;
-        };
     },
 });

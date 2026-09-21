@@ -1,8 +1,11 @@
 """Image comparison preview with a configurable download filename."""
 
 from datetime import datetime
+import os
 import re
+from uuid import uuid4
 
+import folder_paths
 from nodes import PreviewImage
 
 
@@ -54,14 +57,21 @@ def format_save_name(display_name, save_name, now=None):
     return template or DEFAULT_DISPLAY_NAME
 
 
+def png_filename(save_name, batch_index=0):
+    """Return a PNG filename while preserving dots inside model names."""
+    basename = re.sub(r"\.(?:png|jpe?g|webp)$", "", save_name, flags=re.IGNORECASE)
+    suffix = "" if batch_index == 0 else f"_{batch_index + 1}"
+    return f"{basename}{suffix}.png"
+
+
 class RPImageComparer(PreviewImage):
     """Compare two images and download either preview with a chosen name."""
 
     FUNCTION = "compare_images"
     CATEGORY = "image/saving"
     DESCRIPTION = (
-        "Compares two images with a hover slider or click mode and downloads "
-        "the selected image using the configured save name."
+        "Compares two images with a hover slider, click mode, or side-by-side "
+        "view and downloads the selected image using the configured save name."
     )
 
     @classmethod
@@ -104,28 +114,62 @@ class RPImageComparer(PreviewImage):
         save_name=DEFAULT_SAVE_NAME,
         image_a=None,
         image_b=None,
-        filename_prefix="rp.compare.",
         prompt=None,
         extra_pnginfo=None,
     ):
+        download_name = format_save_name(display_name, save_name)
+        run_id = uuid4().hex
         result = {
             "ui": {
                 "a_images": [],
                 "b_images": [],
-                "download_name": [format_save_name(display_name, save_name)],
+                "download_name": [download_name],
             }
         }
         if image_a is not None and len(image_a) > 0:
-            result["ui"]["a_images"] = self.save_images(
-                image_a, filename_prefix, prompt, extra_pnginfo
-            )["ui"]["images"]
+            result["ui"]["a_images"] = self._save_named_previews(
+                image_a, download_name, run_id, "a", prompt, extra_pnginfo
+            )
 
         if image_b is not None and len(image_b) > 0:
-            result["ui"]["b_images"] = self.save_images(
-                image_b, filename_prefix, prompt, extra_pnginfo
-            )["ui"]["images"]
+            result["ui"]["b_images"] = self._save_named_previews(
+                image_b, download_name, run_id, "b", prompt, extra_pnginfo
+            )
 
         return result
+
+    def _save_named_previews(
+        self,
+        images,
+        download_name,
+        run_id,
+        side,
+        prompt,
+        extra_pnginfo,
+    ):
+        """Save previews in isolated temp folders with download-ready names."""
+        saved = self.save_images(
+            images,
+            "rp_image_comparer.preview",
+            prompt,
+            extra_pnginfo,
+        )["ui"]["images"]
+        target_subfolder = os.path.join("rp_image_comparer", run_id, side)
+        target_folder = os.path.join(folder_paths.get_temp_directory(), target_subfolder)
+        os.makedirs(target_folder, exist_ok=True)
+
+        for batch_index, image_data in enumerate(saved):
+            source_path = os.path.join(
+                folder_paths.get_temp_directory(),
+                image_data.get("subfolder", ""),
+                image_data["filename"],
+            )
+            filename = png_filename(download_name, batch_index)
+            os.replace(source_path, os.path.join(target_folder, filename))
+            image_data["filename"] = filename
+            image_data["subfolder"] = target_subfolder
+
+        return saved
 
 
 NODE_CLASS_MAPPINGS = {"RPImageComparer": RPImageComparer}
