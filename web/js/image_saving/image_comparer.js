@@ -5,6 +5,11 @@ import { api } from "/scripts/api.js";
 const NODE_NAME = "RPImageComparer";
 const NATIVE_PREVIEW_WIDGET = "$$canvas-image-preview";
 const RESIZE_HANDLE_SIZE = 20;
+const IMAGE_INFO_HEIGHT = 24;
+const COMMON_ASPECT_RATIOS = [
+    [1, 1], [5, 4], [4, 3], [3, 2], [16, 10], [16, 9], [21, 9],
+    [4, 5], [3, 4], [2, 3], [10, 16], [9, 16], [9, 21],
+];
 
 
 function imageDataToUrl(data, preview = true) {
@@ -35,10 +40,12 @@ function compareModeLabel(mode) {
 
 function isOverComparePreview(node, pos) {
     const previewY = node.rpComparerWidget?.previewY;
+    const previewBottom = node.rpComparerWidget?.previewBottom;
     return Array.isArray(pos)
         && Number.isFinite(previewY)
+        && Number.isFinite(previewBottom)
         && pos[1] >= previewY
-        && pos[1] <= node.size[1]
+        && pos[1] <= previewBottom
         && !isOverResizeHandle(node, pos);
 }
 
@@ -57,6 +64,17 @@ function setCompareCursor(event, canvas, cursor) {
     if (cursor == null) return;
     const element = canvas?.canvas ?? event?.currentTarget ?? event?.target;
     if (element?.style) element.style.cursor = cursor;
+}
+
+
+function aspectRatioLabel(width, height) {
+    const ratio = width / height;
+    const [ratioWidth, ratioHeight] = COMMON_ASPECT_RATIOS.reduce((best, current) => {
+        const bestDistance = Math.abs(Math.log((best[0] / best[1]) / ratio));
+        const currentDistance = Math.abs(Math.log((current[0] / current[1]) / ratio));
+        return currentDistance < bestDistance ? current : best;
+    });
+    return `${ratioWidth}:${ratioHeight}`;
 }
 
 
@@ -159,24 +177,30 @@ class ImageComparerWidget {
             y += 20;
         }
         this.previewY = y;
+        this.previewBottom = Math.max(y, node.size[1] - IMAGE_INFO_HEIGHT);
+        let infoImage;
 
         if (node.properties?.comparer_mode === "Click") {
-            this.drawImage(ctx, this.selected[node.isClickShowingAfter ? 1 : 0], y);
+            infoImage = this.selected[node.isClickShowingAfter ? 1 : 0];
+            this.drawImage(ctx, infoImage, y);
         } else if (node.properties?.comparer_mode === "Side-by-side") {
             this.drawSideBySide(ctx, y);
+            infoImage = this.selected[node.imageIndex ?? 0];
         } else {
             this.drawImage(ctx, this.selected[0], y);
             if (node.isPointerOver) {
                 this.drawImage(ctx, this.selected[1], y, node.pointerOverPos[0]);
             }
+            infoImage = this.selected[node.isPointerOver ? node.imageIndex : 0];
         }
+        this.drawImageInfo(ctx, infoImage);
     }
 
     drawSideBySide(ctx, y) {
         const [nodeWidth, nodeHeight] = this.node.size;
         const gap = 2;
         const halfWidth = (nodeWidth - gap) / 2;
-        const height = Math.max(1, nodeHeight - y);
+        const height = Math.max(1, nodeHeight - y - IMAGE_INFO_HEIGHT);
         this.drawImageInBounds(ctx, this.selected[0], 0, y, halfWidth, height);
         this.drawImageInBounds(
             ctx,
@@ -190,6 +214,24 @@ class ImageComparerWidget {
         ctx.save();
         ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
         ctx.fillRect(halfWidth, y, gap, height);
+        ctx.restore();
+    }
+
+    drawImageInfo(ctx, image) {
+        const width = image?.img?.naturalWidth;
+        const height = image?.img?.naturalHeight;
+        if (!width || !height) return;
+
+        ctx.save();
+        ctx.fillStyle = "rgba(190, 190, 190, 0.9)";
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+            `${width} × ${height} | ${aspectRatioLabel(width, height)}`,
+            this.node.size[0] / 2,
+            this.node.size[1] - IMAGE_INFO_HEIGHT / 2,
+        );
         ctx.restore();
     }
 
@@ -217,7 +259,7 @@ class ImageComparerWidget {
 
         const [nodeWidth, nodeHeight] = this.node.size;
         const imageAspect = image.img.naturalWidth / image.img.naturalHeight;
-        const availableHeight = Math.max(1, nodeHeight - y);
+        const availableHeight = Math.max(1, nodeHeight - y - IMAGE_INFO_HEIGHT);
         const widgetAspect = nodeWidth / availableHeight;
         let targetWidth;
         let targetHeight;
