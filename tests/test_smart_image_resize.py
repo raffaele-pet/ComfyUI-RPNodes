@@ -11,6 +11,7 @@ from image_sizing_and_resizing.smart_image_resize import (
     RESOLUTIONS,
     SmartImageResize,
     _closest_dimensions,
+    _exact_preset_dimensions,
     _reported_aspect_ratio,
 )
 
@@ -33,6 +34,34 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
 
         self.assertEqual(result[1:4], (896, 1152, "7:9"))
         self.assertEqual(result[4], 1024)
+
+    def test_qwen_automatic_four_five_output_matches_reported_ratio(self):
+        result = SmartImageResize().resize(
+            model="Qwen-Image-2.1",
+            resolution_preset="1 MP ~ 1K (1024 × 1024)",
+            selection_mode="automatic",
+            dimensions="",
+            width=1,
+            height=1,
+            upscale_method="nearest-exact",
+            keep_proportion="pad_edge_pixel",
+            pad_color="0, 0, 0",
+            crop_position="center",
+            image=torch.zeros((1, 1112, 880, 3)),
+        )
+
+        self.assertEqual(result[1:4], (896, 1120, "4:5"))
+        self.assertEqual(tuple(result[0].shape[1:3]), (1120, 896))
+
+    def test_automatic_preset_canvas_has_exact_nominal_ratio(self):
+        for model_resolutions in RESOLUTIONS.values():
+            for items in model_resolutions.values():
+                for item in items:
+                    width, height = _exact_preset_dimensions(item)
+                    ratio_width, ratio_height = map(int, item["ratio"].split(":"))
+                    self.assertEqual(width * ratio_height, height * ratio_width)
+                    self.assertEqual(width % 32, 0)
+                    self.assertEqual(height % 32, 0)
 
     def test_resolution_outputs_are_integers(self):
         self.assertEqual(SmartImageResize.RETURN_TYPES[4], "INT")
@@ -69,14 +98,15 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
     def test_automatic_target_canvas_reports_selected_standard_ratio(self):
         items = next(iter(RESOLUTIONS["Qwen-Image-2.1"].values()))
         selected = _closest_dimensions(items, 896, 1152)
+        width, height = _exact_preset_dimensions(selected)
 
         self.assertEqual(
             _reported_aspect_ratio(
                 "automatic",
                 "pad_edge_pixel",
                 selected,
-                selected["width"],
-                selected["height"],
+                width,
+                height,
             ),
             "7:9",
         )

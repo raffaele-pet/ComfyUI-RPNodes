@@ -57,13 +57,30 @@ def _closest_dimensions(items, width, height):
     )
 
 
+def _exact_preset_dimensions(item):
+    """Keep the preset pixel budget while honoring its declared aspect ratio."""
+    ratio_width, ratio_height = map(int, item["ratio"].split(":"))
+    ratio = Fraction(ratio_width, ratio_height)
+    unit_width = ratio.numerator * 32
+    unit_height = ratio.denominator * 32
+    target_pixels = int(item["width"]) * int(item["height"])
+    scale = math.sqrt(target_pixels / (unit_width * unit_height))
+    candidates = {max(1, math.floor(scale)), max(1, math.ceil(scale))}
+    multiplier = min(
+        candidates,
+        key=lambda value: abs(
+            math.log(value * value * unit_width * unit_height / target_pixels)
+        ),
+    )
+    return multiplier * unit_width, multiplier * unit_height
+
+
 def _dimensions_from_longer_side(item, longer_side):
     longer_side = max(1, int(longer_side))
-    item_width = int(item["width"])
-    item_height = int(item["height"])
-    if item_width >= item_height:
-        return longer_side, max(1, round(longer_side * item_height / item_width))
-    return max(1, round(longer_side * item_width / item_height)), longer_side
+    ratio_width, ratio_height = map(int, item["ratio"].split(":"))
+    if ratio_width >= ratio_height:
+        return longer_side, max(1, round(longer_side * ratio_height / ratio_width))
+    return max(1, round(longer_side * ratio_width / ratio_height)), longer_side
 
 
 def _parse_color(text, channels, dtype, device):
@@ -211,8 +228,7 @@ def _actual_ratio(width, height):
 
 
 def _reported_aspect_ratio(selection_mode, keep_proportion, selected, width, height):
-    if selection_mode == "automatic" and keep_proportion not in ("resize", "total_pixels"):
-        return selected["ratio"]
+    """Describe the output pixels, including modes that preserve the source shape."""
     return _actual_ratio(width, height)
 
 
@@ -279,7 +295,7 @@ class SmartImageResize:
         )
         if selection_mode == "automatic":
             selected = _closest_dimensions(items, source_width, source_height)
-            width, height = int(selected["width"]), int(selected["height"])
+            width, height = _exact_preset_dimensions(selected)
         else:
             width, height = max(1, int(width)), max(1, int(height))
 
