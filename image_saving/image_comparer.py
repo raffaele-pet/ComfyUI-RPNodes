@@ -31,7 +31,7 @@ def _format_date(pattern, value):
 
 
 def format_save_name(display_name, save_name, now=None):
-    """Expand RP Image Comparer filename tokens and return a safe basename."""
+    """Expand image-saving filename tokens and return a safe basename."""
     value = now or datetime.now()
     display_name = str(display_name or DEFAULT_DISPLAY_NAME).strip()
     template = str(save_name or DEFAULT_SAVE_NAME).strip()
@@ -64,7 +64,45 @@ def png_filename(save_name, batch_index=0):
     return f"{basename}{suffix}.png"
 
 
-class RPImageComparer(PreviewImage):
+class _NamedPreviewImage(PreviewImage):
+    """Save temporary previews under download-ready filenames."""
+
+    def _save_named_previews(
+        self,
+        images,
+        download_name,
+        run_id,
+        side,
+        prompt,
+        extra_pnginfo,
+        folder_name="rp_image_comparer",
+    ):
+        """Save previews in isolated temp folders with download-ready names."""
+        saved = self.save_images(
+            images,
+            f"{folder_name}.preview",
+            prompt,
+            extra_pnginfo,
+        )["ui"]["images"]
+        target_subfolder = os.path.join(folder_name, run_id, side)
+        target_folder = os.path.join(folder_paths.get_temp_directory(), target_subfolder)
+        os.makedirs(target_folder, exist_ok=True)
+
+        for batch_index, image_data in enumerate(saved):
+            source_path = os.path.join(
+                folder_paths.get_temp_directory(),
+                image_data.get("subfolder", ""),
+                image_data["filename"],
+            )
+            filename = png_filename(download_name, batch_index)
+            os.replace(source_path, os.path.join(target_folder, filename))
+            image_data["filename"] = filename
+            image_data["subfolder"] = target_subfolder
+
+        return saved
+
+
+class RPImageComparer(_NamedPreviewImage):
     """Compare two images and download either preview with a chosen name."""
 
     FUNCTION = "compare_images"
@@ -138,39 +176,53 @@ class RPImageComparer(PreviewImage):
 
         return result
 
-    def _save_named_previews(
+
+class RPPreviewImage(_NamedPreviewImage):
+    """Preview images with a chosen download filename and exact dimensions."""
+
+    FUNCTION = "preview_image"
+    CATEGORY = "image/saving"
+    DESCRIPTION = "Previews images and saves them with the configured download name."
+
+    @classmethod
+    def INPUT_TYPES(cls):  # pylint: disable=invalid-name
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                **RPImageComparer.INPUT_TYPES()["required"],
+            },
+            "hidden": {
+                "prompt": "PROMPT",
+                "extra_pnginfo": "EXTRA_PNGINFO",
+            },
+        }
+
+    def preview_image(
         self,
         images,
-        download_name,
-        run_id,
-        side,
-        prompt,
-        extra_pnginfo,
+        display_name=DEFAULT_DISPLAY_NAME,
+        save_name=DEFAULT_SAVE_NAME,
+        prompt=None,
+        extra_pnginfo=None,
     ):
-        """Save previews in isolated temp folders with download-ready names."""
-        saved = self.save_images(
+        download_name = format_save_name(display_name, save_name)
+        saved = self._save_named_previews(
             images,
-            "rp_image_comparer.preview",
+            download_name,
+            uuid4().hex,
+            "images",
             prompt,
             extra_pnginfo,
-        )["ui"]["images"]
-        target_subfolder = os.path.join("rp_image_comparer", run_id, side)
-        target_folder = os.path.join(folder_paths.get_temp_directory(), target_subfolder)
-        os.makedirs(target_folder, exist_ok=True)
-
-        for batch_index, image_data in enumerate(saved):
-            source_path = os.path.join(
-                folder_paths.get_temp_directory(),
-                image_data.get("subfolder", ""),
-                image_data["filename"],
-            )
-            filename = png_filename(download_name, batch_index)
-            os.replace(source_path, os.path.join(target_folder, filename))
-            image_data["filename"] = filename
-            image_data["subfolder"] = target_subfolder
-
-        return saved
+            folder_name="rp_preview_image",
+        )
+        return {"ui": {"images": saved}, "result": (images,)}
 
 
-NODE_CLASS_MAPPINGS = {"RPImageComparer": RPImageComparer}
-NODE_DISPLAY_NAME_MAPPINGS = {"RPImageComparer": "RP Image Comparer"}
+NODE_CLASS_MAPPINGS = {
+    "RPImageComparer": RPImageComparer,
+    "RPPreviewImage": RPPreviewImage,
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "RPImageComparer": "RP Image Comparer",
+    "RPPreviewImage": "RP Preview Image",
+}

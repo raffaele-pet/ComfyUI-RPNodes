@@ -114,6 +114,31 @@ class ImageComparerTests(unittest.TestCase):
                         (Path(temp_dir) / image["subfolder"] / image["filename"]).is_file()
                     )
 
+    def test_preview_image_uses_named_temp_files_and_passes_images_through(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            image_comparer.folder_paths.get_temp_directory = lambda: temp_dir
+            node = image_comparer.RPPreviewImage()
+            node.output_dir = temp_dir
+            images = [object(), object()]
+            result = node.preview_image(images, "qwen_image_2.1", "fixed-name")
+
+            self.assertEqual(
+                [item["filename"] for item in result["ui"]["images"]],
+                ["fixed-name.png", "fixed-name_2.png"],
+            )
+            self.assertEqual(result["result"], (images,))
+            for item in result["ui"]["images"]:
+                self.assertEqual(item["type"], "temp")
+                self.assertTrue(item["subfolder"].startswith("rp_preview_image"))
+                self.assertTrue(
+                    (Path(temp_dir) / item["subfolder"] / item["filename"]).is_file()
+                )
+
+            required = image_comparer.RPPreviewImage.INPUT_TYPES()["required"]
+            self.assertIn("images", required)
+            self.assertEqual(required["display_name"][1]["default"], "#1")
+            self.assertEqual(required["save_name"][1]["default"], image_comparer.DEFAULT_SAVE_NAME)
+
 
 if __name__ == "__main__":
     unittest.main()

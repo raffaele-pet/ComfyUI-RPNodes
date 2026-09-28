@@ -7,7 +7,7 @@ A collection of utility nodes for ComfyUI:
 - **Image folder processing:** `RP Load Images from Folder`,
   `RP Load Prompt from File`, `RP Save Image to Folder (No Loop)`, and
   `RP Save Images to Folder`
-- **Image saving:** `RP Image Comparer`
+- **Image saving:** `RP Image Comparer` and `RP Preview Image`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
 
@@ -24,7 +24,7 @@ browser extensions live under `web`, and example workflows remain together in
 Compares two images in the same node using the Image Comparer interaction from
 rgthree. In the default `Slide` mode, move the pointer over the preview to
 reveal either side. The `comparer_mode` property also provides `Click`, which
-reveals the second image while pressing the pointer, and `Side-by-side`, which
+switches between the two images on each click, and `Side-by-side`, which
 shows both images next to each other.
 
 The `Display name` field identifies the image or model and defaults to `#1`.
@@ -36,6 +36,13 @@ The `Save name` field controls the browser-download filename and defaults to
 Right-click the left or right half of the preview and choose `Save Image` to
 download the corresponding image. If either input contains a batch, use the
 labels above the preview to select the two images to compare.
+
+### RP Preview Image
+
+Shows one image at a time, with its exact dimensions and aspect ratio below
+the preview. `Display name` and `Save name` use the same defaults and filename
+tokens as RP Image Comparer. Right-click and choose `Save Image` to download
+the displayed PNG. For a batch, use the arrows on the preview to switch images.
 
 ## Image sizing and resizing
 
