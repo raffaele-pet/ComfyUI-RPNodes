@@ -1,11 +1,11 @@
 import math
-from fractions import Fraction
 
 import torch
 import torch.nn.functional as F
 
 from .smart_image_size import (
     RESOLUTIONS,
+    actual_aspect_ratio,
     resolve_dimension,
     resolve_resolution,
     resolution_output,
@@ -204,19 +204,14 @@ def _pad_mask(mask, target_width, target_height, pads, fill=1.0):
     return output
 
 
-def _actual_ratio(width, height):
-    ratio = Fraction(int(width), int(height))
-    return f"{ratio.numerator}:{ratio.denominator}"
-
-
 def _reported_aspect_ratio(selection_mode, keep_proportion, selected, width, height):
-    """Describe the output pixels, including modes that preserve the source shape."""
+    """Preserve the existing preset label or shape-preserving ratio output."""
     if (
         keep_proportion not in ("resize", "total_pixels")
         and (width, height) == (int(selected["width"]), int(selected["height"]))
     ):
         return selected["ratio"]
-    return _actual_ratio(width, height)
+    return actual_aspect_ratio(width, height)
 
 
 class SmartImageResize:
@@ -248,8 +243,10 @@ class SmartImageResize:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "INT", "MASK")
-    RETURN_NAMES = ("IMAGE", "width", "height", "aspect_ratio", "resolution", "mask")
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "INT", "MASK", "STRING")
+    RETURN_NAMES = (
+        "IMAGE", "width", "height", "aspect_ratio_approx", "resolution", "mask", "aspect_ratio"
+    )
     FUNCTION = "resize"
     CATEGORY = "image/resolution"
 
@@ -350,6 +347,7 @@ class SmartImageResize:
             ),
             output_resolution,
             output_mask.cpu(),
+            actual_aspect_ratio(output_width, output_height),
         )
 
 

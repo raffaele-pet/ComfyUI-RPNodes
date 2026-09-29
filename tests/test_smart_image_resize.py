@@ -16,6 +16,7 @@ from image_sizing_and_resizing.smart_image_resize import (
 )
 from image_sizing_and_resizing.smart_image_size import (
     SmartImageSize,
+    actual_aspect_ratio,
     dimension_text,
     resolution_output,
 )
@@ -39,6 +40,7 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
 
         self.assertEqual(result[1:4], (896, 1152, "7:9"))
         self.assertEqual(result[4], 1024)
+        self.assertEqual(result[6], "7:9")
 
     def test_qwen_automatic_four_five_uses_catalog_dimensions_and_ratio(self):
         result = SmartImageResize().resize(
@@ -57,6 +59,26 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
 
         self.assertEqual(result[1:4], (928, 1152, "4:5"))
         self.assertEqual(tuple(result[0].shape[1:3]), (1152, 928))
+        self.assertEqual(result[6], "29:36")
+
+    def test_real_ratio_differs_from_approximate_five_three(self):
+        result = SmartImageResize().resize(
+            model="Qwen-Image-2.1",
+            resolution_preset="1 MP ~ 1K (1024 × 1024)",
+            selection_mode="automatic",
+            dimensions="",
+            width=1,
+            height=1,
+            upscale_method="nearest-exact",
+            keep_proportion="stretch",
+            pad_color="0, 0, 0",
+            crop_position="center",
+            image=torch.zeros((1, 80, 131, 3)),
+        )
+        self.assertEqual(SmartImageResize.RETURN_NAMES[3], "aspect_ratio_approx")
+        self.assertEqual(SmartImageResize.RETURN_NAMES[6], "aspect_ratio")
+        self.assertEqual(result[1:4], (1312, 800, "5:3"))
+        self.assertEqual(result[6], "41:25")
 
     def test_both_nodes_resolve_every_preset_identically(self):
         size = SmartImageSize()
@@ -78,6 +100,7 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
                                 item["height"],
                                 item["ratio"],
                                 resolution_output(resolution),
+                                actual_aspect_ratio(item["width"], item["height"]),
                             ),
                         )
 

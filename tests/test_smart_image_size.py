@@ -41,6 +41,24 @@ QWEN_21_OFFICIAL_2K = {
 
 
 class SmartImageSizeTests(unittest.TestCase):
+    def test_exact_aspect_ratio_output_uses_pixel_dimensions(self):
+        node = smart_image_size.SmartImageSize()
+        item = next(
+            item for item in smart_image_size.RESOLUTIONS["Qwen-Image-2.1"][
+                "1 MP ~ 1K (1024 × 1024)"
+            ] if item["ratio"] == "5:3"
+        )
+        self.assertEqual(node.RETURN_NAMES, (
+            "width", "height", "aspect_ratio_approx", "resolution", "aspect_ratio"
+        ))
+        self.assertEqual(
+            node.get_resolution(
+                "Qwen-Image-2.1", "1 MP ~ 1K (1024 × 1024)",
+                smart_image_size.dimension_text(item),
+            ),
+            (1312, 800, "5:3", 1024, "41:25"),
+        )
+
     def test_catalog_dimensions_are_valid_and_distinct(self):
         for model, model_resolutions in smart_image_size.RESOLUTIONS.items():
             for tier, items in model_resolutions.items():
@@ -134,7 +152,7 @@ class SmartImageSizeTests(unittest.TestCase):
                 node.get_resolution(
                     "Qwen-Image-2.1", tier, smart_image_size.dimension_text(square)
                 ),
-                (side, side, "1:1", side),
+                (side, side, "1:1", side, "1:1"),
             )
 
         native_2k = {

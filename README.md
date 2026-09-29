@@ -80,8 +80,9 @@ other nodes that require explicit width and height values.
 
 - `width` - selected width in pixels
 - `height` - selected height in pixels
-- `aspect_ratio` - selected ratio, such as `16:9`
+- `aspect_ratio_approx` - named preset ratio, such as `5:3`
 - `resolution` - numeric square-side resolution
+- `aspect_ratio` - exact ratio of the selected pixel dimensions, such as `41:25` for `1312 × 800`
 
 ### RP Smart Image Resize
 
@@ -109,9 +110,10 @@ aspect ratio.
 - `IMAGE`
 - `width`
 - `height`
-- `aspect_ratio`
+- `aspect_ratio_approx` - retains the former aspect-ratio output behavior
 - `resolution`
 - `mask`
+- `aspect_ratio` - exact ratio calculated from the output image width and height
 
 ### RP Image Minimum 1K
 
@@ -243,10 +245,12 @@ Drag a JSON file onto the ComfyUI canvas or load it through the workflow menu.
 
 - The resolution database includes both manufacturer-published presets and
   practical model-aware dimensions for additional aspect ratios.
-- The aspect-ratio output is the named preset when the output canvas uses its
+- `aspect_ratio_approx` is the named preset when the output canvas uses its
   catalog dimensions. Pixel-grid rounding can make the mathematical ratio of
-  those dimensions differ slightly from that name. Modes that retain the input
-  shape and manually overridden dimensions report the actual pixel ratio.
+  those dimensions differ slightly from that name. In Resize, modes that retain
+  the input shape and manually overridden dimensions retain the former behavior
+  of reporting the actual pixel ratio in `aspect_ratio_approx`. The new
+  `aspect_ratio` output always reports the exact ratio of the output pixels.
 - Sources and estimation rules for each model are documented in
   [Smart image preset sources](./docs/smart-image-presets.md).
 - Qwen-Image-2.1 keeps the manufacturer-published native 2K sizes. Its other

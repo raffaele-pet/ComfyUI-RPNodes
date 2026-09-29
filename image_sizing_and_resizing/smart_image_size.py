@@ -1,5 +1,6 @@
 import json
 import re
+from fractions import Fraction
 from pathlib import Path
 
 
@@ -12,6 +13,11 @@ with DATA_FILE.open("r", encoding="utf-8") as file:
 
 def dimension_text(item):
     return f"{item['ratio']} ({item['label']}) - {item['width']} x {item['height']}"
+
+
+def actual_aspect_ratio(width, height):
+    ratio = Fraction(int(width), int(height))
+    return f"{ratio.numerator}:{ratio.denominator}"
 
 
 def resolve_dimension(items, dimensions):
@@ -95,8 +101,8 @@ class SmartImageSize:
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "STRING", "INT")
-    RETURN_NAMES = ("width", "height", "aspect_ratio", "resolution")
+    RETURN_TYPES = ("INT", "INT", "STRING", "INT", "STRING")
+    RETURN_NAMES = ("width", "height", "aspect_ratio_approx", "resolution", "aspect_ratio")
     FUNCTION = "get_resolution"
     CATEGORY = "image/resolution"
 
@@ -109,12 +115,14 @@ class SmartImageSize:
 
         available_dimensions = available_resolutions[resolution]
         selected = resolve_dimension(available_dimensions, dimensions)
+        width, height = int(selected["width"]), int(selected["height"])
 
         return (
-            int(selected["width"]),
-            int(selected["height"]),
+            width,
+            height,
             selected["ratio"],
             resolution_output(resolution),
+            actual_aspect_ratio(width, height),
         )
 
 
