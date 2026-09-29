@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from .smart_image_size import (
     RESOLUTIONS,
-    dimension_text,
+    resolve_dimension,
     resolve_resolution,
     resolution_output,
     unique_dimensions,
@@ -39,7 +39,7 @@ def _find_dimensions(model, resolution, dimensions):
     model_resolutions = RESOLUTIONS[model]
     resolution = resolve_resolution(model_resolutions, resolution)
     items = model_resolutions[resolution]
-    selected = next((item for item in items if dimension_text(item) == dimensions), items[0])
+    selected = resolve_dimension(items, dimensions)
     return model, resolution, items, selected
 
 
@@ -55,24 +55,6 @@ def _closest_dimensions(items, width, height):
         items,
         key=lambda item: abs(math.log(source_ratio / nominal_ratio(item))),
     )
-
-
-def _exact_preset_dimensions(item):
-    """Keep the preset pixel budget while honoring its declared aspect ratio."""
-    ratio_width, ratio_height = map(int, item["ratio"].split(":"))
-    ratio = Fraction(ratio_width, ratio_height)
-    unit_width = ratio.numerator * 32
-    unit_height = ratio.denominator * 32
-    target_pixels = int(item["width"]) * int(item["height"])
-    scale = math.sqrt(target_pixels / (unit_width * unit_height))
-    candidates = {max(1, math.floor(scale)), max(1, math.ceil(scale))}
-    multiplier = min(
-        candidates,
-        key=lambda value: abs(
-            math.log(value * value * unit_width * unit_height / target_pixels)
-        ),
-    )
-    return multiplier * unit_width, multiplier * unit_height
 
 
 def _dimensions_from_longer_side(item, longer_side):
@@ -229,6 +211,11 @@ def _actual_ratio(width, height):
 
 def _reported_aspect_ratio(selection_mode, keep_proportion, selected, width, height):
     """Describe the output pixels, including modes that preserve the source shape."""
+    if (
+        keep_proportion not in ("resize", "total_pixels")
+        and (width, height) == (int(selected["width"]), int(selected["height"]))
+    ):
+        return selected["ratio"]
     return _actual_ratio(width, height)
 
 
@@ -295,7 +282,7 @@ class SmartImageResize:
         )
         if selection_mode == "automatic":
             selected = _closest_dimensions(items, source_width, source_height)
-            width, height = _exact_preset_dimensions(selected)
+            width, height = int(selected["width"]), int(selected["height"])
         else:
             width, height = max(1, int(width)), max(1, int(height))
 

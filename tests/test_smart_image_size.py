@@ -41,6 +41,21 @@ QWEN_21_OFFICIAL_2K = {
 
 
 class SmartImageSizeTests(unittest.TestCase):
+    def test_catalog_dimensions_are_valid_and_distinct(self):
+        for model, model_resolutions in smart_image_size.RESOLUTIONS.items():
+            for tier, items in model_resolutions.items():
+                with self.subTest(model=model, tier=tier):
+                    self.assertTrue(items)
+                    self.assertEqual(len(items), len({item["ratio"] for item in items}))
+                    for item in items:
+                        self.assertGreater(item["width"], 0)
+                        self.assertGreater(item["height"], 0)
+                        self.assertEqual(item["width"] % 16, 0)
+                        self.assertEqual(item["height"] % 16, 0)
+                        ratio_width, ratio_height = map(int, item["ratio"].split(":"))
+                        actual_ratio = item["width"] / item["height"]
+                        self.assertLess(abs(math.log(actual_ratio / (ratio_width / ratio_height))), 0.03)
+
     def test_all_models_use_descriptive_resolution_labels(self):
         self.assertEqual(
             set(smart_image_size.unique_resolutions()), set(ALL_RESOLUTION_LABELS)
@@ -149,3 +164,33 @@ class SmartImageSizeTests(unittest.TestCase):
             smart_image_size.resolve_resolution(flux_resolutions, "1.5K"),
             "2.25 MP ~ 1.5K (1536 × 1536)",
         )
+
+    def test_manufacturer_published_presets(self):
+        data = smart_image_size.RESOLUTIONS
+        hidream = {item["ratio"]: (item["width"], item["height"])
+                   for item in data["HiDream-O1-Image / Dev"]["4 MP ~ 2K (2048 × 2048)"]}
+        self.assertEqual(hidream["4:3"], (2304, 1728))
+        self.assertEqual(hidream["21:9"], (3104, 1312))
+
+        krea = data["Krea 2"]
+        self.assertEqual(set(krea), {"1 MP ~ 1K (1024 × 1024)",
+                                     "4 MP ~ 2K (2048 × 2048)"})
+        self.assertTrue(all(item["width"] <= 2048 and item["height"] <= 2048
+                            for item in krea["4 MP ~ 2K (2048 × 2048)"]))
+        krea_1k = {item["ratio"]: (item["width"], item["height"])
+                   for item in krea["1 MP ~ 1K (1024 × 1024)"]}
+        self.assertEqual(krea_1k["13:19"], (832, 1216))
+        self.assertEqual(krea_1k["19:13"], (1216, 832))
+        self.assertEqual(krea_1k["2:3"], (832, 1248))
+        self.assertEqual(krea_1k["3:2"], (1248, 832))
+
+        z_image = data["Z-Image-Turbo"]
+        self.assertNotIn("4 MP ~ 2K (2048 × 2048)", z_image)
+        for tier, ratio, expected in (
+            ("1 MP ~ 1K (1024 × 1024)", "21:9", (1344, 576)),
+            ("1.56 MP ~ 1.25K (1280 × 1280)", "16:9", (1536, 864)),
+            ("2.25 MP ~ 1.5K (1536 × 1536)", "4:3", (1728, 1296)),
+        ):
+            by_ratio = {item["ratio"]: (item["width"], item["height"])
+                        for item in z_image[tier]}
+            self.assertEqual(by_ratio[ratio], expected)

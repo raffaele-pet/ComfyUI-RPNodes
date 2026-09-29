@@ -99,8 +99,8 @@ aspect ratio.
 #### Selection modes
 
 - `automatic` - selects the available preset whose aspect ratio is closest to
-  the connected image or mask. The dimensions, width, and height controls are
-  disabled in the interface.
+  the connected image or mask and uses its exact catalog width and height. The
+  dimensions, width, and height controls are disabled in the interface.
 - `manual` - allows direct preset selection and editable width and height
   values.
 
@@ -243,6 +243,12 @@ Drag a JSON file onto the ComfyUI canvas or load it through the workflow menu.
 
 - The resolution database includes both manufacturer-published presets and
   practical model-aware dimensions for additional aspect ratios.
+- The aspect-ratio output is the named preset when the output canvas uses its
+  catalog dimensions. Pixel-grid rounding can make the mathematical ratio of
+  those dimensions differ slightly from that name. Modes that retain the input
+  shape and manually overridden dimensions report the actual pixel ratio.
+- Sources and estimation rules for each model are documented in
+  [Smart image preset sources](./docs/smart-image-presets.md).
 - Qwen-Image-2.1 keeps the manufacturer-published native 2K sizes. Its other
   presets are calculated from the selected square pixel budget on a 32-pixel
   grid, matching the model's official ComfyUI workflow.

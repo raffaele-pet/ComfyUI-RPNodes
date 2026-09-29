@@ -14,6 +14,20 @@ def dimension_text(item):
     return f"{item['ratio']} ({item['label']}) - {item['width']} x {item['height']}"
 
 
+def resolve_dimension(items, dimensions):
+    for item in items:
+        if dimension_text(item) == dimensions:
+            return item
+
+    # Saved workflows may contain dimensions from an older catalog revision.
+    if isinstance(dimensions, str):
+        ratio = dimensions.split(" ", 1)[0]
+        for item in items:
+            if item["ratio"] == ratio:
+                return item
+    return items[0]
+
+
 def unique_resolutions():
     result = []
     for model_resolutions in RESOLUTIONS.values():
@@ -94,10 +108,7 @@ class SmartImageSize:
         resolution = resolve_resolution(available_resolutions, resolution)
 
         available_dimensions = available_resolutions[resolution]
-        selected = next(
-            (item for item in available_dimensions if dimension_text(item) == dimensions),
-            available_dimensions[0],
-        )
+        selected = resolve_dimension(available_dimensions, dimensions)
 
         return (
             int(selected["width"]),
