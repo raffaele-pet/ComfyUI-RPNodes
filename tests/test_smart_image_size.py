@@ -49,14 +49,14 @@ class SmartImageSizeTests(unittest.TestCase):
             ] if item["ratio"] == "5:3"
         )
         self.assertEqual(node.RETURN_NAMES, (
-            "width", "height", "aspect_ratio_approx", "resolution", "aspect_ratio"
+            "width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution"
         ))
         self.assertEqual(
             node.get_resolution(
                 "Qwen-Image-2.1", "1 MP ~ 1K (1024 × 1024)",
                 smart_image_size.dimension_text(item),
             ),
-            (1312, 800, "5:3", 1024, "41:25"),
+            (1312, 800, "5:3", "41:25", 1024),
         )
 
     def test_catalog_dimensions_are_valid_and_distinct(self):
@@ -152,7 +152,7 @@ class SmartImageSizeTests(unittest.TestCase):
                 node.get_resolution(
                     "Qwen-Image-2.1", tier, smart_image_size.dimension_text(square)
                 ),
-                (side, side, "1:1", side, "1:1"),
+                (side, side, "1:1", "1:1", side),
             )
 
         native_2k = {
@@ -167,7 +167,7 @@ class SmartImageSizeTests(unittest.TestCase):
         self.assertEqual(native_2k["9:16"], (1536, 2752))
 
     def test_legacy_resolution_values_are_still_supported(self):
-        self.assertEqual(smart_image_size.SmartImageSize.RETURN_TYPES[3], "INT")
+        self.assertEqual(smart_image_size.SmartImageSize.RETURN_TYPES[4], "INT")
         self.assertEqual(smart_image_size.resolution_output("1K"), 1024)
         self.assertEqual(smart_image_size.resolution_output("1.5K"), 1536)
         self.assertEqual(smart_image_size.resolution_output("2K"), 2048)

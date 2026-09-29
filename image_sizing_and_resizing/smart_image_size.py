@@ -101,8 +101,8 @@ class SmartImageSize:
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "STRING", "INT", "STRING")
-    RETURN_NAMES = ("width", "height", "aspect_ratio_approx", "resolution", "aspect_ratio")
+    RETURN_TYPES = ("INT", "INT", "STRING", "STRING", "INT")
+    RETURN_NAMES = ("width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution")
     FUNCTION = "get_resolution"
     CATEGORY = "image/resolution"
 
@@ -121,8 +121,8 @@ class SmartImageSize:
             width,
             height,
             selected["ratio"],
-            resolution_output(resolution),
             actual_aspect_ratio(width, height),
+            resolution_output(resolution),
         )
 
 

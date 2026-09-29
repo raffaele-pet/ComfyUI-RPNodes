@@ -81,8 +81,8 @@ other nodes that require explicit width and height values.
 - `width` - selected width in pixels
 - `height` - selected height in pixels
 - `aspect_ratio_approx` - named preset ratio, such as `5:3`
-- `resolution` - numeric square-side resolution
 - `aspect_ratio` - exact ratio of the selected pixel dimensions, such as `41:25` for `1312 × 800`
+- `resolution` - numeric square-side resolution
 
 ### RP Smart Image Resize
 
@@ -111,9 +111,9 @@ aspect ratio.
 - `width`
 - `height`
 - `aspect_ratio_approx` - retains the former aspect-ratio output behavior
+- `aspect_ratio` - exact ratio calculated from the output image width and height
 - `resolution`
 - `mask`
-- `aspect_ratio` - exact ratio calculated from the output image width and height
 
 ### RP Image Minimum 1K
 

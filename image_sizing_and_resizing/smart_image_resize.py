@@ -243,9 +243,9 @@ class SmartImageResize:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "INT", "MASK", "STRING")
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "STRING", "INT", "MASK")
     RETURN_NAMES = (
-        "IMAGE", "width", "height", "aspect_ratio_approx", "resolution", "mask", "aspect_ratio"
+        "IMAGE", "width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution", "mask"
     )
     FUNCTION = "resize"
     CATEGORY = "image/resolution"
@@ -345,9 +345,9 @@ class SmartImageResize:
             _reported_aspect_ratio(
                 selection_mode, keep_proportion, selected, output_width, output_height
             ),
+            actual_aspect_ratio(output_width, output_height),
             output_resolution,
             output_mask.cpu(),
-            actual_aspect_ratio(output_width, output_height),
         )
 
 
