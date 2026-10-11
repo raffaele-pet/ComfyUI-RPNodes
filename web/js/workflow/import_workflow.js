@@ -6,18 +6,11 @@ import { beginWorkflowLoad, endWorkflowLoad, loadMergedWorkflow, prepareNodeForL
 const EMPTY = "(select a saved workflow)";
 let importing = false;
 
-function setStatus(node, message) {
-    const current = node.graph ? node : app.rootGraph?.getNodeById(node.id);
-    if (current?.rpImportStatus) current.rpImportStatus.textContent = message;
-    current?.graph?.setDirtyCanvas(true, true);
-}
-
-function notify(node, message, severity = "error") {
-    setStatus(node, message);
+function notify(message, severity = "error") {
     app.extensionManager.toast.add({ severity, summary: "RP Import Workflow", detail: message, life: 7000 });
 }
 
-async function refreshWorkflows(node, showStatus = true) {
+async function refreshWorkflows(node) {
     const response = await api.fetchApi("/userdata?dir=workflows&recurse=true&split=false");
     if (!response.ok && response.status !== 404) {
         throw new Error(`Cannot list saved workflows: HTTP ${response.status}.`);
@@ -28,9 +21,7 @@ async function refreshWorkflows(node, showStatus = true) {
     const widget = node.widgets.find((widget) => widget.name === "workflow");
     widget.options.values = [EMPTY, ...values];
     if (!values.includes(widget.value)) widget.value = EMPTY;
-    if (showStatus) {
-        setStatus(node, values.length ? `${values.length} saved workflows available.` : "No saved workflows. Choose a JSON file.");
-    }
+    node.graph?.setDirtyCanvas(true, true);
 }
 
 function options(node) {
@@ -42,13 +33,12 @@ async function importIntoCanvas(node, readItems) {
     if (importing) return;
     const graph = app.rootGraph;
     if (node.graph !== graph || app.canvas.graph !== graph) {
-        notify(node, "Return to the main workflow canvas to import.");
+        notify("Return to the main workflow canvas to import.");
         return;
     }
     importing = true;
     const graphId = graph.id;
     const importOptions = options(node);
-    setStatus(node, "Reading workflow JSON...");
     try {
         const items = await readItems();
         if (graph.id !== graphId || node.graph !== graph || app.canvas.graph !== graph) {
@@ -58,9 +48,10 @@ async function importIntoCanvas(node, readItems) {
         const result = appendWorkflows(before, items, importOptions);
         await loadMergedWorkflow(app, result.workflow, before);
         app.canvas.selectNodes(result.importedNodeIds.map((id) => graph.getNodeById(id)));
-        notify(node, `Imported ${items.length} workflow(s), ${result.importedNodeIds.length} nodes. Ctrl+Z to undo.`, "success");
+        const count = result.importedNodeIds.length;
+        notify(`Imported ${count} ${count === 1 ? "node" : "nodes"}.`, "success");
     } catch (error) {
-        notify(node, error.message ?? String(error));
+        notify(error.message ?? String(error));
     } finally {
         importing = false;
     }
@@ -87,12 +78,12 @@ app.registerExtension({
             const result = onNodeCreated?.apply(this, arguments);
             this.isVirtualNode = true;
             this.addWidget("button", "Refresh saved workflows", null, () => {
-                refreshWorkflows(this).catch((error) => notify(this, error.message));
+                refreshWorkflows(this).catch((error) => notify(error.message));
             }, { serialize: false }).serialize = false;
             this.addWidget("button", "Import saved workflow", null, () => {
                 const filename = this.widgets.find((widget) => widget.name === "workflow").value;
                 if (!filename || filename === EMPTY) {
-                    notify(this, "Select a saved workflow first.");
+                    notify("Select a saved workflow first.");
                     return;
                 }
                 void importIntoCanvas(this, async () => {
@@ -115,25 +106,17 @@ app.registerExtension({
                 };
                 input.click();
             }, { serialize: false }).serialize = false;
-            const statusElement = document.createElement("div");
-            statusElement.textContent = "Use the buttons; no queue needed.";
-            Object.assign(statusElement.style, {
-                padding: "6px 10px", fontSize: "12px", lineHeight: "16px",
-                whiteSpace: "normal", overflow: "auto", color: "var(--input-text)",
-            });
-            this.rpImportStatus = statusElement;
-            const status = this.addDOMWidget("import_status", "text", statusElement, { serialize: false });
-            status.serialize = false;
-            status.computeSize = (width) => [width, 48];
-            status.computeLayoutSize = () => ({ minHeight: 48, minWidth: 0 });
             this.setSize([Math.max(this.size[0], 340), this.computeSize()[1]]);
             return result;
         };
         const onAdded = nodeType.prototype.onAdded;
         nodeType.prototype.onAdded = function () {
             const result = onAdded?.apply(this, arguments);
-            // Wait until configure() has restored the saved combo value.
-            queueMicrotask(() => refreshWorkflows(this, false).catch((error) => notify(this, error.message)));
+            // Wait until configure() has restored the saved size and combo value.
+            queueMicrotask(() => {
+                this.setSize([this.size[0], this.computeSize()[1]]);
+                refreshWorkflows(this).catch((error) => notify(error.message));
+            });
             return result;
         };
     },

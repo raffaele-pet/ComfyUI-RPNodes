@@ -46,10 +46,11 @@ All available nodes and valid connections are imported; source files are unchang
 
 Imports use ComfyUI's normal loading hooks for custom-node compatibility.
 During graph loading, legacy connection callbacks can use string node IDs;
-this also covers undo, redo, and reopening the saved workflow.
+this also covers reopening the saved workflow.
 
-The imported nodes are selected. Use Fit View to see the complete canvas,
-**Ctrl+Z** to undo the import, and save the combined workflow normally. The
+The imported nodes are selected. Use Fit View to see the complete canvas
+and save the combined workflow normally. The success notification shows only
+the number of imported nodes; no status text is displayed inside the node. The
 importer is an editor-only control with no execution inputs or outputs; it can
 be removed after importing. Source files are read only and files selected in
 the picker are processed in the browser.
