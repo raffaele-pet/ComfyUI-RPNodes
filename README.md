@@ -44,6 +44,10 @@ Stale links to deleted nodes, missing link references, and stale reroute
 references are discarded automatically so they do not block the import.
 All available nodes and valid connections are imported; source files are unchanged.
 
+Imports use ComfyUI's normal loading hooks for custom-node compatibility.
+During graph loading, legacy connection callbacks can use string node IDs;
+this also covers undo, redo, and reopening the saved workflow.
+
 The imported nodes are selected. Use Fit View to see the complete canvas,
 **Ctrl+Z** to undo the import, and save the combined workflow normally. The
 importer is an editor-only control with no execution inputs or outputs; it can
@@ -52,7 +56,8 @@ the picker are processed in the browser.
 
 The merge logic is adapted from
 [`comfyui-workflow-merger`](https://github.com/raffaele-pet/comfyui-workflow-merger).
-Regression tests: `node --test tests/test_workflow_merge.mjs`.
+Regression tests:
+`node --test tests/test_workflow_merge.mjs tests/test_workflow_load.mjs`.
 
 ## Image saving
 

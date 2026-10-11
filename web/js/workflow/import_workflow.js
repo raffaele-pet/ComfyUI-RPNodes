@@ -1,6 +1,7 @@
 import { app } from "/scripts/app.js";
 import { api } from "/scripts/api.js";
 import { appendWorkflows } from "./merge_workflow.js";
+import { beginWorkflowLoad, endWorkflowLoad, loadMergedWorkflow, prepareNodeForLoad } from "./load_workflow.js";
 
 const EMPTY = "(select a saved workflow)";
 let importing = false;
@@ -55,21 +56,7 @@ async function importIntoCanvas(node, readItems) {
         }
         const before = JSON.parse(JSON.stringify(graph.serialize()));
         const result = appendWorkflows(before, items, importOptions);
-        const scale = app.canvas.ds.scale;
-        const offset = [...app.canvas.ds.offset];
-        const tracker = app.extensionManager.workflow.activeWorkflow.changeTracker;
-        tracker.captureCanvasState();
-        tracker.beforeChange();
-        try {
-            graph.configure(result.workflow);
-        } catch (error) {
-            graph.configure(before);
-            throw error;
-        } finally {
-            app.canvas.ds.scale = scale;
-            app.canvas.ds.offset = offset;
-            tracker.afterChange();
-        }
+        await loadMergedWorkflow(app, result.workflow, before);
         app.canvas.selectNodes(result.importedNodeIds.map((id) => graph.getNodeById(id)));
         notify(node, `Imported ${items.length} workflow(s), ${result.importedNodeIds.length} nodes. Ctrl+Z to undo.`, "success");
     } catch (error) {
@@ -81,6 +68,18 @@ async function importIntoCanvas(node, readItems) {
 
 app.registerExtension({
     name: "RPNodes.ImportWorkflow",
+    beforeLoadGraph() {
+        beginWorkflowLoad();
+    },
+    afterConfigureGraph() {
+        endWorkflowLoad();
+    },
+    onGraphLoadError() {
+        endWorkflowLoad();
+    },
+    nodeCreated(node) {
+        prepareNodeForLoad(node);
+    },
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData.name !== "RPImportWorkflow") return;
         const onNodeCreated = nodeType.prototype.onNodeCreated;
