@@ -10,12 +10,45 @@ A collection of utility nodes for ComfyUI:
 - **Image saving:** `RP Image Comparer` and `RP Preview Image`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
+- **Workflow importing:** `RP Import Workflow`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
 `video_frame_processing`, the folder-processing nodes in
 `image_folder_processing`, and the keyframe node in `h3_keyframes`. Shared
 browser extensions live under `web`, and example workflows remain together in
 `example_workflows`.
+
+## Workflow importing
+
+### RP Import Workflow
+
+Available under `RP/workflow`. Add the node to the main workflow canvas:
+
+- Select a JSON from `workflow` and click **Import saved workflow**. The list
+  reads the current ComfyUI user's `workflows` directory, including subfolders
+  (normally `ComfyUI/user/default/workflows`). **Refresh saved workflows**
+  updates the list after saving new workflows.
+- **Choose file to import** opens the browser's file picker for JSON files in
+  any folder. Multiple files can be selected and imported together.
+- `placement` adds imports to the right or below the existing workflow;
+  `gap` sets the spacing. `group_import` wraps each import in a named group.
+
+Imports happen immediately without running the queue or opening another tab.
+Existing node IDs and positions are retained; imported nodes, links, groups,
+native reroutes, and subgraph definitions receive independent IDs. Internal
+connections and widget values are preserved. Both Save-format v0.4 and v1 JSON
+are supported, including mixed-format imports. API-format prompts are not
+workflow files. Required custom nodes must be installed to run imported nodes.
+
+The imported nodes are selected. Use Fit View to see the complete canvas,
+**Ctrl+Z** to undo the import, and save the combined workflow normally. The
+importer is an editor-only control with no execution inputs or outputs; it can
+be removed after importing. Source files are read only and files selected in
+the picker are processed in the browser.
+
+The merge logic is adapted from
+[`comfyui-workflow-merger`](https://github.com/raffaele-pet/comfyui-workflow-merger).
+Regression tests: `node --test tests/test_workflow_merge.mjs`.
 
 ## Image saving
 
@@ -229,7 +262,8 @@ Restart ComfyUI and refresh the browser. The image-sizing nodes are available
 under `image/resolution`; the image-folder nodes are available under
 `image/RPNodes`; the image comparer is available under `image/saving`; the
 video-processing nodes are available under `video/RPNodes`; the MiniMax H3
-keyframe node is available under `RP/MiniMax H3`.
+keyframe node is available under `RP/MiniMax H3`; the workflow importer is
+available under `RP/workflow`.
 
 ## Example workflows
 
