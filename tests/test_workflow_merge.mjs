@@ -124,19 +124,12 @@ test("merge model and node version metadata without changing current values", ()
     assert.equal(result.groups.length, 2);
 });
 
-test("reject malformed graphs and API prompts before mutating the current graph", () => {
+test("reject non-workflow JSON before mutating the current graph", () => {
     const current = fixture();
     const original = structuredClone(current);
     for (const invalid of [null, { "1": { class_type: "KSampler", inputs: {} } },
         { nodes: [], links: [] },
         { ...fixture(), nodes: [fixture().nodes[0], fixture().nodes[0]] },
-        { ...fixture(), links: [[8, 999, 0, 2, 0, "IMAGE"]] },
-        { ...fixture(), links: [] },
-        { ...fixture(), links: [...fixture().links, ...fixture().links] },
-        { ...fixture(), links: [[8, -1, 0, 2, 0, "IMAGE"]] },
-        { ...fixture(), extra: { reroutes: [{ id: 1, linkIds: [999] }] } },
-        { ...fixture(), extra: { reroutes: [{ id: 1, parentId: 999 }] } },
-        { ...fixture(), extra: { reroutes: [{ id: 1 }, { id: 1 }] } },
     ]) {
         assert.throws(() => appendWorkflows(current, [{ name: "bad.json", data: invalid }]));
         assert.deepEqual(current, original);
@@ -145,4 +138,67 @@ test("reject malformed graphs and API prompts before mutating the current graph"
         { name: "good.json", data: fixture() }, { name: "bad.json", data: null },
     ]));
     assert.deepEqual(current, original);
+});
+
+for (const version of [0.4, 1]) {
+    test(`import nodes despite dangling links and stale reroutes in v${version}`, () => {
+        const current = fixture(version);
+        current.nodes.push({ id: 1547, type: "Existing", pos: [0, 500], size: [200, 100] });
+        const source = fixture(version);
+        if (version === 1) source.links[0].parentId = 999;
+        const badLink = { id: 2967, origin_id: 1, origin_slot: 1, target_id: 1547, target_slot: 0, type: "INT", parentId: 999 };
+        source.links.push(version === 1 ? badLink : [2967, 1, 1, 1547, 0, "INT"]);
+        source.links.push(source.links[0], null, [3]);
+        source.nodes[0].outputs.push({ links: [2967, 999] });
+        source.nodes[1].inputs.push({ link: 999 });
+        const routes = version === 1 ? source.reroutes : source.extra.reroutes;
+        routes[0].linkIds.push(2967, 999);
+        routes[0].parentId = 999;
+        routes.push(routes[0], { pos: [0, 0] });
+        source.extra.linkExtensions = [{ id: 8, parentId: 999 }, { id: 999, parentId: 1 }];
+        const originals = structuredClone([current, source]);
+        const { workflow: result, importedNodeIds } = appendWorkflows(current, [{ name: "Essential_KLEIN.json", data: source }]);
+        assert.deepEqual([current, source], originals);
+        assert.equal(importedNodeIds.length, source.nodes.length);
+        assert.deepEqual(result.nodes.slice(0, current.nodes.length), current.nodes);
+        assert.deepEqual(result.links.slice(0, current.links.length), current.links);
+        assert.equal(result.links.length, current.links.length + 1);
+        const imported = result.nodes.slice(current.nodes.length);
+        assert.equal(imported[0].outputs[1].links, null);
+        assert.equal(imported[1].inputs[1].link, null);
+        const link = version === 1 ? result.links.at(-1) : {
+            id: result.links.at(-1)[0], origin_id: result.links.at(-1)[1], target_id: result.links.at(-1)[3],
+        };
+        assert.equal(link.origin_id, importedNodeIds[0]);
+        assert.equal(link.target_id, importedNodeIds[1]);
+        const importedRoutes = (version === 1 ? result.reroutes : result.extra.reroutes).slice(2);
+        assert.equal(importedRoutes.length, 2);
+        assert.deepEqual(importedRoutes[0].linkIds, [link.id]);
+        assert.equal(importedRoutes[0].parentId, undefined);
+        assert.equal(link.parentId, undefined);
+        if (version === 0.4) assert.equal(result.extra.linkExtensions.length, current.extra.linkExtensions.length);
+    });
+}
+
+test("clean stale connections inside subgraphs while preserving boundary links", () => {
+    const source = fixture();
+    const definition = fixture(1);
+    definition.id = "subgraph-id";
+    definition.inputNode = { id: -10 };
+    definition.outputNode = { id: -20 };
+    definition.links.push(
+        { id: 9, origin_id: -10, origin_slot: 0, target_id: 1, target_slot: 0, type: "IMAGE" },
+        { id: 10, origin_id: 2, origin_slot: 0, target_id: -20, target_slot: 0, type: "IMAGE" },
+        { id: 11, origin_id: 999, origin_slot: 0, target_id: 2, target_slot: 1, type: "IMAGE" },
+    );
+    definition.inputs = [{ linkIds: [9, 11, 999] }];
+    definition.outputs = [{ linkIds: [10, 999] }];
+    definition.nodes[1].inputs.push({ link: 11 });
+    source.definitions = { subgraphs: [definition] };
+    const { workflow: result } = appendWorkflows(fixture(), [{ name: "subgraph.json", data: source }]);
+    const imported = result.definitions.subgraphs[0];
+    assert.deepEqual(imported.links.map((link) => link.id), [8, 9, 10]);
+    assert.deepEqual(imported.inputs[0].linkIds, [9]);
+    assert.deepEqual(imported.outputs[0].linkIds, [10]);
+    assert.equal(imported.nodes[1].inputs[1].link, null);
 });

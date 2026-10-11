@@ -13,7 +13,7 @@ function objectLink(link) {
     };
 }
 
-export function validateWorkflow(workflow, name = "Workflow", subgraph = false) {
+export function validateWorkflow(workflow, name = "Workflow") {
     const fail = (message) => { throw new Error(`${name}: ${message}`); };
     if (!workflow || !Array.isArray(workflow.nodes) || !Array.isArray(workflow.links)) {
         fail("choose a workflow saved as JSON (nodes/links required), not an API prompt.");
@@ -24,59 +24,62 @@ export function validateWorkflow(workflow, name = "Workflow", subgraph = false) 
         if (nodeIds.has(key(node.id))) fail(`duplicate node ID ${node.id}.`);
         nodeIds.add(key(node.id));
     }
+    for (const definition of workflow.definitions?.subgraphs ?? []) {
+        validateWorkflow(definition, `${name} / ${definition.name ?? definition.id}`);
+    }
+}
+
+// Saved workflows can contain stale topology. Remove it before assigning IDs so
+// a missing imported endpoint can never attach to an existing canvas node.
+function cleanConnections(workflow, subgraph = false) {
+    const nodeIds = new Set(workflow.nodes.map((node) => key(node.id)));
     if (subgraph) {
         nodeIds.add(key(workflow.inputNode?.id ?? -10));
         nodeIds.add(key(workflow.outputNode?.id ?? -20));
     }
     const linkIds = new Set();
-    const floatingIds = new Set((workflow.floatingLinks ?? []).map((link) => key(linkId(link))));
-    for (const source of [...workflow.links, ...(workflow.floatingLinks ?? [])]) {
-        if (!source || (Array.isArray(source) && source.length < 6)) fail("invalid link.");
+    const keepLink = (source, floating = false) => {
+        if (!source || (Array.isArray(source) && source.length < 6)) return false;
         const link = objectLink(source);
-        if (link.id == null || linkIds.has(key(link.id))) fail("missing or duplicate link ID.");
+        if (link.id == null || linkIds.has(key(link.id))) return false;
+        const endpoints = [link.origin_id, link.target_id];
+        if (!endpoints.every((id) => nodeIds.has(key(id)) || (floating && (id == null || id === -1)))) return false;
+        if (!endpoints.some((id) => nodeIds.has(key(id)))) return false;
         linkIds.add(key(link.id));
-        for (const endpoint of [link.origin_id, link.target_id]) {
-            if ((endpoint == null || endpoint === -1) && !floatingIds.has(key(link.id))) {
-                fail(`link ${link.id} has a missing endpoint.`);
-            }
-            if (endpoint != null && endpoint !== -1 && !nodeIds.has(key(endpoint))) {
-                fail(`link ${link.id} refers to missing node ${endpoint}.`);
-            }
-        }
-    }
-    const rerouteIds = new Set();
-    for (const reroute of reroutes(workflow)) {
-        if (reroute.id == null || rerouteIds.has(key(reroute.id))) fail("missing or duplicate reroute ID.");
-        rerouteIds.add(key(reroute.id));
-        for (const id of reroute.linkIds ?? []) {
-            if (!linkIds.has(key(id))) fail(`reroute ${reroute.id} refers to missing link ${id}.`);
-        }
-    }
-    for (const reroute of reroutes(workflow)) {
-        if (reroute.parentId != null && !rerouteIds.has(key(reroute.parentId))) {
-            fail(`reroute ${reroute.id} refers to missing parent ${reroute.parentId}.`);
-        }
-    }
-    for (const link of [...workflow.links, ...(workflow.floatingLinks ?? []), ...(workflow.extra?.linkExtensions ?? [])]) {
-        if (link.parentId != null && !rerouteIds.has(key(link.parentId))) {
-            fail(`link ${linkId(link)} refers to missing reroute ${link.parentId}.`);
-        }
-    }
+        return true;
+    };
+    workflow.links = workflow.links.filter((link) => keepLink(link));
+    if (workflow.floatingLinks) workflow.floatingLinks = workflow.floatingLinks.filter((link) => keepLink(link, true));
     for (const node of workflow.nodes) {
         for (const input of node.inputs ?? []) {
-            if (input.link != null && !linkIds.has(key(input.link))) {
-                fail(`node ${node.id} refers to missing link ${input.link}.`);
-            }
+            if (input.link != null && !linkIds.has(key(input.link))) input.link = null;
         }
         for (const output of node.outputs ?? []) {
-            for (const id of output.links ?? []) {
-                if (!linkIds.has(key(id))) fail(`node ${node.id} refers to missing link ${id}.`);
+            if (Array.isArray(output.links)) {
+                output.links = output.links.filter((id) => linkIds.has(key(id)));
+                if (!output.links.length) output.links = null;
             }
         }
     }
-    for (const definition of workflow.definitions?.subgraphs ?? []) {
-        validateWorkflow(definition, `${name} / ${definition.name ?? definition.id}`, true);
+    for (const port of [...(workflow.inputs ?? []), ...(workflow.outputs ?? [])]) {
+        if (port.linkIds) port.linkIds = port.linkIds.filter((id) => linkIds.has(key(id)));
     }
+    const rerouteIds = new Set();
+    const validReroutes = reroutes(workflow).filter((reroute) => {
+        if (reroute?.id == null || rerouteIds.has(key(reroute.id))) return false;
+        rerouteIds.add(key(reroute.id));
+        if (reroute.linkIds) reroute.linkIds = reroute.linkIds.filter((id) => linkIds.has(key(id)));
+        return true;
+    });
+    if (workflow.reroutes) workflow.reroutes = validReroutes;
+    else if (workflow.extra?.reroutes) workflow.extra.reroutes = validReroutes;
+    if (workflow.extra?.linkExtensions) {
+        workflow.extra.linkExtensions = workflow.extra.linkExtensions.filter((extension) => extension && linkIds.has(key(extension.id)));
+    }
+    for (const item of [...validReroutes, ...workflow.links, ...(workflow.floatingLinks ?? []), ...(workflow.extra?.linkExtensions ?? [])]) {
+        if (item.parentId != null && !rerouteIds.has(key(item.parentId))) delete item.parentId;
+    }
+    for (const definition of workflow.definitions?.subgraphs ?? []) cleanConnections(definition, true);
 }
 
 function point(value, fallback = [0, 0]) {
@@ -161,6 +164,7 @@ export function appendWorkflows(current, items, { placement = "right", gap = 160
         validateWorkflow(data, name);
         if (!data.nodes.length) throw new Error(`${name}: workflow has no nodes to import.`);
         const source = clone(data);
+        cleanConnections(source);
         const existingBounds = bounds(out);
         const sourceBounds = bounds(source);
         const dx = existingBounds.x - sourceBounds.x + margin

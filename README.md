@@ -40,6 +40,10 @@ connections and widget values are preserved. Both Save-format v0.4 and v1 JSON
 are supported, including mixed-format imports. API-format prompts are not
 workflow files. Required custom nodes must be installed to run imported nodes.
 
+Stale links to deleted nodes, missing link references, and stale reroute
+references are discarded automatically so they do not block the import.
+All available nodes and valid connections are imported; source files are unchanged.
+
 The imported nodes are selected. Use Fit View to see the complete canvas,
 **Ctrl+Z** to undo the import, and save the combined workflow normally. The
 importer is an editor-only control with no execution inputs or outputs; it can
