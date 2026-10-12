@@ -25,6 +25,10 @@ function refresh(node) {
             }
         }
         const rows = getConnectedTargets(node);
+        const button = node.widgets[0];
+        const buttonName = rows.length && rows.every((row) => row.node.mode === 4) ? "Enable all" : "Bypass all";
+        const buttonChanged = button.name !== buttonName;
+        button.name = buttonName;
         const previous = node.rpBypassRows ?? [];
         const state = rows.map(({ index, node: target }) => ({ index, id: target.id, enabled: target.mode === 0 }));
         const stateChanged = JSON.stringify(state) !== JSON.stringify(previous);
@@ -38,7 +42,7 @@ function refresh(node) {
             const size = node.computeSize();
             node.setSize([Math.max(node.size[0], 360, size[0] + 70), size[1]]);
         }
-        if (changed || stateChanged) node.setDirtyCanvas(true, true);
+        if (changed || stateChanged || buttonChanged) node.setDirtyCanvas(true, true);
     } finally {
         node.rpRefreshing = false;
     }
@@ -62,7 +66,8 @@ app.registerExtension({
             this.serialize_widgets = false;
             this.addInput("", "*");
             this.addWidget("button", "Bypass all", null, () => {
-                setTargetsEnabled(this, getConnectedTargets(this).map((row) => row.node), false);
+                const targets = getConnectedTargets(this).map((row) => row.node);
+                setTargetsEnabled(this, targets, targets.length > 0 && targets.every((node) => node.mode === 4));
                 refreshAll();
             }, { serialize: false }).serialize = false;
             this.color = "#223";this.bgcolor = "#335";

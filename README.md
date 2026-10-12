@@ -32,8 +32,10 @@ Connect an output from each node you want to control to RP Bypasser. A new
 empty input appears after each connection. Each connected row shows the
 source node's name and a **yes/no** toggle showing whether it is enabled.
 Clicking the toggle switches that source between enabled and ComfyUI's native
-bypass mode. **Bypass all** bypasses every connected
-source in one action. There is no output or repeater node to connect.
+bypass mode. **Bypass all** bypasses every connected source in one action.
+Once all sources are bypassed, the button becomes **Enable all** and clicking
+it enables them again. The label follows the actual modes, including manual
+changes and reopening. There is no output or repeater node to connect.
 
 Connecting, disconnecting, loading, and saving never change source node modes.
 The controls read those modes directly, so manual changes and RP Groups Muter
