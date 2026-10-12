@@ -199,6 +199,10 @@ loop.
 Saves the processed frames and rebuilds the MP4, with optional source audio and
 an in-node preview.
 
+When `overwrite` is disabled, existing output videos are kept and the next
+available numbered name is used, such as `processed_video_1.mp4`,
+`processed_video_2.mp4`. Enabling `overwrite` replaces the requested file.
+
 ### Connecting the pair
 
 - `flow` to `flow`

@@ -586,7 +586,12 @@ class RPFramesToVideo:
             safe_name = f"{Path(safe_name).stem}.mp4"
         output_path = frames_directory / safe_name
         if output_path.exists() and not overwrite:
-            raise FileExistsError(f"Output video already exists: {output_path}")
+            match = re.fullmatch(r"(.+)_(\d+)", output_path.stem)
+            stem = match[1] if match else output_path.stem
+            counter = int(match[2]) + 1 if match else 1
+            while output_path.exists():
+                output_path = frames_directory / f"{stem}_{counter}.mp4"
+                counter += 1
 
         duration = 1.0 / rate
         with tempfile.NamedTemporaryFile(

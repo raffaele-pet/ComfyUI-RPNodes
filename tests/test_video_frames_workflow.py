@@ -61,6 +61,30 @@ class VideoFramesWorkflowTests(unittest.TestCase):
             self.assertEqual((info["width"], info["height"]), (32, 32))
             self.assertAlmostEqual(info["fps"], result[4]["fps"], places=2)
 
+            original_bytes = Path(output[0]).read_bytes()
+            occupied = processed / "result_1.mp4"
+            occupied.write_bytes(b"Keep this existing file")
+            numbered = workflow.RPFramesToVideo().combine(
+                "stub", image, context, "result.mp4", "libx264", 19, False, False
+            )
+            self.assertEqual(Path(numbered[0]).name, "result_2.mp4")
+            self.assertTrue(Path(numbered[0]).is_file())
+            self.assertEqual(Path(output[0]).read_bytes(), original_bytes)
+            self.assertEqual(occupied.read_bytes(), b"Keep this existing file")
+
+            next_numbered = workflow.RPFramesToVideo().combine(
+                "stub", image, context, "result_2.mp4", "libx264", 19, False, False
+            )
+            self.assertEqual(Path(next_numbered[0]).name, "result_3.mp4")
+            self.assertTrue(Path(next_numbered[0]).is_file())
+
+            Path(output[0]).write_bytes(b"Replace when overwrite is enabled")
+            overwritten = workflow.RPFramesToVideo().combine(
+                "stub", image, context, "result.mp4", "libx264", 19, False, True
+            )
+            self.assertEqual(overwritten[0], output[0])
+            self.assertEqual(workflow._probe_video(Path(overwritten[0]))["width"], 32)
+
 
 if __name__ == "__main__":
     unittest.main()
