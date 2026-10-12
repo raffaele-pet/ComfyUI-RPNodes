@@ -1,7 +1,7 @@
 {
   "id": "cddd54c8-2732-44eb-b74e-3490f5748d3e",
   "revision": 0,
-  "last_node_id": 539,
+  "last_node_id": 541,
   "last_link_id": 575,
   "nodes": [
     {
@@ -3681,6 +3681,59 @@
         "ver": "0.39.0",
         "Node name for S&R": "PreviewImage"
       }
+    },
+    {
+      "id": 540,
+      "type": "Note",
+      "pos": [
+        40,
+        3510
+      ],
+      "size": [
+        660,
+        680
+      ],
+      "flags": {},
+      "order": 40,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "RP Groups Muter - EN / IT",
+      "properties": {},
+      "widgets_values": [
+        "ENGLISH\n\nRP Groups Muter lists groups and reads their actual node modes. Click Enable to mute or enable the executable nodes; the arrow navigates to that group. Notes and editor controls do not make a muted group appear active. The node stays synchronized after manual changes and reopening the workflow. In Properties, matchTitle filters names (including regular expressions), matchColors filters colors, sort chooses position/alphanumeric, and showNav controls arrows. This example lists groups 01–12 and excludes its own group. No queue execution is needed.\n\nITALIANO\n\nRP Groups Muter elenca i gruppi e legge la modalità reale dei nodi. Clicca Enable per disattivare o attivare i nodi eseguibili; la freccia porta al gruppo. Note e controlli dell’editor non fanno apparire attivo un gruppo disattivato. Il nodo resta sincronizzato dopo modifiche manuali e riapertura. Nelle proprietà, matchTitle filtra i nomi (anche con espressioni regolari), matchColors filtra i colori, sort ordina per posizione/nome e showNav controlla le frecce. Questo esempio mostra i gruppi 01–12 ed esclude il proprio gruppo. Non serve eseguire la coda."
+      ],
+      "widgets_values_named": {
+        "text": "ENGLISH\n\nRP Groups Muter lists groups and reads their actual node modes. Click Enable to mute or enable the executable nodes; the arrow navigates to that group. Notes and editor controls do not make a muted group appear active. The node stays synchronized after manual changes and reopening the workflow. In Properties, matchTitle filters names (including regular expressions), matchColors filters colors, sort chooses position/alphanumeric, and showNav controls arrows. This example lists groups 01–12 and excludes its own group. No queue execution is needed.\n\nITALIANO\n\nRP Groups Muter elenca i gruppi e legge la modalità reale dei nodi. Clicca Enable per disattivare o attivare i nodi eseguibili; la freccia porta al gruppo. Note e controlli dell’editor non fanno apparire attivo un gruppo disattivato. Il nodo resta sincronizzato dopo modifiche manuali e riapertura. Nelle proprietà, matchTitle filtra i nomi (anche con espressioni regolari), matchColors filtra i colori, sort ordina per posizione/nome e showNav controlla le frecce. Questo esempio mostra i gruppi 01–12 ed esclude il proprio gruppo. Non serve eseguire la coda."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 541,
+      "type": "RPGroupsMuter",
+      "pos": [
+        830,
+        3510
+      ],
+      "size": [
+        900,
+        322
+      ],
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "b125709dae5eb30d5344408910f948780f83e753",
+        "Node name for S&R": "RPGroupsMuter",
+        "matchTitle": "^(0[1-9]|1[0-2]) - ",
+        "matchColors": "",
+        "showNav": true,
+        "sort": "alphanumeric"
+      }
     }
   ],
   "links": [
@@ -4396,6 +4449,18 @@
         1300
       ],
       "color": "#8065a5",
+      "flags": {}
+    },
+    {
+      "id": 15,
+      "title": "13 - RP Groups Muter",
+      "bounding": [
+        0,
+        3400,
+        2100,
+        920
+      ],
+      "color": "#3f789e",
       "flags": {}
     }
   ],

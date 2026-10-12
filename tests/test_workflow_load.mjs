@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { beginWorkflowLoad, endWorkflowLoad, loadMergedWorkflow, prepareNodeForLoad } from "../web/js/workflow/load_workflow.js";
+import { beginWorkflowLoad, endWorkflowLoad, loadMergedWorkflow, prepareNodeForLoad } from "../web/js/workflow_utilities/load_workflow.js";
 
 function fixture(load) {
     const before = { nodes: [{ id: "1" }], links: [] };

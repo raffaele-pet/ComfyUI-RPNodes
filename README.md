@@ -10,19 +10,38 @@ A collection of utility nodes for ComfyUI:
 - **Image saving:** `RP Image Comparer` and `RP Preview Image`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
-- **Workflow utilities:** `RP Import Workflow` and `RP Fix Workflow`
+- **Workflow utilities:** `RP Import Workflow`, `RP Fix Workflow`, and
+  `RP Groups Muter`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
 `video_frame_processing`, the folder-processing nodes in
 `image_folder_processing`, the keyframe node in `h3_keyframes`, and the workflow
-utilities in `workflow`. Shared
+utilities in `workflow_utilities`. Shared
 browser extensions live under `web`. The complete example workflow is in
 `example_workflows`.
 
 ## Workflow utilities
 
-Both nodes are available under `RP/workflow` and share the `workflow` Python
-directory and `web/js/workflow` browser extensions.
+All three nodes are available under `RP/workflow_utilities` and share the
+`workflow_utilities` Python directory and `web/js/workflow_utilities` browser
+extensions. Existing Import/Fix Workflow nodes keep their registered names.
+
+### RP Groups Muter
+
+Shows one **Enable** toggle per group in the node's graph, with **yes/no**
+indicating whether any executable node in that group is enabled. Click a row
+to mute or enable its nodes; the arrow navigates to the group. Notes, labels,
+reroutes, and editor-only controls do not affect the toggle or get muted.
+
+The rows always read the actual node modes, including after manual changes,
+moving nodes, and reopening a saved workflow. Toggle values are not saved as
+a separate source of state. No queue execution or rgthree service is needed.
+
+Use the node properties to configure `matchTitle` (text or regular expression),
+`matchColors` (comma-separated hex colors or ComfyUI color names), `sort`
+(`position` or `alphanumeric`), and `showNav`. Multiple muters stay synchronized,
+and groups with identical names remain independent. Group membership uses the
+center of each node; nested and overlapping groups reflect their shared nodes.
 
 ### RP Fix Workflow
 
@@ -42,7 +61,7 @@ The notification confirms saving only when it completes successfully.
 
 ### RP Import Workflow
 
-Available under `RP/workflow`. Add the node to the main workflow canvas:
+Available under `RP/workflow_utilities`. Add the node to the main workflow canvas:
 
 - Select a JSON from `workflow` and click **Import saved workflow**. The list
   reads the current ComfyUI user's `workflows` directory, including subfolders
@@ -78,7 +97,7 @@ the picker are processed in the browser.
 The merge logic is adapted from
 [`comfyui-workflow-merger`](https://github.com/raffaele-pet/comfyui-workflow-merger).
 Regression tests:
-`node --test tests/test_workflow_merge.mjs tests/test_workflow_load.mjs tests/test_workflow_fix.mjs`.
+`node --test tests/test_workflow_merge.mjs tests/test_workflow_load.mjs tests/test_workflow_fix.mjs tests/test_groups_muter.mjs`.
 
 ## Image saving
 
@@ -291,12 +310,12 @@ under `image/resolution`; the image-folder nodes are available under
 `image/RPNodes`; the image comparer is available under `image/saving`; the
 video-processing nodes are available under `video/RPNodes`; the MiniMax H3
 keyframe node is available under `RP/MiniMax H3`; the workflow utilities are
-available under `RP/workflow`.
+available under `RP/workflow_utilities`.
 
 ## Example workflow
 
 [`RP_All_Nodes_Examples.json`](./example_workflows/RP_All_Nodes_Examples.json)
-contains all 14 RP nodes in 12 example groups, with English and Italian notes.
+contains all 15 RP nodes in 13 example groups, with English and Italian notes.
 It covers image sizing, resizing, folder processing, previews and comparison,
 video frame processing, workflow utilities, and a complete FastH3 keyframe chain.
 

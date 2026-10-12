@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { appendWorkflows, validateWorkflow } from "../web/js/workflow/merge_workflow.js";
+import { appendWorkflows, validateWorkflow } from "../web/js/workflow_utilities/merge_workflow.js";
 
 function fixture(version = 0.4) {
     const link = { id: 8, origin_id: 1, origin_slot: 0, target_id: 2, target_slot: 0, type: "IMAGE", parentId: 2 };

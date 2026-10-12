@@ -14,7 +14,7 @@ class RPImportWorkflow:
 
     RETURN_TYPES = ()
     FUNCTION = "execute"
-    CATEGORY = "RP/workflow"
+    CATEGORY = "RP/workflow_utilities"
     DESCRIPTION = (
         "Import saved workflow JSON files into the current canvas, preserving "
         "their internal connections. Use the buttons on the node; no queue is needed."
@@ -33,7 +33,7 @@ class RPFixWorkflow:
 
     RETURN_TYPES = ()
     FUNCTION = "execute"
-    CATEGORY = "RP/workflow"
+    CATEGORY = "RP/workflow_utilities"
     DESCRIPTION = (
         "Remove stale links and references from the current workflow, including "
         "subgraphs. Click Fix workflow; no queue is needed."
@@ -43,11 +43,32 @@ class RPFixWorkflow:
         return ()
 
 
+class RPGroupsMuter:
+    """Editor control for muting and enabling workflow groups."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {}}
+
+    RETURN_TYPES = ()
+    FUNCTION = "execute"
+    CATEGORY = "RP/workflow_utilities"
+    DESCRIPTION = (
+        "Mute or enable groups using toggles that reflect the actual node modes. "
+        "Filter groups in the node properties; no queue is needed."
+    )
+
+    def execute(self):
+        return ()
+
+
 NODE_CLASS_MAPPINGS = {
     "RPImportWorkflow": RPImportWorkflow,
     "RPFixWorkflow": RPFixWorkflow,
+    "RPGroupsMuter": RPGroupsMuter,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "RPImportWorkflow": "RP Import Workflow",
     "RPFixWorkflow": "RP Fix Workflow",
+    "RPGroupsMuter": "RP Groups Muter",
 }
