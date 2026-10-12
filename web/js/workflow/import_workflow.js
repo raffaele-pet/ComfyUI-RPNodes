@@ -73,21 +73,10 @@ app.registerExtension({
     },
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData.name !== "RPImportWorkflow") return;
-        const computeSize = nodeType.prototype.computeSize;
-        nodeType.prototype.computeSize = function () {
-            const size = computeSize.apply(this, arguments);
-            const widgets = this.widgets ?? [];
-            const height = widgets.reduce((total, widget) =>
-                total + (widget.computeSize?.(size[0])?.[1] ?? widget.height ?? 20) + 4, 0);
-            // Keep only the widget rows, their spacing, and a 6px bottom margin.
-            size[1] = 2 + height - (widgets.length ? 4 : 0) + 6;
-            return size;
-        };
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
             this.isVirtualNode = true;
-            this.widgets_start_y = 2;
             this.addWidget("button", "Refresh saved workflows", null, () => {
                 refreshWorkflows(this).catch((error) => notify(error.message));
             }, { serialize: false }).serialize = false;
@@ -117,17 +106,13 @@ app.registerExtension({
                 };
                 input.click();
             }, { serialize: false }).serialize = false;
-            this.setSize([Math.max(this.size[0], 340), this.computeSize()[1]]);
             return result;
         };
         const onAdded = nodeType.prototype.onAdded;
         nodeType.prototype.onAdded = function () {
             const result = onAdded?.apply(this, arguments);
-            // Wait until configure() has restored the saved size and combo value.
-            queueMicrotask(() => {
-                this.setSize([this.size[0], this.computeSize()[1]]);
-                refreshWorkflows(this).catch((error) => notify(error.message));
-            });
+            // Wait until configure() has restored the saved combo value.
+            queueMicrotask(() => refreshWorkflows(this).catch((error) => notify(error.message)));
             return result;
         };
     },
