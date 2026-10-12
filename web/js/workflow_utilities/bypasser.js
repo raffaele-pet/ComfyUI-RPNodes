@@ -27,8 +27,9 @@ function refresh(node) {
         const rows = getConnectedTargets(node);
         const button = node.widgets[0];
         const buttonName = rows.length && rows.every((row) => row.node.mode === 4) ? "Enable all" : "Bypass all";
-        const buttonChanged = button.name !== buttonName;
-        button.name = buttonName;
+        const buttonChanged = button.label !== buttonName;
+        button.label = buttonName;
+        button.clicked = false;
         const previous = node.rpBypassRows ?? [];
         const state = rows.map(({ index, node: target }) => ({ index, id: target.id, enabled: target.mode === 0 }));
         const stateChanged = JSON.stringify(state) !== JSON.stringify(previous);
