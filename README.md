@@ -47,9 +47,9 @@ it does not replace nodes that have no compatible input with generated data.
 ### RP Groups Muter
 
 Shows one **Enable** toggle per group in the node's graph, with **yes/no**
-indicating whether any executable node in that group is enabled. Click a row
-to mute or enable its nodes; the arrow navigates to the group. Notes, labels,
-reroutes, and editor-only controls do not affect the toggle or get muted.
+indicating whether any node in that group is enabled. Click a row to mute or
+enable all its nodes, including notes, labels, reroutes, and editor controls
+such as RP Bypasser. The arrow navigates to the group. No node type is excluded.
 
 The rows always read the actual node modes, including after manual changes,
 moving nodes, and reopening a saved workflow. Toggle values are not saved as

@@ -10,33 +10,38 @@ function fixture() {
     };
     const node = (type, mode, x = 20) => ({ type, mode, pos: [x, 20], size: [40, 40] });
     graph.nodes = [node("LoadImage", 2), node("PreviewImage", 2),
-        node("Note", 0), node("MarkdownNote", 0), node("Label (rgthree)", 0),
-        node("Reroute", 0), node("RPGroupsMuter", 0),
-        { ...node("Other editor", 0), isVirtualNode: true }, node("Outside", 0, 150)];
+        node("Note", 2), node("MarkdownNote", 2), node("Label (rgthree)", 2),
+        node("Reroute", 2), node("RPBypasser", 2),
+        { ...node("Other editor", 2), isVirtualNode: true }, node("Outside", 0, 150)];
     const group = { title: "Group 1", graph, pos: [0, 0], size: [100, 100], color: "#aabbcc", rgthree_hasAnyActiveNode: true };
     graph.groups = [group];
     return { graph, group };
 }
 
-test("muted group stays off despite active notes, editor controls, and stale rgthree state", () => {
+test("state includes notes and editor controls and ignores stale rgthree state", () => {
     const { graph, group } = fixture();
     assert.equal(isGroupEnabled(group), false);
-    assert.deepEqual(getGroupNodes(group), graph.nodes.slice(0, 2));
+    assert.deepEqual(getGroupNodes(group), graph.nodes.slice(0, -1));
     graph.nodes[0].mode = 4;
     assert.equal(isGroupEnabled(group), false);
     graph.nodes[1].mode = 0;
     assert.equal(isGroupEnabled(group), true);
     graph.nodes[1].mode = 2;
     assert.equal(isGroupEnabled(group), false);
+    graph.nodes[2].mode = 0;
+    assert.equal(isGroupEnabled(group), true);
+    setGroupEnabled(group, false);
+    assert.equal(isGroupEnabled(group), false);
+    assert.ok(getGroupNodes(group).every(node => node.mode === 2));
 });
 
-test("toggles update only current executable members and use a single graph change", () => {
+test("toggles update every contained node in a single graph change and leave outside nodes alone", () => {
     const { graph, group } = fixture();
     setGroupEnabled(group, true);
     assert.deepEqual(graph.nodes.map(n => n.mode), [0, 0, 0, 0, 0, 0, 0, 0, 0]);
     assert.deepEqual(graph.changes, ["before", "after"]);
     setGroupEnabled(group, false);
-    assert.deepEqual(graph.nodes.map(n => n.mode), [2, 2, 0, 0, 0, 0, 0, 0, 0]);
+    assert.deepEqual(graph.nodes.map(n => n.mode), [2, 2, 2, 2, 2, 2, 2, 2, 0]);
     setGroupEnabled(group, false);
     assert.equal(graph.changes.length, 4);
 });
@@ -50,7 +55,7 @@ test("membership follows moves and resizing without relying on render bounds or 
     group.size[0] = 200;
     assert.equal(isGroupEnabled(group), true);
     group.nodes = [];
-    assert.equal(getGroupNodes(group).length, 3);
+    assert.equal(getGroupNodes(group).length, 9);
 });
 
 test("duplicate names, nested groups, and empty groups keep independent actual states", () => {

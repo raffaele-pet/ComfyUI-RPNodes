@@ -1,13 +1,7 @@
-const EDITOR_NODES = new Set([
-    "Note", "MarkdownNote", "Reroute", "Label (rgthree)",
-    "RPGroupsMuter", "RPImportWorkflow", "RPFixWorkflow", "RPBypasser",
-]);
-
 export function getGroupNodes(group) {
     const [x, y] = group.pos;
     const [width, height] = group.size;
     return (group.graph?.nodes ?? []).filter((node) => {
-        if (node.isVirtualNode || EDITOR_NODES.has(node.type)) return false;
         const centerX = node.pos[0] + node.size[0] / 2;
         const centerY = node.pos[1] + node.size[1] / 2;
         return centerX >= x && centerX < x + width && centerY >= y && centerY < y + height;
