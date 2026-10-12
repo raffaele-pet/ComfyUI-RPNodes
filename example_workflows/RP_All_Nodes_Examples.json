@@ -1,8 +1,8 @@
 {
   "id": "cddd54c8-2732-44eb-b74e-3490f5748d3e",
   "revision": 0,
-  "last_node_id": 541,
-  "last_link_id": 575,
+  "last_node_id": 548,
+  "last_link_id": 582,
   "nodes": [
     {
       "id": 344,
@@ -3734,6 +3734,368 @@
         "showNav": true,
         "sort": "alphanumeric"
       }
+    },
+    {
+      "id": 542,
+      "type": "EmptyImage",
+      "pos": [
+        3050,
+        4250
+      ],
+      "size": [
+        270,
+        130
+      ],
+      "flags": {},
+      "order": 42,
+      "mode": 2,
+      "inputs": [
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "batch_size",
+          "name": "batch_size",
+          "type": "INT",
+          "widget": {
+            "name": "batch_size"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "color",
+          "name": "color",
+          "type": "INT",
+          "widget": {
+            "name": "color"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            576
+          ]
+        }
+      ],
+      "title": "Example image / Immagine esempio",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "EmptyImage"
+      },
+      "widgets_values": [
+        256,
+        256,
+        1,
+        4487065
+      ],
+      "widgets_values_named": {
+        "width": 256,
+        "height": 256,
+        "batch_size": 1,
+        "color": 4487065
+      }
+    },
+    {
+      "id": 543,
+      "type": "ImageScaleBy",
+      "pos": [
+        3050,
+        4450
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 57,
+      "mode": 2,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 576
+        },
+        {
+          "localized_name": "upscale_method",
+          "name": "upscale_method",
+          "type": "COMBO",
+          "widget": {
+            "name": "upscale_method"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scale_by",
+          "name": "scale_by",
+          "type": "FLOAT",
+          "widget": {
+            "name": "scale_by"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            577,
+            580
+          ]
+        }
+      ],
+      "title": "Resize A",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageScaleBy"
+      },
+      "widgets_values": [
+        "nearest-exact",
+        0.5
+      ],
+      "widgets_values_named": {
+        "upscale_method": "nearest-exact",
+        "scale_by": 0.5
+      }
+    },
+    {
+      "id": 544,
+      "type": "ImageScaleBy",
+      "pos": [
+        3480,
+        4450
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 70,
+      "mode": 2,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 577
+        },
+        {
+          "localized_name": "upscale_method",
+          "name": "upscale_method",
+          "type": "COMBO",
+          "widget": {
+            "name": "upscale_method"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scale_by",
+          "name": "scale_by",
+          "type": "FLOAT",
+          "widget": {
+            "name": "scale_by"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            578,
+            581
+          ]
+        }
+      ],
+      "title": "Resize B",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageScaleBy"
+      },
+      "widgets_values": [
+        "nearest-exact",
+        0.5
+      ],
+      "widgets_values_named": {
+        "upscale_method": "nearest-exact",
+        "scale_by": 0.5
+      }
+    },
+    {
+      "id": 545,
+      "type": "ImageInvert",
+      "pos": [
+        3910,
+        4450
+      ],
+      "size": [
+        169.1265625,
+        26
+      ],
+      "flags": {},
+      "order": 79,
+      "mode": 2,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 578
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            579,
+            582
+          ]
+        }
+      ],
+      "title": "Invert",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageInvert"
+      }
+    },
+    {
+      "id": 546,
+      "type": "PreviewImage",
+      "pos": [
+        4350,
+        4250
+      ],
+      "size": [
+        340,
+        460
+      ],
+      "flags": {},
+      "order": 82,
+      "mode": 2,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 579
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Result / Risultato",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 547,
+      "type": "RPBypasser",
+      "pos": [
+        3480,
+        4720
+      ],
+      "size": [
+        650,
+        118
+      ],
+      "flags": {},
+      "order": 83,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Resize A",
+          "type": "*",
+          "link": 580
+        },
+        {
+          "name": "Resize B",
+          "type": "*",
+          "link": 581
+        },
+        {
+          "name": "Invert",
+          "type": "*",
+          "link": 582
+        },
+        {
+          "name": "",
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "a0bf16d9907df7ef58855295264d29bb631f9fd0",
+        "Node name for S&R": "RPBypasser"
+      },
+      "color": "#223",
+      "bgcolor": "#335"
+    },
+    {
+      "id": 548,
+      "type": "Note",
+      "pos": [
+        2240,
+        4210
+      ],
+      "size": [
+        670,
+        760
+      ],
+      "flags": {},
+      "order": 43,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "RP Bypasser - EN / IT",
+      "properties": {},
+      "widgets_values": [
+        "ENGLISH\n\nRP Bypasser replaces the repeater + fast bypasser pair with one editor node. Connect an output from each node you want to control; a free input is added automatically. The yes/no toggle on each row reads the actual source mode. Click yes to enable or no to bypass that source. Bypass all bypasses every connected source together. Connecting and reopening never activate sources. Here it controls two resize steps and an invert step; the main image connections stay separate. Enable this example group before Queue. Compare the result with the resize/invert steps enabled, individually bypassed, or all bypassed. No rgthree controller is needed.\n\nITALIANO\n\nRP Bypasser sostituisce la coppia repeater + fast bypasser con un solo nodo editor. Collega un output di ogni nodo da controllare; compare automaticamente un nuovo ingresso libero. Il toggle yes/no di ogni riga legge la modalità reale della sorgente. Clicca yes per abilitarla oppure no per bypassarla. Bypass all bypassa tutte le sorgenti collegate insieme. Collegamento e riapertura non attivano le sorgenti. Qui controlla due resize e un invert; i collegamenti immagine principali restano separati. Attiva il gruppo prima di eseguire. Confronta il risultato con i passaggi attivi, bypassati singolarmente oppure tutti bypassati. Non serve un controller rgthree."
+      ],
+      "widgets_values_named": {
+        "text": "ENGLISH\n\nRP Bypasser replaces the repeater + fast bypasser pair with one editor node. Connect an output from each node you want to control; a free input is added automatically. The yes/no toggle on each row reads the actual source mode. Click yes to enable or no to bypass that source. Bypass all bypasses every connected source together. Connecting and reopening never activate sources. Here it controls two resize steps and an invert step; the main image connections stay separate. Enable this example group before Queue. Compare the result with the resize/invert steps enabled, individually bypassed, or all bypassed. No rgthree controller is needed.\n\nITALIANO\n\nRP Bypasser sostituisce la coppia repeater + fast bypasser con un solo nodo editor. Collega un output di ogni nodo da controllare; compare automaticamente un nuovo ingresso libero. Il toggle yes/no di ogni riga legge la modalità reale della sorgente. Clicca yes per abilitarla oppure no per bypassarla. Bypass all bypassa tutte le sorgenti collegate insieme. Collegamento e riapertura non attivano le sorgenti. Qui controlla due resize e un invert; i collegamenti immagine principali restano separati. Attiva il gruppo prima di eseguire. Confronta il risultato con i passaggi attivi, bypassati singolarmente oppure tutti bypassati. Non serve un controller rgthree."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
     }
   ],
   "links": [
@@ -4304,6 +4666,62 @@
       362,
       10,
       "IMAGE"
+    ],
+    [
+      576,
+      542,
+      0,
+      543,
+      0,
+      "IMAGE"
+    ],
+    [
+      577,
+      543,
+      0,
+      544,
+      0,
+      "IMAGE"
+    ],
+    [
+      578,
+      544,
+      0,
+      545,
+      0,
+      "IMAGE"
+    ],
+    [
+      579,
+      545,
+      0,
+      546,
+      0,
+      "IMAGE"
+    ],
+    [
+      580,
+      543,
+      0,
+      547,
+      0,
+      "IMAGE"
+    ],
+    [
+      581,
+      544,
+      0,
+      547,
+      1,
+      "IMAGE"
+    ],
+    [
+      582,
+      545,
+      0,
+      547,
+      2,
+      "IMAGE"
     ]
   ],
   "groups": [
@@ -4461,6 +4879,18 @@
         920
       ],
       "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 16,
+      "title": "14 - RP Bypasser",
+      "bounding": [
+        2200,
+        4100,
+        2550,
+        1000
+      ],
+      "color": "#676798",
       "flags": {}
     }
   ],

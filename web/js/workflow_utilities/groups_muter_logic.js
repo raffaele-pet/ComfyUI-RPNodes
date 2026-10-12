@@ -1,6 +1,6 @@
 const EDITOR_NODES = new Set([
     "Note", "MarkdownNote", "Reroute", "Label (rgthree)",
-    "RPGroupsMuter", "RPImportWorkflow", "RPFixWorkflow",
+    "RPGroupsMuter", "RPImportWorkflow", "RPFixWorkflow", "RPBypasser",
 ]);
 
 export function getGroupNodes(group) {

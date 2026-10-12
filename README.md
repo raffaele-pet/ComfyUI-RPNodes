@@ -10,8 +10,8 @@ A collection of utility nodes for ComfyUI:
 - **Image saving:** `RP Image Comparer` and `RP Preview Image`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
-- **Workflow utilities:** `RP Import Workflow`, `RP Fix Workflow`, and
-  `RP Groups Muter`
+- **Workflow utilities:** `RP Import Workflow`, `RP Fix Workflow`,
+  `RP Groups Muter`, and `RP Bypasser`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
 `video_frame_processing`, the folder-processing nodes in
@@ -22,9 +22,25 @@ browser extensions live under `web`. The complete example workflow is in
 
 ## Workflow utilities
 
-All three nodes are available under `RP/workflow_utilities` and share the
+All four nodes are available under `RP/workflow_utilities` and share the
 `workflow_utilities` Python directory and `web/js/workflow_utilities` browser
 extensions. Existing Import/Fix Workflow nodes keep their registered names.
+
+### RP Bypasser
+
+Connect an output from each node you want to control to RP Bypasser. A new
+empty input appears after each connection. Each connected row shows the
+source node's name and a **yes/no** toggle showing whether it is enabled.
+Clicking the toggle switches that source between enabled and ComfyUI's native
+bypass mode. **Bypass all** bypasses every connected
+source in one action. There is no output or repeater node to connect.
+
+Connecting, disconnecting, loading, and saving never change source node modes.
+The controls read those modes directly, so manual changes and RP Groups Muter
+stay in sync. Duplicate connections control the same source, and reroutes
+resolve to their actual source node. The controller is editor-only and does
+not execute in the queue. Native bypass passes compatible upstream data through;
+it does not replace nodes that have no compatible input with generated data.
 
 ### RP Groups Muter
 
@@ -97,7 +113,7 @@ the picker are processed in the browser.
 The merge logic is adapted from
 [`comfyui-workflow-merger`](https://github.com/raffaele-pet/comfyui-workflow-merger).
 Regression tests:
-`node --test tests/test_workflow_merge.mjs tests/test_workflow_load.mjs tests/test_workflow_fix.mjs tests/test_groups_muter.mjs`.
+`node --test tests/test_workflow_merge.mjs tests/test_workflow_load.mjs tests/test_workflow_fix.mjs tests/test_groups_muter.mjs tests/test_bypasser.mjs`.
 
 ## Image saving
 
@@ -324,7 +340,7 @@ available under `RP/workflow_utilities`.
 ## Example workflow
 
 [`RP_All_Nodes_Examples.json`](./example_workflows/RP_All_Nodes_Examples.json)
-contains all 15 RP nodes in 13 example groups, with English and Italian notes.
+contains all 16 RP nodes in 14 example groups, with English and Italian notes.
 It covers image sizing, resizing, folder processing, previews and comparison,
 video frame processing, workflow utilities, and a complete FastH3 keyframe chain.
 

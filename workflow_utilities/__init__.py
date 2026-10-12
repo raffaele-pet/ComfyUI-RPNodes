@@ -62,13 +62,35 @@ class RPGroupsMuter:
         return ()
 
 
+class RPBypasser:
+    """Editor control for bypassing individually connected nodes."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {}}
+
+    RETURN_TYPES = ()
+    FUNCTION = "execute"
+    CATEGORY = "RP/workflow_utilities"
+    DESCRIPTION = (
+        "Connect outputs from the nodes you want to control. Each connection "
+        "gets an enable toggle; Bypass all bypasses every connected node. "
+        "Controls read the actual node modes; no queue is needed."
+    )
+
+    def execute(self):
+        return ()
+
+
 NODE_CLASS_MAPPINGS = {
     "RPImportWorkflow": RPImportWorkflow,
     "RPFixWorkflow": RPFixWorkflow,
     "RPGroupsMuter": RPGroupsMuter,
+    "RPBypasser": RPBypasser,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "RPImportWorkflow": "RP Import Workflow",
     "RPFixWorkflow": "RP Fix Workflow",
     "RPGroupsMuter": "RP Groups Muter",
+    "RPBypasser": "RP Bypasser",
 }
