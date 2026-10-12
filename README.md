@@ -10,15 +10,31 @@ A collection of utility nodes for ComfyUI:
 - **Image saving:** `RP Image Comparer` and `RP Preview Image`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
-- **Workflow importing:** `RP Import Workflow`
+- **Workflow utilities:** `RP Import Workflow` and `RP Fix Workflow`
 
 Python nodes are grouped in `image_sizing_and_resizing` and
 `video_frame_processing`, the folder-processing nodes in
-`image_folder_processing`, and the keyframe node in `h3_keyframes`. Shared
+`image_folder_processing`, the keyframe node in `h3_keyframes`, and the workflow
+utilities in `workflow`. Shared
 browser extensions live under `web`, and example workflows remain together in
 `example_workflows`.
 
-## Workflow importing
+## Workflow utilities
+
+Both nodes are available under `RP/workflow` and share the `workflow` Python
+directory and `web/js/workflow` browser extensions.
+
+### RP Fix Workflow
+
+Click **Fix workflow** to clean the current canvas, including its subgraphs.
+It removes links to missing nodes, stale input/output link references, and
+stale reroute references. Existing nodes, IDs, positions, groups, widget values,
+and valid connections are retained.
+
+A green notification reports the number of repaired links and references,
+or **Workflow is already clean** when no changes are needed. The node has no
+execution inputs or outputs and uses ComfyUI's standard layout. Save the
+workflow normally to persist the fixes.
 
 ### RP Import Workflow
 
@@ -58,7 +74,7 @@ the picker are processed in the browser.
 The merge logic is adapted from
 [`comfyui-workflow-merger`](https://github.com/raffaele-pet/comfyui-workflow-merger).
 Regression tests:
-`node --test tests/test_workflow_merge.mjs tests/test_workflow_load.mjs`.
+`node --test tests/test_workflow_merge.mjs tests/test_workflow_load.mjs tests/test_workflow_fix.mjs`.
 
 ## Image saving
 
@@ -272,7 +288,7 @@ Restart ComfyUI and refresh the browser. The image-sizing nodes are available
 under `image/resolution`; the image-folder nodes are available under
 `image/RPNodes`; the image comparer is available under `image/saving`; the
 video-processing nodes are available under `video/RPNodes`; the MiniMax H3
-keyframe node is available under `RP/MiniMax H3`; the workflow importer is
+keyframe node is available under `RP/MiniMax H3`; the workflow utilities are
 available under `RP/workflow`.
 
 ## Example workflows

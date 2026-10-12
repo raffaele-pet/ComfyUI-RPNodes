@@ -31,7 +31,7 @@ export function validateWorkflow(workflow, name = "Workflow") {
 
 // Saved workflows can contain stale topology. Remove it before assigning IDs so
 // a missing imported endpoint can never attach to an existing canvas node.
-function cleanConnections(workflow, subgraph = false) {
+function cleanConnections(workflow, subgraph = false, repairs = { links: 0, references: 0, reroutes: 0 }) {
     const nodeIds = new Set(workflow.nodes.map((node) => key(node.id)));
     if (subgraph) {
         nodeIds.add(key(workflow.inputNode?.id ?? -10));
@@ -48,38 +48,68 @@ function cleanConnections(workflow, subgraph = false) {
         linkIds.add(key(link.id));
         return true;
     };
+    const linkCount = workflow.links.length + (workflow.floatingLinks?.length ?? 0);
     workflow.links = workflow.links.filter((link) => keepLink(link));
     if (workflow.floatingLinks) workflow.floatingLinks = workflow.floatingLinks.filter((link) => keepLink(link, true));
+    repairs.links += linkCount - workflow.links.length - (workflow.floatingLinks?.length ?? 0);
     for (const node of workflow.nodes) {
         for (const input of node.inputs ?? []) {
-            if (input.link != null && !linkIds.has(key(input.link))) input.link = null;
+            if (input.link != null && !linkIds.has(key(input.link))) {
+                input.link = null;
+                repairs.references++;
+            }
         }
         for (const output of node.outputs ?? []) {
             if (Array.isArray(output.links)) {
-                output.links = output.links.filter((id) => linkIds.has(key(id)));
-                if (!output.links.length) output.links = null;
+                const filtered = output.links.filter((id) => linkIds.has(key(id)));
+                repairs.references += output.links.length - filtered.length;
+                if (filtered.length !== output.links.length) output.links = filtered.length ? filtered : null;
             }
         }
     }
     for (const port of [...(workflow.inputs ?? []), ...(workflow.outputs ?? [])]) {
-        if (port.linkIds) port.linkIds = port.linkIds.filter((id) => linkIds.has(key(id)));
+        if (port.linkIds) {
+            const filtered = port.linkIds.filter((id) => linkIds.has(key(id)));
+            repairs.references += port.linkIds.length - filtered.length;
+            port.linkIds = filtered;
+        }
     }
     const rerouteIds = new Set();
     const validReroutes = reroutes(workflow).filter((reroute) => {
-        if (reroute?.id == null || rerouteIds.has(key(reroute.id))) return false;
+        if (reroute?.id == null || rerouteIds.has(key(reroute.id))) {
+            repairs.reroutes++;
+            return false;
+        }
         rerouteIds.add(key(reroute.id));
-        if (reroute.linkIds) reroute.linkIds = reroute.linkIds.filter((id) => linkIds.has(key(id)));
+        if (reroute.linkIds) {
+            const filtered = reroute.linkIds.filter((id) => linkIds.has(key(id)));
+            repairs.references += reroute.linkIds.length - filtered.length;
+            reroute.linkIds = filtered;
+        }
         return true;
     });
     if (workflow.reroutes) workflow.reroutes = validReroutes;
     else if (workflow.extra?.reroutes) workflow.extra.reroutes = validReroutes;
     if (workflow.extra?.linkExtensions) {
+        const count = workflow.extra.linkExtensions.length;
         workflow.extra.linkExtensions = workflow.extra.linkExtensions.filter((extension) => extension && linkIds.has(key(extension.id)));
+        repairs.references += count - workflow.extra.linkExtensions.length;
     }
     for (const item of [...validReroutes, ...workflow.links, ...(workflow.floatingLinks ?? []), ...(workflow.extra?.linkExtensions ?? [])]) {
-        if (item.parentId != null && !rerouteIds.has(key(item.parentId))) delete item.parentId;
+        if (item.parentId != null && !rerouteIds.has(key(item.parentId))) {
+            delete item.parentId;
+            repairs.references++;
+        }
     }
-    for (const definition of workflow.definitions?.subgraphs ?? []) cleanConnections(definition, true);
+    for (const definition of workflow.definitions?.subgraphs ?? []) cleanConnections(definition, true, repairs);
+    return repairs;
+}
+
+export function fixWorkflow(current) {
+    validateWorkflow(current);
+    const workflow = clone(current);
+    const repairs = cleanConnections(workflow);
+    return { workflow, ...repairs };
 }
 
 function point(value, fallback = [0, 0]) {

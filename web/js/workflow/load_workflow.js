@@ -43,12 +43,12 @@ export async function loadMergedWorkflow(app, workflow, before) {
         // Use the normal loading lifecycle so custom nodes recognize restoration
         // and run their before/after configure hooks instead of reconnecting slots.
         const loaded = await app.loadGraphData(workflow, false, false, activeWorkflow, options);
-        if (loaded === false) throw new Error("ComfyUI could not load the imported workflow.");
+        if (loaded === false) throw new Error("ComfyUI could not load the updated workflow.");
     } catch (error) {
         await app.loadGraphData(before, false, false, activeWorkflow, options);
         throw error;
     } finally {
-        // The loader resets the saved baseline. An import is an edit to the same
+        // The loader resets the saved baseline. This is an edit to the same
         // workflow, so keep its baseline and let afterChange record one undo step.
         tracker.initialState = initialState;
         tracker.activeState = previousState;

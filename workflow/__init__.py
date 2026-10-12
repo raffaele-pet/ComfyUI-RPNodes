@@ -24,5 +24,30 @@ class RPImportWorkflow:
         return ()
 
 
-NODE_CLASS_MAPPINGS = {"RPImportWorkflow": RPImportWorkflow}
-NODE_DISPLAY_NAME_MAPPINGS = {"RPImportWorkflow": "RP Import Workflow"}
+class RPFixWorkflow:
+    """Editor control for cleaning the current workflow."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {}}
+
+    RETURN_TYPES = ()
+    FUNCTION = "execute"
+    CATEGORY = "RP/workflow"
+    DESCRIPTION = (
+        "Remove stale links and references from the current workflow, including "
+        "subgraphs. Click Fix workflow; no queue is needed."
+    )
+
+    def execute(self):
+        return ()
+
+
+NODE_CLASS_MAPPINGS = {
+    "RPImportWorkflow": RPImportWorkflow,
+    "RPFixWorkflow": RPFixWorkflow,
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "RPImportWorkflow": "RP Import Workflow",
+    "RPFixWorkflow": "RP Fix Workflow",
+}
