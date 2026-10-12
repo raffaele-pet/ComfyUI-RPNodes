@@ -8,7 +8,7 @@ function notify(message, severity = "success") {
     app.extensionManager.toast.add({ severity, summary: "RP Fix Workflow", detail: message, life: 7000 });
 }
 
-async function fixCurrentWorkflow() {
+async function fixCurrentWorkflow(save = false) {
     if (fixing) return;
     fixing = true;
     try {
@@ -19,12 +19,19 @@ async function fixCurrentWorkflow() {
             [result.references, "reference"],
             [result.reroutes, "reroute"],
         ].filter(([count]) => count > 0);
-        if (!changes.length) {
-            notify("Workflow is already clean.");
-            return;
+        if (changes.length) {
+            await loadMergedWorkflow(app, result.workflow, before);
         }
-        await loadMergedWorkflow(app, result.workflow, before);
-        notify(`Fixed ${changes.map(([count, name]) => `${count} ${name}${count === 1 ? "" : "s"}`).join(", ")}.`);
+        let message = changes.length
+            ? `Fixed ${changes.map(([count, name]) => `${count} ${name}${count === 1 ? "" : "s"}`).join(", ")}.`
+            : "Workflow is already clean.";
+        if (save) {
+            const workflow = app.extensionManager.workflow.activeWorkflow;
+            workflow.changeTracker.captureCanvasState();
+            await app.extensionManager.workflow.saveWorkflow(workflow);
+            message += " Workflow saved.";
+        }
+        notify(message);
     } catch (error) {
         notify(error.message ?? String(error), "error");
     } finally {
@@ -42,6 +49,9 @@ app.registerExtension({
             this.isVirtualNode = true;
             this.addWidget("button", "Fix workflow", null, () => {
                 void fixCurrentWorkflow();
+            }, { serialize: false }).serialize = false;
+            this.addWidget("button", "Fix workflow and save", null, () => {
+                void fixCurrentWorkflow(true);
             }, { serialize: false }).serialize = false;
             return result;
         };

@@ -33,8 +33,12 @@ and valid connections are retained.
 
 A green notification reports the number of repaired links and references,
 or **Workflow is already clean** when no changes are needed. The node has no
-execution inputs or outputs and uses ComfyUI's standard layout. Save the
-workflow normally to persist the fixes.
+execution inputs or outputs and uses ComfyUI's standard layout.
+
+**Fix workflow** changes only the canvas. **Fix workflow and save** also saves
+directly under the current workflow name, overwriting its saved file without
+asking for another name. It saves even when no fixes are needed.
+The notification confirms saving only when it completes successfully.
 
 ### RP Import Workflow
 
