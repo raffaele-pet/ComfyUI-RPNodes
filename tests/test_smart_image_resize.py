@@ -13,6 +13,7 @@ from image_sizing_and_resizing.smart_image_resize import (
     _closest_dimensions,
     _find_dimensions,
     _reported_aspect_ratio,
+    RESIZE_MODES,
 )
 from image_sizing_and_resizing.smart_image_size import (
     SmartImageSize,
@@ -23,6 +24,54 @@ from image_sizing_and_resizing.smart_image_size import (
 
 
 class SmartImageResizeSelectionTests(unittest.TestCase):
+    def test_no_pad_output_matches_resize_mode_for_every_primary_mode(self):
+        image = torch.linspace(0, 1, 2 * 11 * 7 * 3).reshape(2, 11, 7, 3)
+        mask = torch.ones((1, 11, 7))
+        settings = dict(
+            model="FLUX.2 Klein", resolution_preset="1 MP ~ 1K (1024 × 1024)",
+            selection_mode="manual", dimensions="1:1 (Square) - 1024 x 1024",
+            width=64, height=64, upscale_method="bilinear", pad_color="255, 0, 0",
+            crop_position="center", image=image, mask=mask,
+        )
+        expected = SmartImageResize().resize(**settings, keep_proportion="resize")[0]
+        self.assertEqual(tuple(expected.shape), (2, 64, 41, 3))
+        for mode in RESIZE_MODES:
+            with self.subTest(mode=mode):
+                result = SmartImageResize().resize(**settings, keep_proportion=mode)
+                self.assertEqual(len(result), 8)
+                torch.testing.assert_close(result[7], expected, rtol=0, atol=0)
+        self.assertEqual(SmartImageResize.RETURN_TYPES[:7],
+                         ("IMAGE", "INT", "INT", "STRING", "STRING", "INT", "MASK"))
+        self.assertEqual(SmartImageResize.RETURN_NAMES[7], "resized_image_no_pad")
+
+    def test_no_pad_reuses_content_of_padded_result_for_every_alignment(self):
+        image = torch.linspace(0, 1, 11 * 7 * 3).reshape(1, 11, 7, 3)
+        for position in ("center", "left", "right", "top", "bottom"):
+            with self.subTest(position=position):
+                result = SmartImageResize().resize(
+                    model="FLUX.2 Klein", resolution_preset="1 MP ~ 1K (1024 × 1024)",
+                    selection_mode="manual", dimensions="", width=64, height=64,
+                    upscale_method="nearest-exact", keep_proportion="pad_edge_pixel",
+                    pad_color="0, 0, 0", crop_position=position, image=image,
+                )
+                self.assertEqual(result[1:3], (64, 64))
+                self.assertEqual(tuple(result[6].shape), (1, 64, 64))
+                left = 0 if position == "left" else 23 if position == "right" else 11
+                torch.testing.assert_close(result[0][:, :, left:left + 41], result[7], rtol=0, atol=0)
+
+    def test_no_pad_honors_automatic_preset_resolution_override_and_mask_only_input(self):
+        settings = dict(
+            model="FLUX.2 Klein", resolution_preset="1 MP ~ 1K (1024 × 1024)",
+            selection_mode="automatic", dimensions="", width=1, height=1,
+            upscale_method="nearest-exact", pad_color="0, 0, 0", crop_position="center",
+            mask=torch.linspace(0, 1, 11 * 7).reshape(1, 11, 7), resolution=128,
+        )
+        padded = SmartImageResize().resize(**settings, keep_proportion="pad_edge_pixel")
+        resized = SmartImageResize().resize(**settings, keep_proportion="resize")
+        torch.testing.assert_close(padded[7], resized[0], rtol=0, atol=0)
+        self.assertEqual(padded[5], 128)
+        self.assertEqual(padded[7].shape[-1], 3)
+
     def test_qwen_automatic_resize_returns_standard_ratio(self):
         result = SmartImageResize().resize(
             model="Qwen-Image-2.1",

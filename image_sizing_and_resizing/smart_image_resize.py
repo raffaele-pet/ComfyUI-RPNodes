@@ -243,9 +243,10 @@ class SmartImageResize:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "STRING", "INT", "MASK")
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "STRING", "INT", "MASK", "IMAGE")
     RETURN_NAMES = (
-        "IMAGE", "width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution", "mask"
+        "IMAGE", "width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution", "mask",
+        "resized_image_no_pad",
     )
     FUNCTION = "resize"
     CATEGORY = "image/resolution"
@@ -305,6 +306,11 @@ class SmartImageResize:
         if base_mask.shape[1:3] != image.shape[1:3]:
             base_mask = _resize_mask(base_mask, image.shape[2], image.shape[1])
 
+        scale = min(width / source_width, height / source_height)
+        resized_width = max(1, round(source_width * scale))
+        resized_height = max(1, round(source_height * scale))
+        resized_image = _resize_image(image, resized_width, resized_height, upscale_method)
+
         if keep_proportion == "stretch":
             output_image = _resize_image(image, width, height, upscale_method)
             output_mask = _resize_mask(base_mask, width, height)
@@ -322,10 +328,6 @@ class SmartImageResize:
             output_image = _resize_image(image, output_width, output_height, upscale_method)
             output_mask = _resize_mask(base_mask, output_width, output_height)
         else:
-            scale = min(width / source_width, height / source_height)
-            resized_width = max(1, round(source_width * scale))
-            resized_height = max(1, round(source_height * scale))
-            resized_image = _resize_image(image, resized_width, resized_height, upscale_method)
             resized_mask = _resize_mask(base_mask, resized_width, resized_height)
 
             if keep_proportion == "resize":
@@ -348,6 +350,7 @@ class SmartImageResize:
             actual_aspect_ratio(output_width, output_height),
             output_resolution,
             output_mask.cpu(),
+            resized_image.cpu(),
         )
 
 

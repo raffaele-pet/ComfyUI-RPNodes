@@ -192,6 +192,15 @@ aspect ratio.
 - `aspect_ratio` - exact ratio calculated from the output image width and height
 - `resolution`
 - `mask`
+- `resized_image_no_pad` - the source image resized proportionally to fit the
+  selected target, exactly as if `keep_proportion` were `resize`, regardless
+  of the selected mode. Uses the same preset, dimension override, and
+  interpolation; preserves the source content without padding or cropping.
+
+Connect `resized_image_no_pad` to **Get Image Size & Count**, then send its
+width/height to a downstream crop node to remove the generated image's padding.
+The existing `IMAGE`, width/height, ratio, resolution, and mask outputs still
+describe the primary result using the chosen `keep_proportion` mode.
 
 ### RP Image Minimum 1K
 
