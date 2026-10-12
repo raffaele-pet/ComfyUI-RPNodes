@@ -133,8 +133,6 @@ the resolution tiers it supports.
 
 ### RP Smart Image Size
 
-![RP Smart Image Size](./image_sizing_and_resizing/images/smart-image-size.jpg)
-
 Selects a model, a supported resolution class, and an aspect-ratio preset. It
 is useful for configuring latent-image nodes, samplers, image generators, and
 other nodes that require explicit width and height values.
@@ -148,8 +146,6 @@ other nodes that require explicit width and height values.
 - `resolution` - numeric square-side resolution
 
 ### RP Smart Image Resize
-
-![RP Smart Image Resize](./image_sizing_and_resizing/images/smart-image-resize.png)
 
 Accepts an image, a mask, or both and adapts them to dimensions suitable for
 the selected model. When only a mask is connected, the node also creates a
@@ -186,8 +182,6 @@ aspect ratio. Images already at or above 1024 px remain unchanged.
 ## Video frame processing
 
 Paired nodes for extracting, processing, and rebuilding videos frame by frame.
-
-![RP Video to Frames to Video workflow](./video_frame_processing/images/rp-video-to-frames-to-video.png)
 
 ### RP Video to Frames
 
