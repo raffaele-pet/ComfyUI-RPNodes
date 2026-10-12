@@ -16,7 +16,7 @@ Python nodes are grouped in `image_sizing_and_resizing` and
 `video_frame_processing`, the folder-processing nodes in
 `image_folder_processing`, the keyframe node in `h3_keyframes`, and the workflow
 utilities in `workflow`. Shared
-browser extensions live under `web`, and example workflows remain together in
+browser extensions live under `web`. The complete example workflow is in
 `example_workflows`.
 
 ## Workflow utilities
@@ -299,15 +299,18 @@ video-processing nodes are available under `video/RPNodes`; the MiniMax H3
 keyframe node is available under `RP/MiniMax H3`; the workflow utilities are
 available under `RP/workflow`.
 
-## Example workflows
+## Example workflow
 
-The [`example_workflows`](./example_workflows) directory contains ready-to-use
-workflows for each node category:
+[`RP_All_Nodes_Examples.json`](./example_workflows/RP_All_Nodes_Examples.json)
+contains all 14 RP nodes in 12 example groups, with English and Italian notes.
+It covers image sizing, resizing, folder processing, previews and comparison,
+video frame processing, workflow utilities, and a complete FastH3 keyframe chain.
 
-- [`smart-image-size-resize.json`](./example_workflows/smart-image-size-resize.json)
-- [`video-frames-process-video.json`](./example_workflows/video-frames-process-video.json)
-
-Drag a JSON file onto the ComfyUI canvas or load it through the workflow menu.
+Drag the JSON onto the ComfyUI canvas or load it through the workflow menu.
+Enable only the example group you want to run and choose your input files,
+folders, and models as described in its note. The H3 example also needs the H3
+models and auxiliary nodes used by its sampling chain. Workflow utility buttons
+work directly on the canvas without running the queue.
 
 ## Notes
 
