@@ -8,6 +8,7 @@ A collection of utility nodes for ComfyUI:
   `RP Load Prompt from File`, `RP Save Image to Folder (No Loop)`, and
   `RP Save Images to Folder`
 - **Image saving:** `RP Image Comparer` and `RP Preview Image`
+- **Face detection:** `RP Face Detection`
 - **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
 - **MiniMax H3 keyframing:** `RP H3-Keyframes`
 - **Workflow utilities:** `RP Import Workflow`, `RP Fix Workflow`,
@@ -19,6 +20,41 @@ Python nodes are grouped in `image_sizing_and_resizing` and
 utilities in `workflow_utilities`. Shared
 browser extensions live under `web`. The complete example workflow is in
 `example_workflows`.
+
+## RP Face Detection
+
+Available under `RP/face_detection`, with Python code in `face_detection`.
+Combines the installed **UltralyticsDetectorProvider → BBOX Detector (SEGS) →
+SEGS to Mask List → Batch Crop From Mask** nodes. Requires **ComfyUI Impact
+Subpack**, **ComfyUI Impact Pack**, and **ComfyUI KJNodes**. The model selector
+uses Impact Subpack's installed models, preferring `bbox/face_yolov8m.pt`.
+Models are loaded locally by the original provider.
+
+- `width` and `height` set the white mask rectangle's pixel dimensions;
+  **0** preserves the corresponding detected dimension.
+- `scale` multiplies those dimensions, default **1.0**. Fractional values
+  such as **1.1**, **1.2**, and **1.3** are supported.
+- `square` uses the longer original mask side for both sides. Explicit size
+  overrides then use the larger requested side, and scale is applied last.
+  Rectangles retain their center when possible, shift to fit at image borders,
+  and are limited to the image dimensions. Squares retain equal sides.
+- `show_advanced` reveals `threshold` **0.5**, `dilation` **10**,
+  `crop_factor` **1.5**, `drop_size` **10**, `crop_size_mult` **3.0**, and
+  `bbox_smooth_alpha` **0.5**. Hiding them preserves their saved values.
+
+With width/height **0**, scale **1**, and square disabled, masks and crops
+match the original workflow. Resizing changes the mask **before** cropping:
+the original KJNodes crop multiplier and smoothing still affect the crop size.
+The output `width`/`height` report the crop dimensions, not the white rectangle.
+
+Outputs are `original_images`, `cropped_images`, `bboxes` (KJNodes BBOX
+coordinates), `width`, `height`, and `bbox_masks` (white rectangles on black).
+Connect the first three to **BatchUncrop** and `bbox_masks` to **MaskPreview**.
+Outputs are lists, as in the original mask-list workflow: each detected face
+gets its own crop, source image, coordinates, and mask. Image batches are
+detected one image at a time. An image without detections reports a clear error.
+See `example_workflows/RP_Face_Detection.json` for the supplied workflow
+converted to this single node.
 
 ## Workflow utilities
 
