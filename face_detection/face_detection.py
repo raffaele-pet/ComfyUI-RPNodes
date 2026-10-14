@@ -7,17 +7,11 @@ DEPENDENCIES = {
     "UltralyticsDetectorProvider": "ComfyUI Impact Subpack",
     "BboxDetectorSEGS": "ComfyUI Impact Pack",
     "ImpactSEGSToMaskList": "ComfyUI Impact Pack",
-    "BatchCropFromMask": "ComfyUI KJNodes",
 }
 
 
-def resize_bbox_mask(mask, width=0, height=0, scale=1.0, square=False):
-    if width == 0 and height == 0 and scale == 1.0 and not square:
-        return mask
-
+def bbox_geometry(mask, width=0, height=0, scale=1.0, square=False):
     points = torch.nonzero(mask[0] > 0, as_tuple=False)
-    if len(points) == 0:
-        return mask
     min_y, min_x = points.amin(dim=0).tolist()
     max_y, max_x = points.amax(dim=0).tolist()
     original_width = max_x - min_x + 1
@@ -29,47 +23,48 @@ def resize_bbox_mask(mask, width=0, height=0, scale=1.0, square=False):
         target_width = width or original_width
         target_height = height or original_height
 
-    image_height, image_width = mask.shape[-2:]
     target_width = max(1, round(target_width * scale))
     target_height = max(1, round(target_height * scale))
-    if square:
-        target_width = target_height = min(target_width, image_width, image_height)
-    else:
-        target_width = min(target_width, image_width)
-        target_height = min(target_height, image_height)
+    center_y, center_x = points.double().mean(0).tolist()
+    return center_x, center_y, target_width, target_height
 
-    left = round((min_x + max_x + 1 - target_width) / 2)
-    top = round((min_y + max_y + 1 - target_height) / 2)
-    left = min(max(0, left), image_width - target_width)
-    top = min(max(0, top), image_height - target_height)
+
+def resize_bbox_mask(mask, width=0, height=0, scale=1.0, square=False):
+    if (width == 0 and height == 0 and scale == 1.0 and not square) or not torch.any(mask > 0):
+        return mask
+    center_x, center_y, target_width, target_height = bbox_geometry(mask, width, height, scale, square)
+    image_height, image_width = mask.shape[-2:]
+    left = round(center_x + 0.5 - target_width / 2)
+    top = round(center_y + 0.5 - target_height / 2)
     result = torch.zeros_like(mask)
-    result[:, top:top + target_height, left:left + target_width] = 1.0
+    result[:, max(0, top):min(image_height, top + target_height),
+           max(0, left):min(image_width, left + target_width)] = 1.0
     return result
 
 
-def crop_face(mask, frame, crop_size_mult, bbox_smooth_alpha):
-    points = torch.nonzero(mask[0] > 0, as_tuple=False)
-    span_y, span_x = (points.amax(0) - points.amin(0)).tolist()
-    crop_width = round(round(span_x * bbox_smooth_alpha) * crop_size_mult)
-    crop_height = round(round(span_y * bbox_smooth_alpha) * crop_size_mult)
-    if crop_width >= 2 and crop_height >= 2:
-        # The upstream mask list executes a fresh crop node once per face.
-        crop_node = nodes.NODE_CLASS_MAPPINGS["BatchCropFromMask"]()
-        return crop_node.crop(mask, frame, crop_size_mult, bbox_smooth_alpha)
-
-    # KJNodes rounds a one-pixel crop axis down to zero at its center.
-    crop_width, crop_height = max(1, crop_width), max(1, crop_height)
-    center_y, center_x = points.float().mean(0).tolist()
+def crop_face(mask, frame, crop_size_mult, bbox_smooth_alpha,
+              width=0, height=0, scale=1.0, square=False):
+    center_x, center_y, mask_width, mask_height = bbox_geometry(mask, width, height, square=square)
+    base_width = round(round((mask_width - 1) * bbox_smooth_alpha) * crop_size_mult)
+    base_height = round(round((mask_height - 1) * bbox_smooth_alpha) * crop_size_mult)
+    crop_width = max(2, round(base_width * scale))
+    crop_height = max(2, round(base_height * scale))
     image_height, image_width = frame.shape[1:3]
-    box_width, box_height = min(crop_width, image_width), min(crop_height, image_height)
-    left = min(max(0, round(center_x) - round(box_width / 2)), image_width - box_width)
-    top = min(max(0, round(center_y) - round(box_height / 2)), image_height - box_height)
-    cropped = frame[:, top:top + box_height, left:left + box_width, :]
-    if (box_width, box_height) != (crop_width, crop_height):
-        cropped = torch.nn.functional.interpolate(
-            cropped.movedim(-1, 1), size=(crop_height, crop_width), mode="bilinear", align_corners=False
-        ).movedim(1, -1)
-    return frame, cropped, [(left, top, box_width, box_height)], crop_width, crop_height
+    left = round(center_x) - round(crop_width / 2)
+    top = round(center_y) - round(crop_height / 2)
+    right, bottom = min(image_width, left + crop_width), min(image_height, top + crop_height)
+    left, top = max(0, left), max(0, top)
+    # KJNodes' image conversion squeezes one-pixel axes, losing RGB channels.
+    if right - left < 2:
+        left = max(0, min(left, image_width - 2))
+        right = min(image_width, left + 2)
+    if bottom - top < 2:
+        top = max(0, min(top, image_height - 2))
+        bottom = min(image_height, top + 2)
+    box_width, box_height = right - left, bottom - top
+    # Crop pixels and BBOX must describe exactly the same source region for BatchUncrop.
+    cropped = frame[:, top:bottom, left:right, :].clone()
+    return frame, cropped, [(left, top, box_width, box_height)], box_width, box_height
 
 
 class RPFaceDetection:
@@ -127,8 +122,8 @@ class RPFaceDetection:
             for mask in masks:
                 if not torch.any(mask > 0):
                     raise ValueError(f"RP Face Detection: no face detected in image {frame_index + 1}. Try a lower threshold or another detector model.")
+                cropped = crop_face(mask, frame, crop_size_mult, bbox_smooth_alpha, width, height, scale, square)
                 mask = resize_bbox_mask(mask, width, height, scale, square)
-                cropped = crop_face(mask, frame, crop_size_mult, bbox_smooth_alpha)
                 for output, value in zip(outputs, (*cropped, mask)):
                     output.append(value)
         return outputs

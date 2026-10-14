@@ -47,10 +47,11 @@ class FaceMaskTests(unittest.TestCase):
         self.assertEqual(bounds(face_detection.resize_bbox_mask(rectangle(), width=40, square=True))[2:], (40, 40))
         self.assertEqual(bounds(face_detection.resize_bbox_mask(rectangle(), width=8, square=True))[2:], (8, 8))
 
-    def test_border_boxes_shift_to_preserve_size_and_square(self):
+    def test_border_masks_are_clipped_without_shifting_original_center(self):
         mask = rectangle(left=0, top=0)
-        self.assertEqual(bounds(face_detection.resize_bbox_mask(mask, scale=2, square=True)), (0, 0, 40, 40))
-        self.assertEqual(bounds(face_detection.resize_bbox_mask(mask, scale=100, square=True)), (0, 0, 80, 80))
+        self.assertEqual(bounds(face_detection.resize_bbox_mask(mask, scale=2, square=True)), (0, 0, 30, 25))
+        self.assertEqual(bounds(face_detection.resize_bbox_mask(mask, scale=100, square=True)), (0, 0, 100, 80))
+        self.assertEqual(face_detection.bbox_geometry(mask, scale=2, square=True), (9.5, 4.5, 40, 40))
 
     def test_shrink_and_empty_mask(self):
         self.assertEqual(bounds(face_detection.resize_bbox_mask(rectangle(), scale=0.01))[2:], (1, 1))
@@ -81,13 +82,7 @@ class FacePipelineTests(unittest.TestCase):
             def doit(self, segs):
                 return ([rectangle(), rectangle(left=60)],)
 
-        class Crop:
-            def crop(self, mask, frame, multiplier, alpha):
-                calls.append(("crop", bounds(mask), multiplier, alpha))
-                left, top, width, height = bounds(mask)
-                return frame, frame[:, top:top + height, left:left + width], [(left, top, width, height)], width, height
-
-        self.mapping = dict(zip(face_detection.DEPENDENCIES, (Provider, Detector, Masks, Crop)))
+        self.mapping = dict(zip(face_detection.DEPENDENCIES, (Provider, Detector, Masks)))
         self.patcher = patch.object(registry, "NODE_CLASS_MAPPINGS", self.mapping)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
@@ -97,39 +92,88 @@ class FacePipelineTests(unittest.TestCase):
         output = face_detection.RPFaceDetection().detect(image)
         self.assertEqual(tuple(map(len, output)), (4,) * 6)
         self.assertEqual(self.calls[1], ("detect", 1, 0.5, 10, 1.5, 10, "all"))
-        self.assertEqual(self.calls[2], ("crop", (30, 20, 20, 10), 3.0, 0.5))
         torch.testing.assert_close(output[0][0], image[:1])
         torch.testing.assert_close(output[0][2], image[1:2])
-        self.assertEqual(output[2][0], [(30, 20, 20, 10)])
+        self.assertEqual(output[2][0], [(25, 18, 30, 12)])
+        torch.testing.assert_close(output[1][0], image[:1, 18:30, 25:55], rtol=0, atol=0)
 
     def test_resized_masks_are_used_for_both_crop_and_mask_output(self):
         output = face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)), square=True, scale=1.5)
         self.assertEqual(bounds(output[5][0])[2:], (30, 30))
-        self.assertEqual(output[2][0][0], bounds(output[5][0]))
+        self.assertEqual(output[2][0][0], (18, 2, 45, 45))
 
     def test_tiny_masks_and_zero_smoothing_produce_valid_crops(self):
         image = torch.rand((1, 80, 100, 3))
         for settings in ({"width": 1, "height": 1}, {"scale": 0.01}, {"bbox_smooth_alpha": 0}):
             with self.subTest(settings=settings):
                 result = face_detection.RPFaceDetection().detect(image, **settings)
-                self.assertEqual(result[1][0].shape, (1, 1, 1, 3))
-                self.assertEqual(result[2][0][0][2:], (1, 1))
+                self.assertEqual(result[1][0].shape, (1, 2, 2, 3))
+                self.assertEqual(result[2][0][0][2:], (2, 2))
 
     def test_hidden_advanced_values_are_still_used(self):
-        face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)), show_advanced=False, threshold=0.3, crop_size_mult=2)
+        result = face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)), show_advanced=False, threshold=0.3, crop_size_mult=2)
         self.assertEqual(self.calls[1][2], 0.3)
-        self.assertEqual(self.calls[2][2], 2)
+        self.assertEqual(result[3][0], 20)
+        self.assertEqual(result[4][0], 8)
 
     def test_default_model_is_preferred_and_missing_dependency_is_actionable(self):
         self.assertEqual(face_detection.RPFaceDetection.INPUT_TYPES()["required"]["model_name"][1]["default"], face_detection.DEFAULT_MODEL)
-        del self.mapping["BatchCropFromMask"]
-        with self.assertRaisesRegex(RuntimeError, "KJNodes"):
+        del self.mapping["BboxDetectorSEGS"]
+        with self.assertRaisesRegex(RuntimeError, "Impact Pack"):
             face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)))
 
     def test_no_detection_has_clear_error(self):
         self.mapping["ImpactSEGSToMaskList"] = lambda: types.SimpleNamespace(doit=lambda segs: ([torch.zeros((1, 80, 100))],))
         with self.assertRaisesRegex(ValueError, "no face detected in image 1"):
             face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)))
+
+
+class FaceCropAlignmentTests(unittest.TestCase):
+    def test_crop_uncrop_preserves_every_pixel_at_all_edges_and_scales(self):
+        image = torch.rand((1, 80, 100, 3))
+        for left, top in ((30, 20), (0, 0), (80, 0), (0, 70), (80, 70), (0, 30), (40, 0)):
+            mask = rectangle(left=left, top=top)
+            for scale in (0.01, 0.5, 1, 1.1, 1.5, 2, 3, 10, 100):
+                for square in (False, True):
+                    with self.subTest(left=left, top=top, scale=scale, square=square):
+                        _, cropped, boxes, width, height = face_detection.crop_face(
+                            mask, image, 3.0, 0.5, scale=scale, square=square
+                        )
+                        x, y, w, h = boxes[0]
+                        self.assertEqual(cropped.shape, (1, height, width, 3))
+                        self.assertEqual((w, h), (width, height))
+                        restored = image.clone()
+                        restored[:, y:y + h, x:x + w] = cropped
+                        torch.testing.assert_close(restored, image, rtol=0, atol=0)
+
+    def test_manual_sizes_and_odd_crop_sizes_preserve_pixels(self):
+        image = torch.rand((1, 80, 100, 3))
+        mask = rectangle(left=0, top=0)
+        for width, height, multiplier, alpha in ((128, 192, 3, 0.5), (13, 17, 1.1, 0.7), (1, 50, 3, 0.5), (500, 5, 2, 0.9)):
+            with self.subTest(width=width, height=height):
+                _, cropped, boxes, _, _ = face_detection.crop_face(mask, image, multiplier, alpha, width, height)
+                x, y, w, h = boxes[0]
+                torch.testing.assert_close(cropped, image[:, y:y + h, x:x + w], rtol=0, atol=0)
+
+    def test_clipped_mask_does_not_recenter_crop(self):
+        image = torch.rand((1, 80, 100, 3))
+        mask = rectangle(left=0, top=0)
+        _, _, boxes, _, _ = face_detection.crop_face(mask, image, 1.0, 1.0, scale=2, square=True)
+        self.assertEqual(boxes, [(0, 0, 29, 23)])
+
+    def test_scale_is_applied_to_original_crop_size(self):
+        image = torch.rand((1, 80, 100, 3))
+        mask = rectangle(width=14, height=18)
+        base = face_detection.crop_face(mask, image, 3, 0.5)
+        scaled = face_detection.crop_face(mask, image, 3, 0.5, scale=2)
+        self.assertEqual(scaled[3:5], tuple(size * 2 for size in base[3:5]))
+
+    def test_tiny_border_crop_keeps_rgb_shape_for_batch_uncrop(self):
+        mask = rectangle(left=0, top=0, width=1, height=1)
+        image = torch.rand((1, 80, 100, 3))
+        _, cropped, boxes, _, _ = face_detection.crop_face(mask, image, 3, 0.5, scale=0.01)
+        self.assertEqual(boxes, [(0, 0, 2, 2)])
+        torch.testing.assert_close(cropped, image[:, :2, :2], rtol=0, atol=0)
 
 
 if __name__ == "__main__":

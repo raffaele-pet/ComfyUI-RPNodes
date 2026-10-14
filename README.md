@@ -24,9 +24,11 @@ browser extensions live under `web`. The complete example workflow is in
 ## RP Face Detection
 
 Available under `RP/face_detection`, with Python code in `face_detection`.
-Combines the installed **UltralyticsDetectorProvider → BBOX Detector (SEGS) →
-SEGS to Mask List → Batch Crop From Mask** nodes. Requires **ComfyUI Impact
-Subpack**, **ComfyUI Impact Pack**, and **ComfyUI KJNodes**. The model selector
+Combines **UltralyticsDetectorProvider → BBOX Detector (SEGS) →
+SEGS to Mask List → Batch Crop From Mask**, with corrected crop geometry for
+scaling and image borders. Requires **ComfyUI Impact Subpack** and
+**ComfyUI Impact Pack**; install **ComfyUI KJNodes** to use **BatchUncrop**.
+The model selector
 uses Impact Subpack's installed models, preferring `bbox/face_yolov8m.pt`.
 Models are loaded locally by the original provider.
 
@@ -36,16 +38,23 @@ Models are loaded locally by the original provider.
   such as **1.1**, **1.2**, and **1.3** are supported.
 - `square` uses the longer original mask side for both sides. Explicit size
   overrides then use the larger requested side, and scale is applied last.
-  Rectangles retain their center when possible, shift to fit at image borders,
-  and are limited to the image dimensions. Squares retain equal sides.
+  All sizes use the original detection's center and dimensions. Regions that
+  extend beyond the image are clipped without moving their center. A requested
+  square may therefore have only a rectangular portion visible at an edge.
 - `show_advanced` reveals `threshold` **0.5**, `dilation` **10**,
   `crop_factor` **1.5**, `drop_size` **10**, `crop_size_mult` **3.0**, and
   `bbox_smooth_alpha` **0.5**. Hiding them preserves their saved values.
 
-With width/height **0**, scale **1**, and square disabled, masks and crops
-match the original workflow. Resizing changes the mask **before** cropping:
-the original KJNodes crop multiplier and smoothing still affect the crop size.
-The output `width`/`height` report the crop dimensions, not the white rectangle.
+With width/height **0**, scale **1**, and square disabled, masks and crop sizing
+use the original workflow settings. The original crop multiplier and smoothing
+still affect the reference crop size; scale is applied to that original size.
+The crop is an exact slice of the source
+image: it is never resized or padded after clipping. `bboxes` describes that
+same slice, so **BatchUncrop** restores alignment at any scale, pixel size, or
+image border. The output `width`/`height` report the actual clipped crop size,
+not the white mask rectangle or the size requested outside the image.
+Very small crops retain at least two pixels per available axis to preserve
+RGB channels through KJNodes' image conversion.
 
 Outputs are `original_images`, `cropped_images`, `bboxes` (KJNodes BBOX
 coordinates), `width`, `height`, and `bbox_masks` (white rectangles on black).
