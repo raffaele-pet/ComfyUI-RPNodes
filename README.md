@@ -96,8 +96,13 @@ indicating whether any node in that group is enabled. Click a row to mute or
 enable all its nodes, including notes, labels, reroutes, and editor controls
 such as RP Bypasser. The arrow navigates to the group. No node type is excluded.
 
+The first toggle, **Hide nested groups**, is on by default: groups completely
+contained in another group are hidden from the list, while their nodes remain
+controlled by the outer group. Partially overlapping groups stay listed. Turn
+it off to list all groups. This setting is saved with the workflow.
+
 The rows always read the actual node modes, including after manual changes,
-moving nodes, and reopening a saved workflow. Toggle values are not saved as
+moving nodes, and reopening a saved workflow. Group toggle values are not saved as
 a separate source of state. No queue execution or rgthree service is needed.
 
 Use the node properties to configure `matchTitle` (text or regular expression),

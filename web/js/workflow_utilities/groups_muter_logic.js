@@ -42,7 +42,14 @@ export function getMatchingGroups(graph, properties, palette = {}) {
     }
     const colors = String(properties.matchColors ?? "").split(",").filter((color) => color.trim())
         .map((color) => normalizeColor(color, palette));
-    const groups = (graph?.groups ?? []).filter((group) => {
+    const allGroups = graph?.groups ?? [];
+    const groups = allGroups.filter((group) => {
+        if (properties.hideNestedGroups !== false && allGroups.some((parent) =>
+            parent !== group
+            && parent.pos[0] <= group.pos[0] && parent.pos[1] <= group.pos[1]
+            && parent.pos[0] + parent.size[0] >= group.pos[0] + group.size[0]
+            && parent.pos[1] + parent.size[1] >= group.pos[1] + group.size[1]
+            && (parent.size[0] > group.size[0] || parent.size[1] > group.size[1]))) return false;
         if (matchTitle && !(titlePattern ? titlePattern.test(group.title)
             : group.title.toLowerCase().includes(matchTitle.toLowerCase()))) return false;
         return !colors.length || colors.includes(normalizeColor(group.color, palette));

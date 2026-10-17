@@ -75,17 +75,21 @@ function refreshGroups(node) {
     if (!node.graph) return;
     const groups = getMatchingGroups(node.graph, node.properties, LGraphCanvas.node_colors);
     const previous = [...(node.widgets ?? [])];
-    const widgets = groups.map((group) => previous.find((widget) => widget.group === group)
+    const groupWidgets = groups.map((group) => previous.find((widget) => widget.group === group)
         ?? createGroupWidget(node, group));
-    let changed = previous.length !== widgets.length;
-    for (const [index, widget] of widgets.entries()) {
+    const toggle = node.hideNestedGroupsWidget;
+    const hideNestedGroups = node.properties.hideNestedGroups !== false;
+    let changed = toggle.value !== hideNestedGroups;
+    toggle.value = hideNestedGroups;
+    const widgets = [toggle, ...groupWidgets];
+    for (const widget of groupWidgets) {
         const name = `Enable ${widget.group.title}`;
         const enabled = isGroupEnabled(widget.group);
         changed ||= widget.name !== name || widget.value !== enabled;
         widget.name = name;widget.value = enabled;
-        changed ||= previous[index] !== widget;
     }
     const structureChanged = previous.length !== widgets.length || widgets.some((widget, index) => previous[index] !== widget);
+    changed ||= structureChanged;
     for (const widget of previous) if (!widgets.includes(widget)) node.removeWidget(widget);
     if (structureChanged) {
         node.widgets = widgets;
@@ -105,6 +109,11 @@ app.registerExtension({
             const result = onNodeCreated?.apply(this, arguments);
             this.isVirtualNode = true;
             this.serialize_widgets = false;
+            this.addProperty("hideNestedGroups", true, "boolean");
+            this.hideNestedGroupsWidget = this.addWidget("toggle", "Hide nested groups", true,
+                (value) => this.setProperty("hideNestedGroups", value),
+                { on: "yes", off: "no", serialize: false });
+            this.hideNestedGroupsWidget.serialize = false;
             this.addProperty("matchTitle", "", "string");
             this.addProperty("matchColors", "", "string");
             this.addProperty("showNav", true, "boolean");
