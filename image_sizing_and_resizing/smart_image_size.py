@@ -20,6 +20,11 @@ def actual_aspect_ratio(width, height):
     return f"{ratio.numerator}:{ratio.denominator}"
 
 
+def image_megapixels(width, height):
+    """ComfyUI's pixel-budget unit: 1.0 equals 1024 × 1024 pixels."""
+    return int(width) * int(height) / (1024 * 1024)
+
+
 def resolve_dimension(items, dimensions):
     for item in items:
         if dimension_text(item) == dimensions:
@@ -101,8 +106,8 @@ class SmartImageSize:
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "STRING", "STRING", "INT")
-    RETURN_NAMES = ("width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution")
+    RETURN_TYPES = ("INT", "INT", "STRING", "STRING", "INT", "FLOAT")
+    RETURN_NAMES = ("width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution", "megapixels")
     FUNCTION = "get_resolution"
     CATEGORY = "image/resolution"
 
@@ -123,6 +128,7 @@ class SmartImageSize:
             selected["ratio"],
             actual_aspect_ratio(width, height),
             resolution_output(resolution),
+            image_megapixels(width, height),
         )
 
 

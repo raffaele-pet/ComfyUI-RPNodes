@@ -19,6 +19,7 @@ from image_sizing_and_resizing.smart_image_size import (
     SmartImageSize,
     actual_aspect_ratio,
     dimension_text,
+    image_megapixels,
     resolution_output,
 )
 
@@ -45,7 +46,7 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
                     pad_color="0, 0, 0", crop_position="center",
                     image=torch.zeros((1, 9, 16, 3)),
                 )
-                self.assertEqual(result[1:6], expected)
+                self.assertEqual((*result[1:6], result[8]), expected)
                 self.assertEqual(tuple(result[0].shape[1:3]), (item["height"], item["width"]))
 
     def test_no_pad_output_matches_resize_mode_for_every_primary_mode(self):
@@ -62,11 +63,26 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
         for mode in RESIZE_MODES:
             with self.subTest(mode=mode):
                 result = SmartImageResize().resize(**settings, keep_proportion=mode)
-                self.assertEqual(len(result), 8)
+                self.assertEqual(len(result), 9)
                 torch.testing.assert_close(result[7], expected, rtol=0, atol=0)
+                self.assertEqual(result[8], result[1] * result[2] / (1024 * 1024))
         self.assertEqual(SmartImageResize.RETURN_TYPES[:7],
                          ("IMAGE", "INT", "INT", "STRING", "STRING", "INT", "MASK"))
         self.assertEqual(SmartImageResize.RETURN_NAMES[7], "resized_image_no_pad")
+
+    def test_864_by_1080_resize_reports_exact_megapixels(self):
+        result = SmartImageResize().resize(
+            model="FLUX.3 Klein", resolution_preset="1 MP ~ 1K (1024 × 1024)",
+            selection_mode="automatic", dimensions="", width=1, height=1,
+            upscale_method="nearest-exact", keep_proportion="pad_edge_pixel",
+            pad_color="0, 0, 0", crop_position="center",
+            image=torch.zeros((1, 1080, 864, 3)),
+        )
+        self.assertEqual(result[1:6], (912, 1152, "4:5", "19:24", 1024))
+        self.assertEqual(result[8], 1.001953125)
+        self.assertIsInstance(result[8], float)
+        self.assertEqual(SmartImageResize.RETURN_NAMES[8], "megapixels")
+        self.assertEqual(SmartImageResize.RETURN_TYPES[8], "FLOAT")
 
     def test_no_pad_reuses_content_of_padded_result_for_every_alignment(self):
         image = torch.linspace(0, 1, 11 * 7 * 3).reshape(1, 11, 7, 3)
@@ -174,6 +190,7 @@ class SmartImageResizeSelectionTests(unittest.TestCase):
                                 item["ratio"],
                                 actual_aspect_ratio(item["width"], item["height"]),
                                 resolution_output(resolution),
+                                image_megapixels(item["width"], item["height"]),
                             ),
                         )
 

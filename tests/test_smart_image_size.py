@@ -91,15 +91,27 @@ class SmartImageSizeTests(unittest.TestCase):
             ] if item["ratio"] == "5:3"
         )
         self.assertEqual(node.RETURN_NAMES, (
-            "width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution"
+            "width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution", "megapixels"
         ))
         self.assertEqual(
             node.get_resolution(
                 "Qwen-Image-2.1", "1 MP ~ 1K (1024 × 1024)",
                 smart_image_size.dimension_text(item),
             ),
-            (1312, 800, "5:3", "41:25", 1024),
+            (1312, 800, "5:3", "41:25", 1024, 1.0009765625),
         )
+
+    def test_megapixels_retains_exact_pixel_budget_for_reference_latent(self):
+        tiers = smart_image_size.RESOLUTIONS["FLUX.3 Klein"]
+        item = next(item for item in tiers["1 MP ~ 1K (1024 × 1024)"]
+                    if item["ratio"] == "4:5")
+        result = smart_image_size.SmartImageSize().get_resolution(
+            "FLUX.3 Klein", "1 MP ~ 1K (1024 × 1024)",
+            smart_image_size.dimension_text(item),
+        )
+        self.assertEqual(result, (912, 1152, "4:5", "19:24", 1024, 1.001953125))
+        self.assertEqual(smart_image_size.SmartImageSize.RETURN_TYPES[5], "FLOAT")
+        self.assertIsInstance(result[5], float)
 
     def test_catalog_dimensions_are_valid_and_distinct(self):
         for model, model_resolutions in smart_image_size.RESOLUTIONS.items():
@@ -194,7 +206,7 @@ class SmartImageSizeTests(unittest.TestCase):
                 node.get_resolution(
                     "Qwen-Image-2.1", tier, smart_image_size.dimension_text(square)
                 ),
-                (side, side, "1:1", "1:1", side),
+                (side, side, "1:1", "1:1", side, side * side / (1024 * 1024)),
             )
 
         native_2k = {

@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from .smart_image_size import (
     RESOLUTIONS,
     actual_aspect_ratio,
+    image_megapixels,
     resolve_dimension,
     resolve_resolution,
     resolution_output,
@@ -243,10 +244,11 @@ class SmartImageResize:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "STRING", "INT", "MASK", "IMAGE")
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "STRING", "STRING", "INT", "MASK", "IMAGE", "FLOAT")
     RETURN_NAMES = (
         "IMAGE", "width", "height", "aspect_ratio_approx", "aspect_ratio", "resolution", "mask",
         "resized_image_no_pad",
+        "megapixels",
     )
     FUNCTION = "resize"
     CATEGORY = "image/resolution"
@@ -351,6 +353,7 @@ class SmartImageResize:
             output_resolution,
             output_mask.cpu(),
             resized_image.cpu(),
+            image_megapixels(output_width, output_height),
         )
 
 

@@ -237,6 +237,7 @@ other nodes that require explicit width and height values.
 - `aspect_ratio_approx` - named preset ratio, such as `5:3`
 - `aspect_ratio` - exact ratio of the selected pixel dimensions, such as `41:25` for `1312 × 800`
 - `resolution` - numeric square-side resolution
+- `megapixels` - exact pixel budget in ComfyUI units (`width × height / 1024²`)
 
 ### RP Smart Image Resize
 
@@ -270,11 +271,22 @@ aspect ratio.
   selected target, exactly as if `keep_proportion` were `resize`, regardless
   of the selected mode. Uses the same preset, dimension override, and
   interpolation; preserves the source content without padding or cropping.
+- `megapixels` - exact pixel budget of the primary output image in ComfyUI units
+  (`width × height / 1024²`), including manual dimensions and shape-preserving modes
 
 Connect `resized_image_no_pad` to **Get Image Size & Count**, then send its
 width/height to a downstream crop node to remove the generated image's padding.
 The existing `IMAGE`, width/height, ratio, resolution, and mask outputs still
 describe the primary result using the chosen `keep_proportion` mode.
+
+For **Set Reference Multi Latent**, use `keep resolution` to retain an already
+sized image, or connect `megapixels` to its `resolution.megapixels` input when
+using `resize`. The output is not rounded: a 912×1152 preset is **1.001953125**
+in ComfyUI's units. Setting a fixed 1.0 instead resizes it to 911×1151; a VAE
+with a 16-pixel grid then crops it to 896×1136. Passing the exact budget keeps
+the original 912×1152 canvas. Dimensions must already fit the VAE's grid for
+encoding to retain them exactly. This output uses 1024² pixels per unit to
+match ComfyUI's resizing nodes, rather than the decimal 1,000,000-pixel unit.
 
 ### RP Image Minimum 1K
 
