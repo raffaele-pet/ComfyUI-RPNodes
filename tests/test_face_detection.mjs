@@ -86,3 +86,16 @@ test("visibility follows ComfyUI widget type restoration semantics", () => {
     node.widgets[0].callback(true);
     assert.equal(widget.hidden, false);
 });
+
+test("padding toggle stays visible while advanced options are hidden", () => {
+    const node = fixture();
+    const padding = { name: "pad_outside_image", type: "toggle", value: true };
+    node.widgets.push(padding);
+    context.configureAdvancedWidgets(node);
+    assert.equal(padding.type, "toggle");
+    assert.equal(padding.hidden, undefined);
+    assert.equal(padding.value, true);
+    node.widgets[0].value = true;
+    node.widgets[0].callback(true);
+    assert.equal(padding.value, true);
+});

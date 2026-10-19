@@ -127,6 +127,41 @@ class FacePipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no face detected in image 1"):
             face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)))
 
+    def test_padding_toggle_keeps_old_widget_positions_and_defaults_to_false(self):
+        inputs = face_detection.RPFaceDetection.INPUT_TYPES()
+        self.assertEqual(list(inputs["required"])[1:], [
+            "model_name", "width", "height", "scale", "square", "show_advanced",
+            "threshold", "dilation", "crop_factor", "drop_size", "crop_size_mult", "bbox_smooth_alpha",
+        ])
+        self.assertIs(inputs["optional"]["pad_outside_image"][1]["default"], False)
+
+    def test_padding_updates_source_crop_and_mask_for_each_face(self):
+        image = torch.rand((2, 80, 100, 3))
+        node = face_detection.RPFaceDetection()
+        output = node.detect(image, square=True, scale=4, pad_outside_image=True)
+        self.assertEqual(tuple(map(len, output)), (4,) * 6)
+        for face in range(4):
+            original, crop, boxes, width, height, mask = (slot[face] for slot in output)
+            x, y, w, h = boxes[0]
+            self.assertEqual((width, height), (120, 120))
+            self.assertEqual(tuple(mask.shape[1:]), tuple(original.shape[1:3]))
+            self.assertEqual(bounds(mask)[2:], (80, 80))
+            torch.testing.assert_close(crop, original[:, y:y + h, x:x + w], rtol=0, atol=0)
+            pad_left = 20 if face % 2 == 0 else 0
+            torch.testing.assert_close(original[:, 36:116, pad_left:pad_left + 100], image[face // 2:face // 2 + 1], rtol=0, atol=0)
+
+    def test_enabling_padding_for_inside_boxes_preserves_outputs(self):
+        image = torch.rand((1, 80, 100, 3))
+        node = face_detection.RPFaceDetection()
+        default = node.detect(image)
+        padded = node.detect(image, pad_outside_image=True)
+        for slot in range(6):
+            for old, new in zip(default[slot], padded[slot]):
+                if isinstance(old, torch.Tensor):
+                    torch.testing.assert_close(old, new, rtol=0, atol=0)
+                else:
+                    self.assertEqual(old, new)
+
 
 class FaceCropAlignmentTests(unittest.TestCase):
     def test_crop_uncrop_preserves_every_pixel_at_all_edges_and_scales(self):
@@ -174,6 +209,63 @@ class FaceCropAlignmentTests(unittest.TestCase):
         _, cropped, boxes, _, _ = face_detection.crop_face(mask, image, 3, 0.5, scale=0.01)
         self.assertEqual(boxes, [(0, 0, 2, 2)])
         torch.testing.assert_close(cropped, image[:, :2, :2], rtol=0, atol=0)
+
+
+class FacePaddingTests(unittest.TestCase):
+    def test_black_padding_keeps_full_square_and_original_pixels(self):
+        image = torch.rand((1, 80, 100, 3), dtype=torch.float16)
+        mask = rectangle(left=0, top=0)
+        padding = face_detection.face_padding(mask, 3, 0.5, scale=2, square=True)
+        self.assertEqual(padding, (20, 0, 26, 0))
+        original, cropped, boxes, width, height = face_detection.crop_face(mask, image, 3, 0.5, scale=2, square=True, padding=padding)
+        self.assertEqual(boxes, [(0, 0, 60, 60)])
+        self.assertEqual((width, height), (60, 60))
+        self.assertEqual(original.dtype, image.dtype)
+        self.assertEqual(original.shape, (1, 106, 120, 3))
+        torch.testing.assert_close(original[:, 26:, 20:], image, rtol=0, atol=0)
+        self.assertEqual(torch.count_nonzero(original[:, :26]).item(), 0)
+        self.assertEqual(torch.count_nonzero(original[:, :, :20]).item(), 0)
+        torch.testing.assert_close(cropped, original[:, :60, :60], rtol=0, atol=0)
+        resized = face_detection.resize_bbox_mask(mask, scale=2, square=True, padding=padding)
+        self.assertEqual(resized.shape, (1, 106, 120))
+        self.assertEqual(bounds(resized), (10, 11, 40, 40))
+
+    def test_padding_covers_mask_even_when_crop_multiplier_is_smaller(self):
+        mask = rectangle(left=0, top=0)
+        padding = face_detection.face_padding(mask, 0.5, 0.5, scale=3, square=True)
+        resized = face_detection.resize_bbox_mask(mask, scale=3, square=True, padding=padding)
+        self.assertEqual(bounds(resized)[2:], (60, 60))
+        self.assertEqual(torch.count_nonzero(resized).item(), 3600)
+
+    def test_padding_keeps_rgb_axes_for_a_one_pixel_source(self):
+        image = torch.rand((1, 1, 1, 3))
+        mask = torch.ones((1, 1, 1))
+        padding = face_detection.face_padding(mask, 3, 0.5)
+        original, cropped, boxes, _, _ = face_detection.crop_face(mask, image, 3, 0.5, padding=padding)
+        self.assertEqual(cropped.shape, (1, 2, 2, 3))
+        self.assertEqual(boxes, [(0, 0, 2, 2)])
+        torch.testing.assert_close(original[:, 1:, 1:], image, rtol=0, atol=0)
+
+    def test_padded_crop_uncrop_preserves_pixels_across_all_edges(self):
+        image = torch.rand((1, 80, 100, 3))
+        for left, top in ((30, 20), (0, 0), (80, 0), (0, 70), (80, 70), (0, 30), (40, 0)):
+            mask = rectangle(left=left, top=top)
+            for scale in (0.01, 0.5, 1, 1.3, 2, 3):
+                for square in (False, True):
+                    with self.subTest(left=left, top=top, scale=scale, square=square):
+                        padding = face_detection.face_padding(mask, 3, 0.5, scale=scale, square=square)
+                        original, cropped, boxes, width, height = face_detection.crop_face(
+                            mask, image, 3, 0.5, scale=scale, square=square, padding=padding
+                        )
+                        x, y, w, h = boxes[0]
+                        self.assertEqual((w, h), (width, height))
+                        restored = original.clone()
+                        restored[:, y:y + h, x:x + w] = cropped
+                        torch.testing.assert_close(restored, original, rtol=0, atol=0)
+                        torch.testing.assert_close(original[:, padding[2]:padding[2] + 80, padding[0]:padding[0] + 100], image, rtol=0, atol=0)
+                        resized = face_detection.resize_bbox_mask(mask, scale=scale, square=square, padding=padding)
+                        _, _, expected_width, expected_height = face_detection.bbox_geometry(mask, scale=scale, square=square)
+                        self.assertEqual(bounds(resized)[2:], (expected_width, expected_height))
 
 
 if __name__ == "__main__":

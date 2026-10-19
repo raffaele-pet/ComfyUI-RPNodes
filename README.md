@@ -41,6 +41,12 @@ Models are loaded locally by the original provider.
   All sizes use the original detection's center and dimensions. Regions that
   extend beyond the image are clipped without moving their center. A requested
   square may therefore have only a rectangular portion visible at an edge.
+- `pad_outside_image` (default **off**) keeps the entire requested mask and
+  crop by adding black padding only where needed. The original detection stays
+  the reference; pixels are never scaled or stretched. `original_images` becomes
+  the expanded canvas, and `bbox_masks` and `bboxes` use its updated coordinates.
+  Connect this `original_images` output to **BatchUncrop** to retain alignment;
+  the reconstructed image includes the padding. Padding is calculated per face.
 - `show_advanced` reveals `threshold` **0.5**, `dilation` **10**,
   `crop_factor` **1.5**, `drop_size` **10**, `crop_size_mult` **3.0**, and
   `bbox_smooth_alpha` **0.5**. Hiding them preserves their saved values.
@@ -48,10 +54,10 @@ Models are loaded locally by the original provider.
 With width/height **0**, scale **1**, and square disabled, masks and crop sizing
 use the original workflow settings. The original crop multiplier and smoothing
 still affect the reference crop size; scale is applied to that original size.
-The crop is an exact slice of the source
-image: it is never resized or padded after clipping. `bboxes` describes that
+The crop is an exact slice of the source canvas, expanded first when padding
+is enabled: the crop pixels are never resized. `bboxes` describes that
 same slice, so **BatchUncrop** restores alignment at any scale, pixel size, or
-image border. The output `width`/`height` report the actual clipped crop size,
+image border. The output `width`/`height` report the actual output crop size,
 not the white mask rectangle or the size requested outside the image.
 Very small crops retain at least two pixels per available axis to preserve
 RGB channels through KJNodes' image conversion.
