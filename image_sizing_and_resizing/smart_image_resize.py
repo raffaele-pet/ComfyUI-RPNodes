@@ -342,6 +342,12 @@ class SmartImageResize:
 
         output_width = int(output_image.shape[2])
         output_height = int(output_image.shape[1])
+        megapixels = image_megapixels(output_width, output_height)
+        if (resolution is None or int(resolution) <= 0) and (
+            selection_mode == "automatic"
+            or (output_width, output_height) == (selected["width"], selected["height"])
+        ):
+            megapixels = selected.get("megapixels", megapixels)
         return (
             output_image.cpu(),
             output_width,
@@ -353,7 +359,7 @@ class SmartImageResize:
             output_resolution,
             output_mask.cpu(),
             resized_image.cpu(),
-            image_megapixels(output_width, output_height),
+            megapixels,
         )
 
 

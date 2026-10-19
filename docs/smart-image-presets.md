@@ -11,7 +11,7 @@ pixel dimensions have been rounded to a model-compatible grid.
 | Boogu-Image-0.1 Base / Edit; Turbo | [Boogu model card](https://huggingface.co/Boogu/Boogu-Image-0.1-Base) | Base and Edit: 1K, 1.5K and 2K; Turbo: 1K. Nine ratios are named by the maker. Other ratios are estimates. |
 | FireRed-Image-Edit-1.0 | [FireRed project](https://github.com/FireRedTeam/FireRed-Image-Edit) | The project uses roughly 1K image inputs. The exact ratio list is estimated, not a published bucket table. |
 | FLUX.2 Klein | [BFL endpoint reference](https://github.com/black-forest-labs/skills/blob/master/skills/bfl-api/references/endpoints.md) | Width and height are selectable on a 16-pixel grid, with a published maximum around 4 MP. The 1K, 1.5K and 2K ratio buckets are estimates. |
-| FLUX.3 Klein | [BFL specifications](https://docs.bfl.ml/flux_3/flux3_image_klein), [Klein API size tiers](https://docs.bfl.ml/api-reference/utility/generate-an-image-with-flux-3-klein), [official demo source](https://huggingface.co/spaces/black-forest-labs/flux-3-image-klein/blob/a3f1a096a9cfd68587da22044390990a425aeeb0/app.py) | The distilled Klein supports up to 4K. The local catalog uses 768, 1024, 1536, 2048 and 4096 square references. Dimensions follow the demo's 16-pixel rounding and 4096-pixel side cap. Extra ratios and the intermediate 768/1536 sizes are derived using the same sizing rule. |
+| FLUX.3 Klein | [BFL specifications](https://docs.bfl.ml/flux_3/flux3_image_klein), [Klein API size tiers](https://docs.bfl.ai/api-reference/utility/generate-an-image-with-flux-3-klein), [ComfyUI reference resize](https://github.com/Comfy-Org/ComfyUI/blob/master/comfy_extras/nodes_edit_model.py) | The local catalog uses 768, 1024, 1536, 2048 and 4096 square references. Presets use Set Reference Multi Latent's target budgets and the VAE's 16-pixel crop, with stable canvas dimensions when the budget is connected downstream. These are derived sizing presets, not published optimal buckets. |
 | HiDream-O1-Image / Dev | [HiDream model card](https://huggingface.co/HiDream-ai/HiDream-O1-Image) and [official demo presets](https://huggingface.co/spaces/HiDream-ai/HiDream-O1-Image/blob/main/app.py) | The 2K entries for 1:1, 4:3, 3:4, 16:9, 9:16, 3:2, 2:3, 21:9, 9:7 and 7:9 follow the demo. Other ratios and the 1K/1.5K buckets are estimates. |
 | Ideogram 4 | [Ideogram model specification](https://ideogram.ai/blog/ideogram-4.0/) and [inference guide](https://github.com/ideogram-oss/ideogram4/blob/main/docs/inference.md) | The open-weight model accepts multiples of 16 from 256 to 2048 pixels per side and ratios up to 6:1. Catalog dimensions within those limits are estimates, including the intermediate 1.5K tier. The hosted API exposes 1K and 2K resolution options. |
 | Krea 2 | [Krea official demo](https://huggingface.co/spaces/krea/Krea-2/blob/main/app.py) | Its demo publishes 1024 square, 832×1216 portrait (13:19), 1216×832 landscape (19:13) and 2048 square. These portrait and landscape sizes have their own ratio entries rather than being labeled 2:3 and 3:2. The remaining entries are estimates. The 2K estimates stay within the demo's 2048-pixel-per-side limit. 2K may need more GPU memory. |
@@ -27,18 +27,26 @@ especially for estimated wide or tall presets.
 
 ## FLUX.3 Klein sizing
 
-The current official demo offers 1K, 2K and 4K for distilled Klein. BFL also
-publishes `768sq` and `1.5k` API tiers; this local catalog represents those with
-768 and 1536 square references. It does not claim an exact copy of the hosted
-API's bucket table, which permits sides up to 6256 pixels.
+The target budgets are 0.5625, 1.0, 2.25, 4.0 and 16.0 in ComfyUI units
+(1024² pixels per unit). The 768-square tier was previously labeled 0.59 MP
+using a decimal approximation; it now shows 0.5625 in the same units as the
+other tiers. Old resolution and dimension labels still resolve by square side
+and nominal ratio.
 
-For each ratio, start from the square reference's pixel area, fit both sides
-within 4096, then round each side to the nearest multiple of 16, as in the demo's
-`dimensions_for_aspect`. Its seven named ratios are 1:1, 4:3, 3:4, 3:2, 2:3,
-16:9 and 9:16. The other fourteen catalog ratios are estimates under that rule.
-For example, 1K 16:9 is 1360×768; 2K 16:9 is 2736×1536; 4K 16:9 is
-4096×2304. The 4K square is 4096×4096, while non-square 4K presets have less
-area because of the side cap.
+For each ratio, start at the selected target area, round both sides to integer
+pixels as Set Reference Multi Latent does, then crop to the VAE's 16-pixel grid.
+If applying the same budget would change that grid again, repeat the sizing
+step until the canvas is stable. The catalog stores the resulting dimensions
+and the target budget separately. For example, 1 MP 4:5 is 912×1136 with
+`megapixels = 1.0`; the actual pixel area is slightly below that target.
+The reference node still resamples the pixels before the VAE crops them.
 
-This profile targets distilled Klein. The demo's 1K-only Base menu is a GPU
-resource limit; BFL's model specifications list up to 4K for both checkpoints.
+The previous 4096-pixel side cap has been removed to preserve the 16 MP target
+for non-square 4K presets: 16:9 is 5456×3072 and 21:9 is 6256×2672.
+The API explicitly names 15 ratios; the extra 3:5, 5:8, 7:9, 9:7, 8:5 and
+5:3 entries are estimates. No preset is presented as an optimal training bucket.
+
+This profile targets distilled Klein. BFL's specifications list up to 4K for
+both checkpoints. Native reference preparation varies by implementation and
+by the number of reference images; this catalog aligns with ComfyUI's
+Set Reference Multi Latent sizing behavior.

@@ -20,7 +20,7 @@ QWEN_21_TIERS = {
 }
 
 ALL_RESOLUTION_LABELS = {
-    "0.59 MP ~ 0.75K (768 × 768)": 768,
+    "0.5625 MP ~ 0.75K (768 × 768)": 768,
     "1 MP ~ 1K (1024 × 1024)": 1024,
     "1.56 MP ~ 1.25K (1280 × 1280)": 1280,
     "1.68 MP (1328 × 1328)": 1328,
@@ -46,7 +46,7 @@ class SmartImageSizeTests(unittest.TestCase):
     def test_flux3_klein_resolution_tiers_and_dimension_limits(self):
         tiers = smart_image_size.RESOLUTIONS["FLUX.3 Klein"]
         self.assertEqual(list(tiers), [
-            "0.59 MP ~ 0.75K (768 × 768)",
+            "0.5625 MP ~ 0.75K (768 × 768)",
             "1 MP ~ 1K (1024 × 1024)",
             "2.25 MP ~ 1.5K (1536 × 1536)",
             "4 MP ~ 2K (2048 × 2048)",
@@ -61,25 +61,26 @@ class SmartImageSizeTests(unittest.TestCase):
                     for side in (item["width"], item["height"]):
                         self.assertEqual(side % 16, 0)
                         self.assertGreaterEqual(side, 256)
-                        self.assertLessEqual(side, 4096)
+                        self.assertLessEqual(side, 6256)
 
-    def test_flux3_klein_matches_official_demo_dimensions(self):
+    def test_flux3_klein_reference_budget_dimensions(self):
         tiers = smart_image_size.RESOLUTIONS["FLUX.3 Klein"]
         one_k = {item["ratio"]: (item["width"], item["height"])
                  for item in tiers["1 MP ~ 1K (1024 × 1024)"]}
         for ratio, expected in {
-            "1:1": (1024, 1024), "4:3": (1184, 880), "3:4": (880, 1184),
+            "1:1": (1024, 1024), "4:3": (1168, 880), "3:4": (880, 1168),
             "3:2": (1248, 832), "2:3": (832, 1248),
             "16:9": (1360, 768), "9:16": (768, 1360),
+            "4:5": (912, 1136),
         }.items():
             self.assertEqual(one_k[ratio], expected)
 
         four_k = {item["ratio"]: (item["width"], item["height"])
                   for item in tiers["16 MP ~ 4K (4096 × 4096)"]}
         self.assertEqual(four_k["1:1"], (4096, 4096))
-        self.assertEqual(four_k["16:9"], (4096, 2304))
-        self.assertEqual(four_k["21:9"], (4096, 1760))
-        self.assertEqual(four_k["3:7"], (1760, 4096))
+        self.assertEqual(four_k["16:9"], (5456, 3072))
+        self.assertEqual(four_k["21:9"], (6256, 2672))
+        self.assertEqual(four_k["3:7"], (2672, 6256))
         self.assertEqual(smart_image_size.resolve_resolution(tiers, "4K"),
                          "16 MP ~ 4K (4096 × 4096)")
 
@@ -101,7 +102,7 @@ class SmartImageSizeTests(unittest.TestCase):
             (1312, 800, "5:3", "41:25", 1024, 1.0009765625),
         )
 
-    def test_megapixels_retains_exact_pixel_budget_for_reference_latent(self):
+    def test_flux3_megapixels_returns_reference_target_budget(self):
         tiers = smart_image_size.RESOLUTIONS["FLUX.3 Klein"]
         item = next(item for item in tiers["1 MP ~ 1K (1024 × 1024)"]
                     if item["ratio"] == "4:5")
@@ -109,9 +110,35 @@ class SmartImageSizeTests(unittest.TestCase):
             "FLUX.3 Klein", "1 MP ~ 1K (1024 × 1024)",
             smart_image_size.dimension_text(item),
         )
-        self.assertEqual(result, (912, 1152, "4:5", "19:24", 1024, 1.001953125))
+        self.assertEqual(result, (912, 1136, "4:5", "57:71", 1024, 1.0))
         self.assertEqual(smart_image_size.SmartImageSize.RETURN_TYPES[5], "FLOAT")
         self.assertIsInstance(result[5], float)
+
+    def test_all_flux3_presets_keep_canvas_after_reference_resize_and_vae_crop(self):
+        node = smart_image_size.SmartImageSize()
+        tiers = smart_image_size.RESOLUTIONS["FLUX.3 Klein"]
+        for tier, items in tiers.items():
+            expected_mp = smart_image_size.resolution_output(tier) ** 2 / 1024**2
+            for item in items:
+                with self.subTest(tier=tier, ratio=item["ratio"]):
+                    width, height, *_, megapixels = node.get_resolution(
+                        "FLUX.3 Klein", tier, smart_image_size.dimension_text(item)
+                    )
+                    self.assertEqual(megapixels, expected_mp)
+                    scale = math.sqrt(megapixels * 1024 * 1024 / (width * height))
+                    self.assertEqual(
+                        (round(width * scale) // 16 * 16, round(height * scale) // 16 * 16),
+                        (width, height),
+                    )
+
+    def test_old_flux3_labels_resolve_updated_presets(self):
+        self.assertEqual(
+            smart_image_size.SmartImageSize().get_resolution(
+                "FLUX.3 Klein", "0.59 MP ~ 0.75K (768 × 768)",
+                "4:5 (Portrait Standard) - 688 x 864",
+            ),
+            (672, 848, "4:5", "42:53", 768, 0.5625),
+        )
 
     def test_catalog_dimensions_are_valid_and_distinct(self):
         for model, model_resolutions in smart_image_size.RESOLUTIONS.items():

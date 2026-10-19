@@ -1032,132 +1032,153 @@
     ]
   },
   "FLUX.3 Klein": {
-    "0.59 MP ~ 0.75K (768 × 768)": [
+    "0.5625 MP ~ 0.75K (768 × 768)": [
       {
         "ratio": "1:1",
         "label": "Square",
         "width": 768,
-        "height": 768
+        "height": 768,
+        "megapixels": 0.5625
       },
       {
         "ratio": "3:7",
         "label": "Portrait Ultrawide",
         "width": 496,
-        "height": 1168
+        "height": 1168,
+        "megapixels": 0.5625
       },
       {
         "ratio": "1:2",
         "label": "Tall Portrait",
-        "width": 544,
-        "height": 1088
+        "width": 528,
+        "height": 1088,
+        "megapixels": 0.5625
       },
       {
         "ratio": "9:16",
         "label": "Portrait Widescreen",
         "width": 576,
-        "height": 1024
+        "height": 1024,
+        "megapixels": 0.5625
       },
       {
         "ratio": "3:5",
         "label": "Portrait Tall Photo",
         "width": 592,
-        "height": 992
+        "height": 976,
+        "megapixels": 0.5625
       },
       {
         "ratio": "5:8",
         "label": "Portrait Wide",
-        "width": 608,
-        "height": 976
+        "width": 592,
+        "height": 976,
+        "megapixels": 0.5625
       },
       {
         "ratio": "2:3",
         "label": "Portrait Photo",
         "width": 624,
-        "height": 944
+        "height": 928,
+        "megapixels": 0.5625
       },
       {
         "ratio": "5:7",
         "label": "Portrait Print",
-        "width": 656,
-        "height": 912
+        "width": 640,
+        "height": 896,
+        "megapixels": 0.5625
       },
       {
         "ratio": "3:4",
         "label": "Portrait Standard",
-        "width": 672,
-        "height": 880
+        "width": 656,
+        "height": 880,
+        "megapixels": 0.5625
       },
       {
         "ratio": "7:9",
         "label": "Portrait Classic",
         "width": 672,
-        "height": 864
+        "height": 864,
+        "megapixels": 0.5625
       },
       {
         "ratio": "4:5",
         "label": "Portrait Social",
-        "width": 688,
-        "height": 864
+        "width": 672,
+        "height": 848,
+        "megapixels": 0.5625
       },
       {
         "ratio": "5:4",
         "label": "Landscape Social",
-        "width": 864,
-        "height": 688
+        "width": 848,
+        "height": 672,
+        "megapixels": 0.5625
       },
       {
         "ratio": "9:7",
         "label": "Landscape Classic",
         "width": 864,
-        "height": 672
+        "height": 672,
+        "megapixels": 0.5625
       },
       {
         "ratio": "4:3",
         "label": "Standard",
         "width": 880,
-        "height": 672
+        "height": 656,
+        "megapixels": 0.5625
       },
       {
         "ratio": "7:5",
         "label": "Landscape Print",
-        "width": 912,
-        "height": 656
+        "width": 896,
+        "height": 640,
+        "megapixels": 0.5625
       },
       {
         "ratio": "3:2",
         "label": "Photo",
-        "width": 944,
-        "height": 624
+        "width": 928,
+        "height": 624,
+        "megapixels": 0.5625
       },
       {
         "ratio": "8:5",
         "label": "Widescreen Photo",
         "width": 976,
-        "height": 608
+        "height": 592,
+        "megapixels": 0.5625
       },
       {
         "ratio": "5:3",
         "label": "Wide Landscape",
-        "width": 992,
-        "height": 592
+        "width": 976,
+        "height": 592,
+        "megapixels": 0.5625
       },
       {
         "ratio": "16:9",
         "label": "Widescreen",
         "width": 1024,
-        "height": 576
+        "height": 576,
+        "megapixels": 0.5625
       },
       {
         "ratio": "2:1",
         "label": "Panoramic",
         "width": 1088,
-        "height": 544
+        "height": 528,
+        "megapixels": 0.5625
       },
       {
         "ratio": "21:9",
         "label": "Ultrawide",
         "width": 1168,
-        "height": 496
+        "height": 496,
+        "megapixels": 0.5625
       }
     ],
     "1 MP ~ 1K (1024 × 1024)": [
@@ -1165,127 +1186,148 @@
         "ratio": "1:1",
         "label": "Square",
         "width": 1024,
-        "height": 1024
+        "height": 1024,
+        "megapixels": 1.0
       },
       {
         "ratio": "3:7",
         "label": "Portrait Ultrawide",
-        "width": 672,
-        "height": 1568
+        "width": 656,
+        "height": 1568,
+        "megapixels": 1.0
       },
       {
         "ratio": "1:2",
         "label": "Tall Portrait",
         "width": 720,
-        "height": 1456
+        "height": 1440,
+        "megapixels": 1.0
       },
       {
         "ratio": "9:16",
         "label": "Portrait Widescreen",
         "width": 768,
-        "height": 1360
+        "height": 1360,
+        "megapixels": 1.0
       },
       {
         "ratio": "3:5",
         "label": "Portrait Tall Photo",
-        "width": 800,
-        "height": 1328
+        "width": 784,
+        "height": 1312,
+        "megapixels": 1.0
       },
       {
         "ratio": "5:8",
         "label": "Portrait Wide",
-        "width": 816,
-        "height": 1296
+        "width": 800,
+        "height": 1280,
+        "megapixels": 1.0
       },
       {
         "ratio": "2:3",
         "label": "Portrait Photo",
         "width": 832,
-        "height": 1248
+        "height": 1248,
+        "megapixels": 1.0
       },
       {
         "ratio": "5:7",
         "label": "Portrait Print",
         "width": 864,
-        "height": 1216
+        "height": 1200,
+        "megapixels": 1.0
       },
       {
         "ratio": "3:4",
         "label": "Portrait Standard",
         "width": 880,
-        "height": 1184
+        "height": 1168,
+        "megapixels": 1.0
       },
       {
         "ratio": "7:9",
         "label": "Portrait Classic",
         "width": 896,
-        "height": 1168
+        "height": 1152,
+        "megapixels": 1.0
       },
       {
         "ratio": "4:5",
         "label": "Portrait Social",
         "width": 912,
-        "height": 1152
+        "height": 1136,
+        "megapixels": 1.0
       },
       {
         "ratio": "5:4",
         "label": "Landscape Social",
-        "width": 1152,
-        "height": 912
+        "width": 1136,
+        "height": 912,
+        "megapixels": 1.0
       },
       {
         "ratio": "9:7",
         "label": "Landscape Classic",
-        "width": 1168,
-        "height": 896
+        "width": 1152,
+        "height": 896,
+        "megapixels": 1.0
       },
       {
         "ratio": "4:3",
         "label": "Standard",
-        "width": 1184,
-        "height": 880
+        "width": 1168,
+        "height": 880,
+        "megapixels": 1.0
       },
       {
         "ratio": "7:5",
         "label": "Landscape Print",
-        "width": 1216,
-        "height": 864
+        "width": 1200,
+        "height": 864,
+        "megapixels": 1.0
       },
       {
         "ratio": "3:2",
         "label": "Photo",
         "width": 1248,
-        "height": 832
+        "height": 832,
+        "megapixels": 1.0
       },
       {
         "ratio": "8:5",
         "label": "Widescreen Photo",
-        "width": 1296,
-        "height": 816
+        "width": 1280,
+        "height": 800,
+        "megapixels": 1.0
       },
       {
         "ratio": "5:3",
         "label": "Wide Landscape",
-        "width": 1328,
-        "height": 800
+        "width": 1312,
+        "height": 784,
+        "megapixels": 1.0
       },
       {
         "ratio": "16:9",
         "label": "Widescreen",
         "width": 1360,
-        "height": 768
+        "height": 768,
+        "megapixels": 1.0
       },
       {
         "ratio": "2:1",
         "label": "Panoramic",
-        "width": 1456,
-        "height": 720
+        "width": 1440,
+        "height": 720,
+        "megapixels": 1.0
       },
       {
         "ratio": "21:9",
         "label": "Ultrawide",
         "width": 1568,
-        "height": 672
+        "height": 656,
+        "megapixels": 1.0
       }
     ],
     "2.25 MP ~ 1.5K (1536 × 1536)": [
@@ -1293,127 +1335,148 @@
         "ratio": "1:1",
         "label": "Square",
         "width": 1536,
-        "height": 1536
+        "height": 1536,
+        "megapixels": 2.25
       },
       {
         "ratio": "3:7",
         "label": "Portrait Ultrawide",
-        "width": 1008,
-        "height": 2352
+        "width": 992,
+        "height": 2352,
+        "megapixels": 2.25
       },
       {
         "ratio": "1:2",
         "label": "Tall Portrait",
-        "width": 1088,
-        "height": 2176
+        "width": 1072,
+        "height": 2176,
+        "megapixels": 2.25
       },
       {
         "ratio": "9:16",
         "label": "Portrait Widescreen",
         "width": 1152,
-        "height": 2048
+        "height": 2048,
+        "megapixels": 2.25
       },
       {
         "ratio": "3:5",
         "label": "Portrait Tall Photo",
         "width": 1184,
-        "height": 1984
+        "height": 1968,
+        "megapixels": 2.25
       },
       {
         "ratio": "5:8",
         "label": "Portrait Wide",
-        "width": 1216,
-        "height": 1936
+        "width": 1200,
+        "height": 1936,
+        "megapixels": 2.25
       },
       {
         "ratio": "2:3",
         "label": "Portrait Photo",
         "width": 1248,
-        "height": 1888
+        "height": 1872,
+        "megapixels": 2.25
       },
       {
         "ratio": "5:7",
         "label": "Portrait Print",
         "width": 1296,
-        "height": 1824
+        "height": 1808,
+        "megapixels": 2.25
       },
       {
         "ratio": "3:4",
         "label": "Portrait Standard",
         "width": 1328,
-        "height": 1776
+        "height": 1760,
+        "megapixels": 2.25
       },
       {
         "ratio": "7:9",
         "label": "Portrait Classic",
-        "width": 1360,
-        "height": 1744
+        "width": 1344,
+        "height": 1728,
+        "megapixels": 2.25
       },
       {
         "ratio": "4:5",
         "label": "Portrait Social",
-        "width": 1376,
-        "height": 1712
+        "width": 1360,
+        "height": 1712,
+        "megapixels": 2.25
       },
       {
         "ratio": "5:4",
         "label": "Landscape Social",
         "width": 1712,
-        "height": 1376
+        "height": 1360,
+        "megapixels": 2.25
       },
       {
         "ratio": "9:7",
         "label": "Landscape Classic",
-        "width": 1744,
-        "height": 1360
+        "width": 1728,
+        "height": 1344,
+        "megapixels": 2.25
       },
       {
         "ratio": "4:3",
         "label": "Standard",
-        "width": 1776,
-        "height": 1328
+        "width": 1760,
+        "height": 1328,
+        "megapixels": 2.25
       },
       {
         "ratio": "7:5",
         "label": "Landscape Print",
-        "width": 1824,
-        "height": 1296
+        "width": 1808,
+        "height": 1296,
+        "megapixels": 2.25
       },
       {
         "ratio": "3:2",
         "label": "Photo",
-        "width": 1888,
-        "height": 1248
+        "width": 1872,
+        "height": 1248,
+        "megapixels": 2.25
       },
       {
         "ratio": "8:5",
         "label": "Widescreen Photo",
         "width": 1936,
-        "height": 1216
+        "height": 1200,
+        "megapixels": 2.25
       },
       {
         "ratio": "5:3",
         "label": "Wide Landscape",
-        "width": 1984,
-        "height": 1184
+        "width": 1968,
+        "height": 1184,
+        "megapixels": 2.25
       },
       {
         "ratio": "16:9",
         "label": "Widescreen",
         "width": 2048,
-        "height": 1152
+        "height": 1152,
+        "megapixels": 2.25
       },
       {
         "ratio": "2:1",
         "label": "Panoramic",
         "width": 2176,
-        "height": 1088
+        "height": 1072,
+        "megapixels": 2.25
       },
       {
         "ratio": "21:9",
         "label": "Ultrawide",
         "width": 2352,
-        "height": 1008
+        "height": 992,
+        "megapixels": 2.25
       }
     ],
     "4 MP ~ 2K (2048 × 2048)": [
@@ -1421,127 +1484,148 @@
         "ratio": "1:1",
         "label": "Square",
         "width": 2048,
-        "height": 2048
+        "height": 2048,
+        "megapixels": 4.0
       },
       {
         "ratio": "3:7",
         "label": "Portrait Ultrawide",
-        "width": 1344,
-        "height": 3136
+        "width": 1328,
+        "height": 3136,
+        "megapixels": 4.0
       },
       {
         "ratio": "1:2",
         "label": "Tall Portrait",
-        "width": 1456,
-        "height": 2896
+        "width": 1440,
+        "height": 2896,
+        "megapixels": 4.0
       },
       {
         "ratio": "9:16",
         "label": "Portrait Widescreen",
         "width": 1536,
-        "height": 2736
+        "height": 2720,
+        "megapixels": 4.0
       },
       {
         "ratio": "3:5",
         "label": "Portrait Tall Photo",
         "width": 1584,
-        "height": 2640
+        "height": 2640,
+        "megapixels": 4.0
       },
       {
         "ratio": "5:8",
         "label": "Portrait Wide",
         "width": 1616,
-        "height": 2592
+        "height": 2576,
+        "megapixels": 4.0
       },
       {
         "ratio": "2:3",
         "label": "Portrait Photo",
-        "width": 1680,
-        "height": 2512
+        "width": 1664,
+        "height": 2496,
+        "megapixels": 4.0
       },
       {
         "ratio": "5:7",
         "label": "Portrait Print",
         "width": 1728,
-        "height": 2416
+        "height": 2416,
+        "megapixels": 4.0
       },
       {
         "ratio": "3:4",
         "label": "Portrait Standard",
-        "width": 1776,
-        "height": 2368
+        "width": 1760,
+        "height": 2368,
+        "megapixels": 4.0
       },
       {
         "ratio": "7:9",
         "label": "Portrait Classic",
-        "width": 1808,
-        "height": 2320
+        "width": 1792,
+        "height": 2320,
+        "megapixels": 4.0
       },
       {
         "ratio": "4:5",
         "label": "Portrait Social",
         "width": 1824,
-        "height": 2288
+        "height": 2288,
+        "megapixels": 4.0
       },
       {
         "ratio": "5:4",
         "label": "Landscape Social",
         "width": 2288,
-        "height": 1824
+        "height": 1824,
+        "megapixels": 4.0
       },
       {
         "ratio": "9:7",
         "label": "Landscape Classic",
         "width": 2320,
-        "height": 1808
+        "height": 1792,
+        "megapixels": 4.0
       },
       {
         "ratio": "4:3",
         "label": "Standard",
         "width": 2368,
-        "height": 1776
+        "height": 1760,
+        "megapixels": 4.0
       },
       {
         "ratio": "7:5",
         "label": "Landscape Print",
         "width": 2416,
-        "height": 1728
+        "height": 1728,
+        "megapixels": 4.0
       },
       {
         "ratio": "3:2",
         "label": "Photo",
-        "width": 2512,
-        "height": 1680
+        "width": 2496,
+        "height": 1664,
+        "megapixels": 4.0
       },
       {
         "ratio": "8:5",
         "label": "Widescreen Photo",
-        "width": 2592,
-        "height": 1616
+        "width": 2576,
+        "height": 1616,
+        "megapixels": 4.0
       },
       {
         "ratio": "5:3",
         "label": "Wide Landscape",
         "width": 2640,
-        "height": 1584
+        "height": 1584,
+        "megapixels": 4.0
       },
       {
         "ratio": "16:9",
         "label": "Widescreen",
-        "width": 2736,
-        "height": 1536
+        "width": 2720,
+        "height": 1536,
+        "megapixels": 4.0
       },
       {
         "ratio": "2:1",
         "label": "Panoramic",
         "width": 2896,
-        "height": 1456
+        "height": 1440,
+        "megapixels": 4.0
       },
       {
         "ratio": "21:9",
         "label": "Ultrawide",
         "width": 3136,
-        "height": 1344
+        "height": 1328,
+        "megapixels": 4.0
       }
     ],
     "16 MP ~ 4K (4096 × 4096)": [
@@ -1549,127 +1633,148 @@
         "ratio": "1:1",
         "label": "Square",
         "width": 4096,
-        "height": 4096
+        "height": 4096,
+        "megapixels": 16.0
       },
       {
         "ratio": "3:7",
         "label": "Portrait Ultrawide",
-        "width": 1760,
-        "height": 4096
+        "width": 2672,
+        "height": 6256,
+        "megapixels": 16.0
       },
       {
         "ratio": "1:2",
         "label": "Tall Portrait",
-        "width": 2048,
-        "height": 4096
+        "width": 2896,
+        "height": 5792,
+        "megapixels": 16.0
       },
       {
         "ratio": "9:16",
         "label": "Portrait Widescreen",
-        "width": 2304,
-        "height": 4096
+        "width": 3072,
+        "height": 5456,
+        "megapixels": 16.0
       },
       {
         "ratio": "3:5",
         "label": "Portrait Tall Photo",
-        "width": 2464,
-        "height": 4096
+        "width": 3168,
+        "height": 5280,
+        "megapixels": 16.0
       },
       {
         "ratio": "5:8",
         "label": "Portrait Wide",
-        "width": 2560,
-        "height": 4096
+        "width": 3232,
+        "height": 5168,
+        "megapixels": 16.0
       },
       {
         "ratio": "2:3",
         "label": "Portrait Photo",
-        "width": 2736,
-        "height": 4096
+        "width": 3344,
+        "height": 5008,
+        "megapixels": 16.0
       },
       {
         "ratio": "5:7",
         "label": "Portrait Print",
-        "width": 2928,
-        "height": 4096
+        "width": 3456,
+        "height": 4832,
+        "megapixels": 16.0
       },
       {
         "ratio": "3:4",
         "label": "Portrait Standard",
-        "width": 3072,
-        "height": 4096
+        "width": 3536,
+        "height": 4720,
+        "megapixels": 16.0
       },
       {
         "ratio": "7:9",
         "label": "Portrait Classic",
-        "width": 3184,
-        "height": 4096
+        "width": 3600,
+        "height": 4640,
+        "megapixels": 16.0
       },
       {
         "ratio": "4:5",
         "label": "Portrait Social",
-        "width": 3280,
-        "height": 4096
+        "width": 3664,
+        "height": 4576,
+        "megapixels": 16.0
       },
       {
         "ratio": "5:4",
         "label": "Landscape Social",
-        "width": 4096,
-        "height": 3280
+        "width": 4576,
+        "height": 3664,
+        "megapixels": 16.0
       },
       {
         "ratio": "9:7",
         "label": "Landscape Classic",
-        "width": 4096,
-        "height": 3184
+        "width": 4640,
+        "height": 3600,
+        "megapixels": 16.0
       },
       {
         "ratio": "4:3",
         "label": "Standard",
-        "width": 4096,
-        "height": 3072
+        "width": 4720,
+        "height": 3536,
+        "megapixels": 16.0
       },
       {
         "ratio": "7:5",
         "label": "Landscape Print",
-        "width": 4096,
-        "height": 2928
+        "width": 4832,
+        "height": 3456,
+        "megapixels": 16.0
       },
       {
         "ratio": "3:2",
         "label": "Photo",
-        "width": 4096,
-        "height": 2736
+        "width": 5008,
+        "height": 3344,
+        "megapixels": 16.0
       },
       {
         "ratio": "8:5",
         "label": "Widescreen Photo",
-        "width": 4096,
-        "height": 2560
+        "width": 5168,
+        "height": 3232,
+        "megapixels": 16.0
       },
       {
         "ratio": "5:3",
         "label": "Wide Landscape",
-        "width": 4096,
-        "height": 2464
+        "width": 5280,
+        "height": 3168,
+        "megapixels": 16.0
       },
       {
         "ratio": "16:9",
         "label": "Widescreen",
-        "width": 4096,
-        "height": 2304
+        "width": 5456,
+        "height": 3072,
+        "megapixels": 16.0
       },
       {
         "ratio": "2:1",
         "label": "Panoramic",
-        "width": 4096,
-        "height": 2048
+        "width": 5792,
+        "height": 2896,
+        "megapixels": 16.0
       },
       {
         "ratio": "21:9",
         "label": "Ultrawide",
-        "width": 4096,
-        "height": 1760
+        "width": 6256,
+        "height": 2672,
+        "megapixels": 16.0
       }
     ]
   },

@@ -221,8 +221,9 @@ the resolution tiers it supports.
 
 New Smart Image Size and Smart Image Resize nodes default to `FLUX.3 Klein`.
 Its catalog includes 768, 1K, 1.5K, 2K and 4K square-reference classes, with
-21 aspect ratios on a 16-pixel grid and at most 4096 pixels per side. Wide or
-tall 4K presets keep that side limit, so their pixel count is below the 4K square.
+21 aspect ratios on a 16-pixel grid. Presets use the same target pixel budgets
+as Set Reference Multi Latent: 0.5625, 1.0, 2.25, 4.0 and 16.0. Non-square
+4K presets can exceed 4096 pixels per side to retain the selected budget.
 
 ### RP Smart Image Size
 
@@ -237,7 +238,8 @@ other nodes that require explicit width and height values.
 - `aspect_ratio_approx` - named preset ratio, such as `5:3`
 - `aspect_ratio` - exact ratio of the selected pixel dimensions, such as `41:25` for `1312 × 800`
 - `resolution` - numeric square-side resolution
-- `megapixels` - exact pixel budget in ComfyUI units (`width × height / 1024²`)
+- `megapixels` - FLUX.3 Klein: selected target budget; other models:
+  exact pixel area in ComfyUI units (`width × height / 1024²`)
 
 ### RP Smart Image Resize
 
@@ -271,22 +273,24 @@ aspect ratio.
   selected target, exactly as if `keep_proportion` were `resize`, regardless
   of the selected mode. Uses the same preset, dimension override, and
   interpolation; preserves the source content without padding or cropping.
-- `megapixels` - exact pixel budget of the primary output image in ComfyUI units
-  (`width × height / 1024²`), including manual dimensions and shape-preserving modes
+- `megapixels` - FLUX.3 Klein automatic selection or an unchanged preset canvas:
+  selected target budget. Custom manual sizes, resolution overrides and other
+  models: exact primary output area in ComfyUI units (`width × height / 1024²`).
 
 Connect `resized_image_no_pad` to **Get Image Size & Count**, then send its
 width/height to a downstream crop node to remove the generated image's padding.
 The existing `IMAGE`, width/height, ratio, resolution, and mask outputs still
 describe the primary result using the chosen `keep_proportion` mode.
 
-For **Set Reference Multi Latent**, use `keep resolution` to retain an already
-sized image, or connect `megapixels` to its `resolution.megapixels` input when
-using `resize`. The output is not rounded: a 912×1152 preset is **1.001953125**
-in ComfyUI's units. Setting a fixed 1.0 instead resizes it to 911×1151; a VAE
-with a 16-pixel grid then crops it to 896×1136. Passing the exact budget keeps
-the original 912×1152 canvas. Dimensions must already fit the VAE's grid for
-encoding to retain them exactly. This output uses 1024² pixels per unit to
-match ComfyUI's resizing nodes, rather than the decimal 1,000,000-pixel unit.
+Connect `megapixels` to **Set Reference Multi Latent**'s `resolution.megapixels`
+input when using `resize`. FLUX.3 Klein presets are sized so the reference
+resize and the VAE's 16-pixel crop retain the same canvas dimensions. For
+example, the 1 MP 4:5 preset is **912×1136** and reports **1.0**, its target
+budget. Its actual pixel area is slightly smaller because of the grid crop.
+The reference resize can still resample and crop image content; `keep resolution`
+avoids that second transformation. These are sizing presets, not a claim of
+optimal image quality. ComfyUI uses 1024² pixels per unit, rather than the
+decimal 1,000,000-pixel unit; the 768-square class therefore targets 0.5625.
 
 ### RP Image Minimum 1K
 

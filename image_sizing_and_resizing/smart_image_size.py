@@ -128,7 +128,7 @@ class SmartImageSize:
             selected["ratio"],
             actual_aspect_ratio(width, height),
             resolution_output(resolution),
-            image_megapixels(width, height),
+            selected.get("megapixels", image_megapixels(width, height)),
         )
 
 
