@@ -205,6 +205,7 @@ resolution database and dependent controls.
 - Boogu-Image-0.1 Turbo
 - FireRed-Image-Edit-1.0
 - FLUX.2 Klein
+- FLUX.3 Klein (default)
 - HiDream-O1-Image / Dev
 - Ideogram 4
 - Krea 2
@@ -217,6 +218,11 @@ resolution database and dependent controls.
 The resolution menus show the megapixel class, its K equivalent where
 applicable, and the corresponding square dimensions. Each model only exposes
 the resolution tiers it supports.
+
+New Smart Image Size and Smart Image Resize nodes default to `FLUX.3 Klein`.
+Its catalog includes 768, 1K, 1.5K, 2K and 4K square-reference classes, with
+21 aspect ratios on a 16-pixel grid and at most 4096 pixels per side. Wide or
+tall 4K presets keep that side limit, so their pixel count is below the 4K square.
 
 ### RP Smart Image Size
 

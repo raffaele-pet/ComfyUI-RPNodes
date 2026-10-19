@@ -20,6 +20,7 @@ QWEN_21_TIERS = {
 }
 
 ALL_RESOLUTION_LABELS = {
+    "0.59 MP ~ 0.75K (768 × 768)": 768,
     "1 MP ~ 1K (1024 × 1024)": 1024,
     "1.56 MP ~ 1.25K (1280 × 1280)": 1280,
     "1.68 MP (1328 × 1328)": 1328,
@@ -27,6 +28,7 @@ ALL_RESOLUTION_LABELS = {
     "2.25 MP ~ 1.5K (1536 × 1536)": 1536,
     "3 MP (1760 × 1760)": 1760,
     "4 MP ~ 2K (2048 × 2048)": 2048,
+    "16 MP ~ 4K (4096 × 4096)": 4096,
 }
 
 QWEN_21_OFFICIAL_2K = {
@@ -41,6 +43,46 @@ QWEN_21_OFFICIAL_2K = {
 
 
 class SmartImageSizeTests(unittest.TestCase):
+    def test_flux3_klein_resolution_tiers_and_dimension_limits(self):
+        tiers = smart_image_size.RESOLUTIONS["FLUX.3 Klein"]
+        self.assertEqual(list(tiers), [
+            "0.59 MP ~ 0.75K (768 × 768)",
+            "1 MP ~ 1K (1024 × 1024)",
+            "2.25 MP ~ 1.5K (1536 × 1536)",
+            "4 MP ~ 2K (2048 × 2048)",
+            "16 MP ~ 4K (4096 × 4096)",
+        ])
+        ratios = [item["ratio"] for item in next(iter(tiers.values()))]
+        self.assertEqual(len(ratios), 21)
+        for tier, items in tiers.items():
+            with self.subTest(tier=tier):
+                self.assertEqual([item["ratio"] for item in items], ratios)
+                for item in items:
+                    for side in (item["width"], item["height"]):
+                        self.assertEqual(side % 16, 0)
+                        self.assertGreaterEqual(side, 256)
+                        self.assertLessEqual(side, 4096)
+
+    def test_flux3_klein_matches_official_demo_dimensions(self):
+        tiers = smart_image_size.RESOLUTIONS["FLUX.3 Klein"]
+        one_k = {item["ratio"]: (item["width"], item["height"])
+                 for item in tiers["1 MP ~ 1K (1024 × 1024)"]}
+        for ratio, expected in {
+            "1:1": (1024, 1024), "4:3": (1184, 880), "3:4": (880, 1184),
+            "3:2": (1248, 832), "2:3": (832, 1248),
+            "16:9": (1360, 768), "9:16": (768, 1360),
+        }.items():
+            self.assertEqual(one_k[ratio], expected)
+
+        four_k = {item["ratio"]: (item["width"], item["height"])
+                  for item in tiers["16 MP ~ 4K (4096 × 4096)"]}
+        self.assertEqual(four_k["1:1"], (4096, 4096))
+        self.assertEqual(four_k["16:9"], (4096, 2304))
+        self.assertEqual(four_k["21:9"], (4096, 1760))
+        self.assertEqual(four_k["3:7"], (1760, 4096))
+        self.assertEqual(smart_image_size.resolve_resolution(tiers, "4K"),
+                         "16 MP ~ 4K (4096 × 4096)")
+
     def test_exact_aspect_ratio_output_uses_pixel_dimensions(self):
         node = smart_image_size.SmartImageSize()
         item = next(

@@ -24,6 +24,30 @@ from image_sizing_and_resizing.smart_image_size import (
 
 
 class SmartImageResizeSelectionTests(unittest.TestCase):
+    def test_flux3_klein_is_the_default_in_both_nodes(self):
+        for node in (SmartImageSize, SmartImageResize):
+            models, options = node.INPUT_TYPES()["required"]["model"]
+            self.assertEqual(options["default"], "FLUX.3 Klein")
+            self.assertIn(options["default"], models)
+
+    def test_flux3_automatic_resize_matches_size_node_outputs(self):
+        for resolution in ("1 MP ~ 1K (1024 × 1024)", "4 MP ~ 2K (2048 × 2048)"):
+            with self.subTest(resolution=resolution):
+                item = next(item for item in RESOLUTIONS["FLUX.3 Klein"][resolution]
+                            if item["ratio"] == "16:9")
+                expected = SmartImageSize().get_resolution(
+                    "FLUX.3 Klein", resolution, dimension_text(item)
+                )
+                result = SmartImageResize().resize(
+                    model="FLUX.3 Klein", resolution_preset=resolution,
+                    selection_mode="automatic", dimensions="", width=1, height=1,
+                    upscale_method="nearest-exact", keep_proportion="pad_edge_pixel",
+                    pad_color="0, 0, 0", crop_position="center",
+                    image=torch.zeros((1, 9, 16, 3)),
+                )
+                self.assertEqual(result[1:6], expected)
+                self.assertEqual(tuple(result[0].shape[1:3]), (item["height"], item["width"]))
+
     def test_no_pad_output_matches_resize_mode_for_every_primary_mode(self):
         image = torch.linspace(0, 1, 2 * 11 * 7 * 3).reshape(2, 11, 7, 3)
         mask = torch.ones((1, 11, 7))

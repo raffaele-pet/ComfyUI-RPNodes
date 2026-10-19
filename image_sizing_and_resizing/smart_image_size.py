@@ -95,7 +95,7 @@ class SmartImageSize:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": (list(RESOLUTIONS.keys()), {"default": "FLUX.2 Klein"}),
+                "model": (list(RESOLUTIONS.keys()), {"default": "FLUX.3 Klein"}),
                 "resolution": (unique_resolutions(),),
                 "dimensions": (unique_dimensions(),),
             }
