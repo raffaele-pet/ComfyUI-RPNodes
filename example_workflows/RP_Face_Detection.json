@@ -145,6 +145,18 @@
           "links": [
             102
           ]
+        },
+        {
+          "name": "image_area_mask",
+          "type": "MASK",
+          "shape": 6,
+          "links": []
+        },
+        {
+          "name": "cropped_image_mask",
+          "type": "MASK",
+          "shape": 6,
+          "links": []
         }
       ],
       "properties": {

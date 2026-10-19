@@ -63,8 +63,14 @@ Very small crops retain at least two pixels per available axis to preserve
 RGB channels through KJNodes' image conversion.
 
 Outputs are `original_images`, `cropped_images`, `bboxes` (KJNodes BBOX
-coordinates), `width`, `height`, and `bbox_masks` (white rectangles on black).
+coordinates), `width`, `height`, `bbox_masks` (white rectangles on black),
+`image_area_mask`, and `cropped_image_mask`.
 Connect the first three to **BatchUncrop** and `bbox_masks` to **MaskPreview**.
+`image_area_mask` matches `original_images`: original image pixels are white
+and added padding is black. `cropped_image_mask` shows the same valid image
+area for `cropped_images`, including any black padding inside the crop.
+Both masks are fully white when no padding is present, even for black source
+pixels. Connect either mask directly to **MaskPreview**.
 Outputs are lists, as in the original mask-list workflow: each detected face
 gets its own crop, source image, coordinates, and mask. Image batches are
 detected one image at a time. An image without detections reports a clear error.

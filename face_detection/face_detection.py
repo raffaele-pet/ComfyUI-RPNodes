@@ -126,9 +126,9 @@ class RPFaceDetection:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "IMAGE", "BBOX", "INT", "INT", "MASK")
-    RETURN_NAMES = ("original_images", "cropped_images", "bboxes", "width", "height", "bbox_masks")
-    OUTPUT_IS_LIST = (True, True, True, True, True, True)
+    RETURN_TYPES = ("IMAGE", "IMAGE", "BBOX", "INT", "INT", "MASK", "MASK", "MASK")
+    RETURN_NAMES = ("original_images", "cropped_images", "bboxes", "width", "height", "bbox_masks", "image_area_mask", "cropped_image_mask")
+    OUTPUT_IS_LIST = (True, True, True, True, True, True, True, True)
     FUNCTION = "detect"
     CATEGORY = "RP/face_detection"
     DESCRIPTION = "Face detection, mask resizing and cropping in one node. BBOX coordinates connect to BatchUncrop; bbox_masks connects to MaskPreview."
@@ -156,7 +156,12 @@ class RPFaceDetection:
                 padding = face_padding(mask, crop_size_mult, bbox_smooth_alpha, width, height, scale, square) if pad_outside_image else (0, 0, 0, 0)
                 cropped = crop_face(mask, frame, crop_size_mult, bbox_smooth_alpha, width, height, scale, square, padding)
                 mask = resize_bbox_mask(mask, width, height, scale, square, padding)
-                for output, value in zip(outputs, (*cropped, mask)):
+                image_area_mask = frame.new_ones(frame.shape[:3], dtype=torch.float32)
+                if any(padding):
+                    image_area_mask = torch.nn.functional.pad(image_area_mask, padding)
+                x, y, crop_width, crop_height = cropped[2][0]
+                cropped_image_mask = image_area_mask[:, y:y + crop_height, x:x + crop_width].clone()
+                for output, value in zip(outputs, (*cropped, mask, image_area_mask, cropped_image_mask)):
                     output.append(value)
         return outputs
 
