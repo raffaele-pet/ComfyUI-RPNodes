@@ -1,15 +1,15 @@
 {
   "id": "cddd54c8-2732-44eb-b74e-3490f5748d3e",
   "revision": 2,
-  "last_node_id": 568,
-  "last_link_id": 598,
+  "last_node_id": 571,
+  "last_link_id": 600,
   "nodes": [
     {
       "id": 446,
       "type": "BasicGuider",
       "pos": [
         9600,
-        7230
+        7130
       ],
       "size": [
         200,
@@ -50,7 +50,7 @@
       "type": "RPH3Keyframes",
       "pos": [
         9200,
-        7230
+        7130
       ],
       "size": [
         300,
@@ -116,7 +116,7 @@
       "type": "MiniMaxH3ImageToVideo",
       "pos": [
         8800,
-        7230
+        7130
       ],
       "size": [
         300,
@@ -171,13 +171,13 @@
         "Node name for S&R": "MiniMaxH3ImageToVideo"
       },
       "widgets_values": [
-        "How the reference pictures align with the target video - Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 6.00-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Stylized 3D CG, dark fantasy, a wide shot begins in the volcanic wasteland and dramatic composition established by Picture 1. The black-armored dark lord Sauron stands on the tall rocky outcrop at screen-right, while the white wizard Saruman stands below at screen-left, preserving their character designs, relative positions, the cracked lava ground, smoke-filled background, fiery glow, and ominous lighting. Sauron turns his focus toward Saruman, raises his hand, and forcefully unleashes a surge of dark magical power toward him. A violent energy blast streaks across the frame and strikes Saruman, creating a burst of sparks, ash, and shockwave-like force. Saruman is thrown out of view by the impact. The camera holds the confrontation for a brief beat as volcanic smoke swirls through the frame, then the image transitions into a quick fade to black. [Shot 2] At 00:03.400, the shot fades in from black to a closer low-angle view of a jagged rocky spur in the same burning wasteland. Saruman is initially not visible. Embers drift through the air and smoke rolls behind the rock face. After a brief moment, his hands suddenly appear gripping the edge of the spur from below. He slowly pulls himself upward, visibly battered, ash-stained, and exhausted. His white robe, hair, and beard are smeared with soot and dirt. His expression is strained and determined as he struggles for breath. The camera pushes in with small amplitude at slow speed while he drags his upper body onto the ledge and settles into the exact injured, clinging pose, framing, environment, and lighting established by Picture 2 at the end of the video.\n\noverall_soundscape: A heavy volcanic ambience fills the scene with distant rumbling, crackling lava, drifting ash, and smoky wind. Sauron's attack releases a sharp magical burst followed by a forceful impact and scattering debris. During the fade to black, the sound briefly drops, then the second shot features scraping rock, shifting gravel, fabric movement, small falling stones, and Saruman's strained breathing as he pulls himself upward.\n\nnon_diegetic_music: Low orchestral drones at a slow tempo, joined by deep brass pulses and restrained percussion as the magical attack is launched. After the fade to black, sparse low strings return and gradually build tension as Saruman reemerges.",
+        "",
         1344,
         768,
         73
       ],
       "widgets_values_named": {
-        "prompt": "How the reference pictures align with the target video - Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 6.00-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Stylized 3D CG, dark fantasy, a wide shot begins in the volcanic wasteland and dramatic composition established by Picture 1. The black-armored dark lord Sauron stands on the tall rocky outcrop at screen-right, while the white wizard Saruman stands below at screen-left, preserving their character designs, relative positions, the cracked lava ground, smoke-filled background, fiery glow, and ominous lighting. Sauron turns his focus toward Saruman, raises his hand, and forcefully unleashes a surge of dark magical power toward him. A violent energy blast streaks across the frame and strikes Saruman, creating a burst of sparks, ash, and shockwave-like force. Saruman is thrown out of view by the impact. The camera holds the confrontation for a brief beat as volcanic smoke swirls through the frame, then the image transitions into a quick fade to black. [Shot 2] At 00:03.400, the shot fades in from black to a closer low-angle view of a jagged rocky spur in the same burning wasteland. Saruman is initially not visible. Embers drift through the air and smoke rolls behind the rock face. After a brief moment, his hands suddenly appear gripping the edge of the spur from below. He slowly pulls himself upward, visibly battered, ash-stained, and exhausted. His white robe, hair, and beard are smeared with soot and dirt. His expression is strained and determined as he struggles for breath. The camera pushes in with small amplitude at slow speed while he drags his upper body onto the ledge and settles into the exact injured, clinging pose, framing, environment, and lighting established by Picture 2 at the end of the video.\n\noverall_soundscape: A heavy volcanic ambience fills the scene with distant rumbling, crackling lava, drifting ash, and smoky wind. Sauron's attack releases a sharp magical burst followed by a forceful impact and scattering debris. During the fade to black, the sound briefly drops, then the second shot features scraping rock, shifting gravel, fabric movement, small falling stones, and Saruman's strained breathing as he pulls himself upward.\n\nnon_diegetic_music: Low orchestral drones at a slow tempo, joined by deep brass pulses and restrained percussion as the magical attack is launched. After the fade to black, sparse low strings return and gradually build tension as Saruman reemerges.",
+        "prompt": "",
         "width": 1344,
         "height": 768,
         "length": 73
@@ -190,7 +190,7 @@
       "type": "SmartImageSize",
       "pos": [
         6500,
-        4030
+        3930
       ],
       "size": [
         300,
@@ -254,14 +254,16 @@
         "model": "FLUX.2 Klein",
         "resolution": "1 MP ~ 1K (1024 × 1024)",
         "dimensions": "1:1 (Square) - 1024 x 1024"
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 469,
       "type": "EmptyImage",
       "pos": [
         6900,
-        4030
+        3930
       ],
       "size": [
         300,
@@ -313,14 +315,16 @@
         "height": 512,
         "batch_size": 1,
         "color": 3496824
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 470,
       "type": "PreviewImage",
       "pos": [
         7600,
-        4030
+        3930
       ],
       "size": [
         400,
@@ -347,14 +351,16 @@
         "cnr_id": "comfy-core",
         "ver": "0.39.0",
         "Node name for S&R": "PreviewImage"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 471,
       "type": "PreviewAny",
       "pos": [
         6900,
-        4230
+        4130
       ],
       "size": [
         210,
@@ -384,14 +390,16 @@
         "Node name for S&R": "PreviewAny"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 472,
       "type": "PreviewAny",
       "pos": [
         7200,
-        4230
+        4130
       ],
       "size": [
         210,
@@ -421,18 +429,20 @@
         "Node name for S&R": "PreviewAny"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 473,
       "type": "Note",
       "pos": [
         6100,
-        4030
+        3930
       ],
       "size": [
         300,
-        280
+        270
       ],
       "flags": {},
       "order": 2,
@@ -455,7 +465,7 @@
       "type": "LoadImage",
       "pos": [
         8700,
-        4030
+        3930
       ],
       "size": [
         300,
@@ -493,14 +503,16 @@
       "widgets_values_named": {
         "image": "example.png",
         "upload": "image"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 475,
       "type": "SmartImageResize",
       "pos": [
         9100,
-        4030
+        3930
       ],
       "size": [
         300,
@@ -566,7 +578,7 @@
           "name": "mask",
           "type": "MASK",
           "links": [
-            504
+            600
           ]
         },
         {
@@ -608,14 +620,16 @@
         "keep_proportion": "pad_edge_pixel",
         "pad_color": "0, 0, 0",
         "crop_position": "center"
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 476,
       "type": "PreviewImage",
       "pos": [
         9500,
-        4030
+        3930
       ],
       "size": [
         300,
@@ -642,90 +656,22 @@
         "cnr_id": "comfy-core",
         "ver": "0.39.0",
         "Node name for S&R": "PreviewImage"
-      }
-    },
-    {
-      "id": 477,
-      "type": "MaskToImage",
-      "pos": [
-        9500,
-        4470
-      ],
-      "size": [
-        200,
-        30
-      ],
-      "flags": {
-        "collapsed": true
       },
-      "order": 56,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "mask",
-          "type": "MASK",
-          "link": 504
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            505
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.39.0",
-        "Node name for S&R": "MaskToImage"
-      }
-    },
-    {
-      "id": 478,
-      "type": "PreviewImage",
-      "pos": [
-        9900,
-        4030
-      ],
-      "size": [
-        300,
-        370
-      ],
-      "flags": {},
-      "order": 67,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 505
-        }
-      ],
-      "outputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.39.0",
-        "Node name for S&R": "PreviewImage"
-      }
+      "widgets_values": [],
+      "widgets_values_named": {},
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 479,
       "type": "Note",
       "pos": [
         8300,
-        4030
+        3930
       ],
       "size": [
         300,
-        370
+        270
       ],
       "flags": {},
       "order": 4,
@@ -748,7 +694,7 @@
       "type": "LoadImage",
       "pos": [
         10900,
-        4030
+        3930
       ],
       "size": [
         300,
@@ -784,17 +730,19 @@
       "widgets_values_named": {
         "image": "example.png",
         "upload": "image"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 481,
       "type": "RPImageMinimum1K",
       "pos": [
         11300,
-        4030
+        3930
       ],
       "size": [
-        190,
+        210,
         30
       ],
       "flags": {},
@@ -820,18 +768,20 @@
         "aux_id": "raffaele-pet/ComfyUI-RPNodes",
         "ver": "5d6563d4b74396bda6e2c6b9c3bc7559a8c87cbb",
         "Node name for S&R": "RPImageMinimum1K"
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 484,
       "type": "Note",
       "pos": [
         10500,
-        4030
+        3930
       ],
       "size": [
         300,
-        270
+        170
       ],
       "flags": {},
       "order": 6,
@@ -854,7 +804,7 @@
       "type": "RPLoadImagesFromFolder",
       "pos": [
         10900,
-        6430
+        6330
       ],
       "size": [
         300,
@@ -903,14 +853,16 @@
       ],
       "widgets_values_named": {
         "images_folder": "rp_examples/images"
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 490,
       "type": "RPLoadPromptFromFile",
       "pos": [
         11300,
-        6430
+        6330
       ],
       "size": [
         300,
@@ -956,14 +908,16 @@
         "prompt_file": "rp_examples/prompts.txt",
         "separator": "*",
         "require_matching_count": true
-      }
+      },
+      "color": "#232",
+      "bgcolor": "#353"
     },
     {
       "id": 491,
       "type": "PreviewAny",
       "pos": [
         11700,
-        6430
+        6330
       ],
       "size": [
         220,
@@ -993,14 +947,16 @@
         "Node name for S&R": "PreviewAny"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 492,
       "type": "PreviewAny",
       "pos": [
         11660,
-        6670
+        6570
       ],
       "size": [
         260,
@@ -1030,18 +986,20 @@
         "Node name for S&R": "PreviewAny"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 493,
       "type": "Note",
       "pos": [
         10500,
-        6430
+        6330
       ],
       "size": [
         300,
-        370
+        270
       ],
       "flags": {},
       "order": 8,
@@ -1064,7 +1022,7 @@
       "type": "RPLoadImagesFromFolder",
       "pos": [
         8800,
-        6430
+        6330
       ],
       "size": [
         300,
@@ -1115,14 +1073,16 @@
       ],
       "widgets_values_named": {
         "images_folder": "rp_examples/images"
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 495,
       "type": "ImageScaleBy",
       "pos": [
         9200,
-        6510
+        6410
       ],
       "size": [
         220,
@@ -1159,14 +1119,16 @@
       "widgets_values_named": {
         "upscale_method": "nearest-exact",
         "scale_by": 0.5
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 496,
       "type": "RPSaveImageToFolder",
       "pos": [
         9500,
-        6430
+        6330
       ],
       "size": [
         300,
@@ -1217,21 +1179,23 @@
         "output_folder": "rp_examples/no_loop",
         "clear_output_folder": false,
         "overwrite": true
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 497,
       "type": "PreviewImage",
       "pos": [
         9900,
-        6430
+        6330
       ],
       "size": [
         300,
         270
       ],
       "flags": {},
-      "order": 68,
+      "order": 67,
       "mode": 0,
       "inputs": [
         {
@@ -1251,21 +1215,23 @@
         "cnr_id": "comfy-core",
         "ver": "0.39.0",
         "Node name for S&R": "PreviewImage"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 498,
       "type": "PreviewAny",
       "pos": [
         9500,
-        6670
+        6570
       ],
       "size": [
         300,
         130
       ],
       "flags": {},
-      "order": 69,
+      "order": 68,
       "mode": 0,
       "inputs": [
         {
@@ -1288,18 +1254,20 @@
         "Node name for S&R": "PreviewAny"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 499,
       "type": "Note",
       "pos": [
         8300,
-        6430
+        6330
       ],
       "size": [
         400,
-        370
+        270
       ],
       "flags": {},
       "order": 10,
@@ -1322,7 +1290,7 @@
       "type": "RPLoadImagesFromFolder",
       "pos": [
         6600,
-        6430
+        6330
       ],
       "size": [
         300,
@@ -1375,14 +1343,16 @@
       ],
       "widgets_values_named": {
         "images_folder": "rp_examples/images"
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 501,
       "type": "ImageScaleBy",
       "pos": [
         7000,
-        6510
+        6410
       ],
       "size": [
         210,
@@ -1419,14 +1389,16 @@
       "widgets_values_named": {
         "upscale_method": "nearest-exact",
         "scale_by": 0.5
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 502,
       "type": "RPSaveImagesToFolder",
       "pos": [
         7300,
-        6430
+        6330
       ],
       "size": [
         300,
@@ -1487,21 +1459,23 @@
         "output_folder": "rp_examples/folder_batch",
         "clear_output_folder": false,
         "overwrite": true
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 503,
       "type": "PreviewAny",
       "pos": [
         7700,
-        6630
+        6530
       ],
       "size": [
         300,
         130
       ],
       "flags": {},
-      "order": 71,
+      "order": 70,
       "mode": 0,
       "inputs": [
         {
@@ -1524,21 +1498,23 @@
         "Node name for S&R": "PreviewAny"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 504,
       "type": "PreviewAny",
       "pos": [
         7700,
-        6430
+        6330
       ],
       "size": [
         300,
         130
       ],
       "flags": {},
-      "order": 70,
+      "order": 69,
       "mode": 0,
       "inputs": [
         {
@@ -1561,18 +1537,20 @@
         "Node name for S&R": "PreviewAny"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 505,
       "type": "Note",
       "pos": [
         6100,
-        6430
+        6330
       ],
       "size": [
         420,
-        370
+        270
       ],
       "flags": {},
       "order": 12,
@@ -1595,7 +1573,7 @@
       "type": "RPVideoToFrames",
       "pos": [
         6500,
-        7230
+        7130
       ],
       "size": [
         400,
@@ -1658,14 +1636,16 @@
         "replace_existing_frames": true,
         "clear_processed_frames": false,
         "upload": "image"
-      }
+      },
+      "color": "#223",
+      "bgcolor": "#335"
     },
     {
       "id": 511,
       "type": "ImageScaleBy",
       "pos": [
         7000,
-        7230
+        7130
       ],
       "size": [
         210,
@@ -1702,14 +1682,16 @@
       "widgets_values_named": {
         "upscale_method": "nearest-exact",
         "scale_by": 0.5
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 512,
       "type": "RPFramesToVideo",
       "pos": [
         7300,
-        7230
+        7130
       ],
       "size": [
         300,
@@ -1772,21 +1754,23 @@
         "crf": 19,
         "copy_original_audio": true,
         "overwrite": false
-      }
+      },
+      "color": "#223",
+      "bgcolor": "#335"
     },
     {
       "id": 513,
       "type": "PreviewAny",
       "pos": [
         7700,
-        7230
+        7130
       ],
       "size": [
         300,
         170
       ],
       "flags": {},
-      "order": 72,
+      "order": 71,
       "mode": 0,
       "inputs": [
         {
@@ -1809,18 +1793,20 @@
         "Node name for S&R": "PreviewAny"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355"
     },
     {
       "id": 514,
       "type": "Note",
       "pos": [
         6100,
-        7230
+        7130
       ],
       "size": [
         300,
-        370
+        270
       ],
       "flags": {},
       "order": 14,
@@ -1880,7 +1866,9 @@
       "widgets_values_named": {
         "image": "example.png",
         "upload": "image"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 516,
@@ -1924,7 +1912,9 @@
       "widgets_values_named": {
         "upscale_method": "nearest-exact",
         "scale_by": 0.5
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 517,
@@ -2020,7 +2010,9 @@
             }
           ]
         }
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 518,
@@ -2031,7 +2023,7 @@
       ],
       "size": [
         300,
-        370
+        270
       ],
       "flags": {},
       "order": 16,
@@ -2041,10 +2033,10 @@
       "title": "RP Image Comparer",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nCompares two images in the same preview to check differences between an original and a processed result. Supports wipe, click and side-by-side views, and downloads either image. The images output returns image_a unchanged.\n\nITALIANO\n\nConfronta due immagini nella stessa anteprima per verificare le differenze tra un originale e il risultato elaborato. Offre confronto a scorrimento, a clic e affiancato, e permette di scaricare entrambe le immagini. L'uscita images restituisce image_a invariata."
+        "ENGLISH\n\nCompares two images in the same preview to check differences between an original and a processed result. Supports wipe, click and side-by-side views, and downloads either image.\n\nITALIANO\n\nConfronta due immagini nella stessa anteprima per verificare le differenze tra un originale e il risultato elaborato. Offre confronto a scorrimento, a clic e affiancato, e permette di scaricare entrambe le immagini."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nCompares two images in the same preview to check differences between an original and a processed result. Supports wipe, click and side-by-side views, and downloads either image. The images output returns image_a unchanged.\n\nITALIANO\n\nConfronta due immagini nella stessa anteprima per verificare le differenze tra un originale e il risultato elaborato. Offre confronto a scorrimento, a clic e affiancato, e permette di scaricare entrambe le immagini. L'uscita images restituisce image_a invariata."
+        "text": "ENGLISH\n\nCompares two images in the same preview to check differences between an original and a processed result. Supports wipe, click and side-by-side views, and downloads either image.\n\nITALIANO\n\nConfronta due immagini nella stessa anteprima per verificare le differenze tra un originale e il risultato elaborato. Offre confronto a scorrimento, a clic e affiancato, e permette di scaricare entrambe le immagini."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2090,7 +2082,9 @@
       "widgets_values_named": {
         "image": "example.png",
         "upload": "image"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 520,
@@ -2134,7 +2128,9 @@
         "display_name": "rp_preview",
         "save_name": "%display_name-date:yyyy-MM-dd_HHmmss%",
         "rp_preview_image": null
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 521,
@@ -2145,7 +2141,7 @@
       ],
       "size": [
         300,
-        370
+        170
       ],
       "flags": {},
       "order": 18,
@@ -2155,10 +2151,10 @@
       "title": "RP Preview Image",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nDisplays an image or batch with its dimensions and aspect ratio. Use it to inspect results and download them as PNG files with a chosen name. The images output passes the input through unchanged.\n\nITALIANO\n\nMostra un'immagine o un batch con dimensioni e proporzioni. Serve a controllare i risultati e scaricarli come PNG con un nome scelto. L'uscita images restituisce l'immagine ricevuta senza modificarla."
+        "ENGLISH\n\nDisplays an image or batch with its dimensions and aspect ratio. Use it to inspect results and download them as PNG files with a chosen name.\n\nITALIANO\n\nMostra un'immagine o un batch con dimensioni e proporzioni. Serve a controllare i risultati e scaricarli come PNG con un nome scelto."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nDisplays an image or batch with its dimensions and aspect ratio. Use it to inspect results and download them as PNG files with a chosen name. The images output passes the input through unchanged.\n\nITALIANO\n\nMostra un'immagine o un batch con dimensioni e proporzioni. Serve a controllare i risultati e scaricarli come PNG con un nome scelto. L'uscita images restituisce l'immagine ricevuta senza modificarla."
+        "text": "ENGLISH\n\nDisplays an image or batch with its dimensions and aspect ratio. Use it to inspect results and download them as PNG files with a chosen name.\n\nITALIANO\n\nMostra un'immagine o un batch con dimensioni e proporzioni. Serve a controllare i risultati e scaricarli come PNG con un nome scelto."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2168,7 +2164,7 @@
       "type": "RPImportWorkflow",
       "pos": [
         11400,
-        4830
+        4730
       ],
       "size": [
         300,
@@ -2195,18 +2191,20 @@
         "placement": "right",
         "gap": 160,
         "group_import": true
-      }
+      },
+      "color": "#223",
+      "bgcolor": "#335"
     },
     {
       "id": 523,
       "type": "Note",
       "pos": [
         11000,
-        4830
+        4730
       ],
       "size": [
         300,
-        370
+        270
       ],
       "flags": {},
       "order": 20,
@@ -2216,10 +2214,10 @@
       "title": "RP Import Workflow",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nAdds one or more saved workflows to the current canvas while keeping existing nodes and valid connections. Use it to combine workflow branches without replacing the workflow already open. Source files are unchanged; no queue execution is needed.\n\nITALIANO\n\nAggiunge uno o più workflow salvati al canvas corrente, mantenendo nodi e collegamenti validi già presenti. Serve a unire parti di workflow senza sostituire quello aperto. I file sorgenti restano invariati e non serve avviare la coda."
+        "ENGLISH\n\nAdds one or more saved workflows to the current canvas while keeping existing nodes and valid connections. Use it to combine workflow branches without replacing the workflow already open.\n\nITALIANO\n\nAggiunge uno o più workflow salvati al canvas corrente, mantenendo nodi e collegamenti validi già presenti. Serve a unire parti di workflow senza sostituire quello aperto."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nAdds one or more saved workflows to the current canvas while keeping existing nodes and valid connections. Use it to combine workflow branches without replacing the workflow already open. Source files are unchanged; no queue execution is needed.\n\nITALIANO\n\nAggiunge uno o più workflow salvati al canvas corrente, mantenendo nodi e collegamenti validi già presenti. Serve a unire parti di workflow senza sostituire quello aperto. I file sorgenti restano invariati e non serve avviare la coda."
+        "text": "ENGLISH\n\nAdds one or more saved workflows to the current canvas while keeping existing nodes and valid connections. Use it to combine workflow branches without replacing the workflow already open.\n\nITALIANO\n\nAggiunge uno o più workflow salvati al canvas corrente, mantenendo nodi e collegamenti validi già presenti. Serve a unire parti di workflow senza sostituire quello aperto."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2229,7 +2227,7 @@
       "type": "RPFixWorkflow",
       "pos": [
         10400,
-        4830
+        4730
       ],
       "size": [
         300,
@@ -2246,18 +2244,20 @@
         "Node name for S&R": "RPFixWorkflow"
       },
       "widgets_values": [],
-      "widgets_values_named": {}
+      "widgets_values_named": {},
+      "color": "#223",
+      "bgcolor": "#335"
     },
     {
       "id": 525,
       "type": "Note",
       "pos": [
         10000,
-        4830
+        4730
       ],
       "size": [
         300,
-        370
+        270
       ],
       "flags": {},
       "order": 22,
@@ -2280,11 +2280,11 @@
       "type": "Note",
       "pos": [
         8300,
-        7230
+        7130
       ],
       "size": [
         400,
-        370
+        270
       ],
       "flags": {},
       "order": 23,
@@ -2307,7 +2307,7 @@
       "type": "PreviewImage",
       "pos": [
         11600,
-        4030
+        3930
       ],
       "size": [
         300,
@@ -2334,18 +2334,20 @@
         "cnr_id": "comfy-core",
         "ver": "0.39.0",
         "Node name for S&R": "PreviewImage"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 540,
       "type": "Note",
       "pos": [
         8300,
-        4830
+        4730
       ],
       "size": [
         700,
-        270
+        170
       ],
       "flags": {},
       "order": 24,
@@ -2355,10 +2357,10 @@
       "title": "RP Groups Muter",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nMutes or enables whole workflow groups. Each row controls one group; Mute all / Unmute all controls all listed groups. Hide nested groups hides child rows while their nodes remain controlled by the outer group. Works without running the queue.\n\nITALIANO\n\nDisattiva o attiva interi gruppi del workflow. Ogni riga controlla un gruppo; Mute all / Unmute all controlla tutti quelli elencati. Hide nested groups nasconde le righe dei sottogruppi, i cui nodi restano controllati dal gruppo esterno. Funziona senza avviare la coda."
+        "ENGLISH\n\nMutes or enables whole workflow groups. Each row controls one group; Mute all / Unmute all controls all listed groups. Hide nested groups hides child rows while their nodes remain controlled by the outer group.\n\nITALIANO\n\nDisattiva o attiva interi gruppi del workflow. Ogni riga controlla un gruppo; Mute all / Unmute all controlla tutti quelli elencati. Hide nested groups nasconde le righe dei sottogruppi, i cui nodi restano controllati dal gruppo esterno."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nMutes or enables whole workflow groups. Each row controls one group; Mute all / Unmute all controls all listed groups. Hide nested groups hides child rows while their nodes remain controlled by the outer group. Works without running the queue.\n\nITALIANO\n\nDisattiva o attiva interi gruppi del workflow. Ogni riga controlla un gruppo; Mute all / Unmute all controlla tutti quelli elencati. Hide nested groups nasconde le righe dei sottogruppi, i cui nodi restano controllati dal gruppo esterno. Funziona senza avviare la coda."
+        "text": "ENGLISH\n\nMutes or enables whole workflow groups. Each row controls one group; Mute all / Unmute all controls all listed groups. Hide nested groups hides child rows while their nodes remain controlled by the outer group.\n\nITALIANO\n\nDisattiva o attiva interi gruppi del workflow. Ogni riga controlla un gruppo; Mute all / Unmute all controlla tutti quelli elencati. Hide nested groups nasconde le righe dei sottogruppi, i cui nodi restano controllati dal gruppo esterno."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2368,7 +2370,7 @@
       "type": "EmptyImage",
       "pos": [
         6600,
-        4830
+        4730
       ],
       "size": [
         300,
@@ -2387,7 +2389,6 @@
           ]
         }
       ],
-      "title": "Example image / Immagine esempio",
       "properties": {
         "cnr_id": "comfy-core",
         "ver": "0.39.0",
@@ -2404,14 +2405,16 @@
         "height": 512,
         "batch_size": 1,
         "color": 4487065
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 543,
       "type": "ImageScaleBy",
       "pos": [
         6600,
-        5130
+        5030
       ],
       "size": [
         300,
@@ -2450,14 +2453,16 @@
       "widgets_values_named": {
         "upscale_method": "nearest-exact",
         "scale_by": 0.5
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 545,
       "type": "ImageInvert",
       "pos": [
         6600,
-        5030
+        4930
       ],
       "size": [
         170,
@@ -2490,21 +2495,23 @@
         "cnr_id": "comfy-core",
         "ver": "0.39.0",
         "Node name for S&R": "ImageInvert"
-      }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     },
     {
       "id": 546,
       "type": "PreviewImage",
       "pos": [
         7400,
-        4830
+        4730
       ],
       "size": [
-        300,
-        270
+        400,
+        370
       ],
       "flags": {},
-      "order": 73,
+      "order": 72,
       "mode": 0,
       "inputs": [
         {
@@ -2520,26 +2527,27 @@
           "links": null
         }
       ],
-      "title": "Result / Risultato",
       "properties": {
         "cnr_id": "comfy-core",
         "ver": "0.39.0",
         "Node name for S&R": "PreviewImage"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 547,
       "type": "RPBypasser",
       "pos": [
         7000,
-        4830
+        4730
       ],
       "size": [
-        360,
-        118
+        300,
+        120
       ],
       "flags": {},
-      "order": 74,
+      "order": 73,
       "mode": 0,
       "inputs": [
         {
@@ -2572,11 +2580,11 @@
       "type": "Note",
       "pos": [
         6100,
-        4830
+        4730
       ],
       "size": [
         400,
-        370
+        170
       ],
       "flags": {},
       "order": 26,
@@ -2586,10 +2594,10 @@
       "title": "RP Bypasser",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nEnables or bypasses the processing nodes connected to it. Each row controls one node; Bypass all / Enable all controls all connected nodes together. The controls follow the actual node modes and work without running the queue.\n\nITALIANO\n\nAttiva o mette in bypass i nodi di elaborazione collegati. Ogni riga controlla un nodo; Bypass all / Enable all li controlla tutti insieme. I controlli seguono lo stato reale dei nodi e funzionano senza avviare la coda."
+        "ENGLISH\n\nEnables or bypasses the processing nodes connected to it. Each row controls one node; Bypass all / Enable all controls all connected nodes together.\n\nITALIANO\n\nAttiva o mette in bypass i nodi di elaborazione collegati. Ogni riga controlla un nodo; Bypass all / Enable all li controlla tutti insieme."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nEnables or bypasses the processing nodes connected to it. Each row controls one node; Bypass all / Enable all controls all connected nodes together. The controls follow the actual node modes and work without running the queue.\n\nITALIANO\n\nAttiva o mette in bypass i nodi di elaborazione collegati. Ogni riga controlla un nodo; Bypass all / Enable all li controlla tutti insieme. I controlli seguono lo stato reale dei nodi e funzionano senza avviare la coda."
+        "text": "ENGLISH\n\nEnables or bypasses the processing nodes connected to it. Each row controls one node; Bypass all / Enable all controls all connected nodes together.\n\nITALIANO\n\nAttiva o mette in bypass i nodi di elaborazione collegati. Ogni riga controlla un nodo; Bypass all / Enable all li controlla tutti insieme."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2599,7 +2607,7 @@
       "type": "LoadImage",
       "pos": [
         6700,
-        5630
+        5530
       ],
       "size": [
         400,
@@ -2635,14 +2643,16 @@
       "widgets_values_named": {
         "image": "#1-2026-10-19_232918.jpg",
         "upload": "image"
-      }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 550,
       "type": "Label (rgthree)",
       "pos": [
         6930,
-        5540
+        5440
       ],
       "size": [
         100.7109375,
@@ -2675,7 +2685,7 @@
       "type": "RPFaceDetection",
       "pos": [
         7200,
-        5630
+        5530
       ],
       "size": [
         300,
@@ -2792,14 +2802,14 @@
       "type": "BatchUncrop",
       "pos": [
         8000,
-        5780
+        5680
       ],
       "size": [
         300,
         220
       ],
       "flags": {},
-      "order": 75,
+      "order": 74,
       "mode": 0,
       "inputs": [
         {
@@ -2857,7 +2867,7 @@
       "type": "LayerColor: ColorTemperature",
       "pos": [
         7600,
-        5940
+        5840
       ],
       "size": [
         300,
@@ -2900,14 +2910,14 @@
       "type": "PreviewImage",
       "pos": [
         8400,
-        5730
+        5530
       ],
       "size": [
-        300,
-        270
+        400,
+        370
       ],
       "flags": {},
-      "order": 76,
+      "order": 75,
       "mode": 0,
       "inputs": [
         {
@@ -2929,19 +2939,19 @@
         "Node name for S&R": "PreviewImage",
         "widget_ue_connectable": {}
       },
-      "color": "#223",
-      "bgcolor": "#335"
+      "color": "#375570",
+      "bgcolor": "#23415c"
     },
     {
       "id": 555,
       "type": "MaskPreview",
       "pos": [
         7600,
-        5630
+        5530
       ],
       "size": [
-        210,
-        260
+        200,
+        170
       ],
       "flags": {},
       "order": 66,
@@ -2964,14 +2974,16 @@
         "cnr_id": "comfy-core",
         "ver": "0.39.0",
         "Node name for S&R": "MaskPreview"
-      }
+      },
+      "color": "#232",
+      "bgcolor": "#353"
     },
     {
       "id": 556,
       "type": "RPGroupsMuter",
       "pos": [
         9100,
-        4800
+        4700
       ],
       "size": [
         600,
@@ -2991,7 +3003,9 @@
         "matchColors": "",
         "showNav": true,
         "sort": "position"
-      }
+      },
+      "color": "#322",
+      "bgcolor": "#533"
     },
     {
       "id": 559,
@@ -3002,7 +3016,7 @@
       ],
       "size": [
         600,
-        470
+        448
       ],
       "flags": {},
       "order": 30,
@@ -3018,18 +3032,20 @@
         "matchColors": "",
         "showNav": true,
         "sort": "position"
-      }
+      },
+      "color": "#322",
+      "bgcolor": "#533"
     },
     {
       "id": 560,
       "type": "Note",
       "pos": [
         6100,
-        5630
+        5530
       ],
       "size": [
         500,
-        370
+        270
       ],
       "flags": {},
       "order": 31,
@@ -3052,7 +3068,7 @@
       "type": "Label (rgthree)",
       "pos": [
         6000,
-        5400
+        5300
       ],
       "size": [
         629.71875,
@@ -3084,7 +3100,7 @@
       "type": "Label (rgthree)",
       "pos": [
         6000,
-        4600
+        4500
       ],
       "size": [
         713.0625,
@@ -3148,7 +3164,7 @@
       "type": "Label (rgthree)",
       "pos": [
         6000,
-        3800
+        3700
       ],
       "size": [
         1083.234375,
@@ -3180,7 +3196,7 @@
       "type": "Label (rgthree)",
       "pos": [
         6000,
-        7000
+        6900
       ],
       "size": [
         1006.78125,
@@ -3212,7 +3228,7 @@
       "type": "Label (rgthree)",
       "pos": [
         6000,
-        6200
+        6100
       ],
       "size": [
         1024.546875,
@@ -3244,7 +3260,7 @@
       "type": "Label (rgthree)",
       "pos": [
         8200,
-        7000
+        6900
       ],
       "size": [
         976.21875,
@@ -3270,6 +3286,44 @@
       },
       "color": "#fff0",
       "bgcolor": "#fff0"
+    },
+    {
+      "id": 571,
+      "type": "MaskPreview",
+      "pos": [
+        9900,
+        3930
+      ],
+      "size": [
+        300,
+        370
+      ],
+      "flags": {},
+      "order": 56,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 600
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.42.0",
+        "Node name for S&R": "MaskPreview"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {},
+      "color": "#232",
+      "bgcolor": "#353"
     }
   ],
   "links": [
@@ -3342,22 +3396,6 @@
       475,
       0,
       476,
-      0,
-      "IMAGE"
-    ],
-    [
-      504,
-      475,
-      6,
-      477,
-      0,
-      "MASK"
-    ],
-    [
-      505,
-      477,
-      0,
-      478,
       0,
       "IMAGE"
     ],
@@ -3672,6 +3710,14 @@
       547,
       1,
       "IMAGE"
+    ],
+    [
+      600,
+      475,
+      6,
+      571,
+      0,
+      "MASK"
     ]
   ],
   "groups": [
@@ -3680,7 +3726,7 @@
       "title": "RP Smart Image Size",
       "bounding": [
         6000,
-        3900,
+        3800,
         2100,
         600
       ],
@@ -3692,7 +3738,7 @@
       "title": "RP Smart Image Resize",
       "bounding": [
         8200,
-        3900,
+        3800,
         2100,
         600
       ],
@@ -3704,7 +3750,7 @@
       "title": "RP Image Minimum 1K",
       "bounding": [
         10400,
-        3900,
+        3800,
         1600,
         600
       ],
@@ -3716,7 +3762,7 @@
       "title": "RP Load Images from Folder & RP Save Images to Folder",
       "bounding": [
         6000,
-        6300,
+        6200,
         2100,
         600
       ],
@@ -3728,7 +3774,7 @@
       "title": "RP Load Prompt from File",
       "bounding": [
         10400,
-        6300,
+        6200,
         1600,
         600
       ],
@@ -3740,7 +3786,7 @@
       "title": "RP Save Image to Folder (No Loop)",
       "bounding": [
         8200,
-        6300,
+        6200,
         2100,
         600
       ],
@@ -3752,7 +3798,7 @@
       "title": "RP Video to Frames & RP Frames to Video",
       "bounding": [
         6000,
-        7100,
+        7000,
         2100,
         600
       ],
@@ -3766,7 +3812,7 @@
         7500,
         3000,
         1800,
-        700
+        600
       ],
       "color": "#3f789e",
       "flags": {}
@@ -3778,7 +3824,7 @@
         6000,
         3000,
         1400,
-        700
+        600
       ],
       "color": "#3f789e",
       "flags": {}
@@ -3788,7 +3834,7 @@
       "title": "RP Import Workflow",
       "bounding": [
         10900,
-        4700,
+        4600,
         1100,
         600
       ],
@@ -3800,7 +3846,7 @@
       "title": "RP Fix Workflow",
       "bounding": [
         9900,
-        4700,
+        4600,
         900,
         600
       ],
@@ -3812,7 +3858,7 @@
       "title": "RP H3-Keyframes",
       "bounding": [
         8200,
-        7100,
+        7000,
         1700,
         600
       ],
@@ -3824,7 +3870,7 @@
       "title": "RP Groups Muter",
       "bounding": [
         8200,
-        4700,
+        4600,
         1600,
         600
       ],
@@ -3836,7 +3882,7 @@
       "title": "RP Bypasser",
       "bounding": [
         6000,
-        4700,
+        4600,
         2100,
         600
       ],
@@ -3848,8 +3894,8 @@
       "title": "RP Face Detection",
       "bounding": [
         6000,
-        5500,
-        2800,
+        5400,
+        2900,
         600
       ],
       "color": "#3f789e",
@@ -3859,10 +3905,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.11000000000000043,
+      "scale": 0.13310000000001324,
       "offset": [
-        367.0589197383812,
-        -1532.7330905525432
+        -3007.7799164879,
+        -1707.622915758201
       ]
     },
     "frontendVersion": "1.55.18",
@@ -3872,9 +3918,7 @@
     "VHS_KeepIntermediate": true
   },
   "extensions": {
-    "seed_widgets": {
-      "445": 0
-    }
+    "seed_widgets": {}
   },
   "version": 0.4,
   "seed_widgets": {}
