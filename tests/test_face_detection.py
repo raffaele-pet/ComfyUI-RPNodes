@@ -127,18 +127,19 @@ class FacePipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no face detected in image 1"):
             face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)))
 
-    def test_padding_toggle_keeps_old_widget_positions_and_defaults_to_false(self):
+    def test_padding_menu_keeps_old_widget_positions_and_defaults_to_none(self):
         inputs = face_detection.RPFaceDetection.INPUT_TYPES()
         self.assertEqual(list(inputs["required"])[1:], [
             "model_name", "width", "height", "scale", "square", "show_advanced",
             "threshold", "dilation", "crop_factor", "drop_size", "crop_size_mult", "bbox_smooth_alpha",
         ])
-        self.assertIs(inputs["optional"]["pad_outside_image"][1]["default"], False)
+        self.assertEqual(inputs["optional"]["pad_outside_image"][0], ["none", "pad", "pad_edge", "pad_edge_pixel"])
+        self.assertEqual(inputs["optional"]["pad_outside_image"][1]["default"], "none")
 
     def test_padding_updates_source_crop_and_mask_for_each_face(self):
         image = torch.rand((2, 80, 100, 3))
         node = face_detection.RPFaceDetection()
-        output = node.detect(image, square=True, scale=4, pad_outside_image=True)
+        output = node.detect(image, square=True, scale=4, pad_outside_image="pad")
         self.assertEqual(tuple(map(len, output)), (4,) * 8)
         for face in range(4):
             original, crop, boxes, width, height, mask = (slot[face] for slot in output[:6])
@@ -154,7 +155,7 @@ class FacePipelineTests(unittest.TestCase):
         image = torch.rand((1, 80, 100, 3))
         node = face_detection.RPFaceDetection()
         default = node.detect(image)
-        padded = node.detect(image, pad_outside_image=True)
+        padded = node.detect(image, pad_outside_image="pad")
         for slot in range(8):
             for old, new in zip(default[slot], padded[slot]):
                 if isinstance(old, torch.Tensor):
@@ -172,7 +173,7 @@ class FacePipelineTests(unittest.TestCase):
 
     def test_image_area_masks_mark_each_faces_padding_and_match_crop_coordinates(self):
         image = torch.zeros((2, 80, 100, 3))
-        output = face_detection.RPFaceDetection().detect(image, square=True, scale=4, pad_outside_image=True)
+        output = face_detection.RPFaceDetection().detect(image, square=True, scale=4, pad_outside_image="pad")
         for face in range(4):
             area_mask = output[6][face]
             crop_mask = output[7][face]
@@ -194,13 +195,75 @@ class FacePipelineTests(unittest.TestCase):
 
     def test_top_padding_is_a_black_strip_above_white_image_area(self):
         self.mapping["ImpactSEGSToMaskList"] = lambda: types.SimpleNamespace(doit=lambda segs: ([rectangle(top=0)],))
-        output = face_detection.RPFaceDetection().detect(torch.zeros((1, 80, 100, 3)), square=True, scale=2, pad_outside_image=True)
+        output = face_detection.RPFaceDetection().detect(torch.zeros((1, 80, 100, 3)), square=True, scale=2, pad_outside_image="pad")
         self.assertEqual(output[6][0].shape, (1, 106, 100))
         self.assertTrue(torch.all(output[6][0][:, :26] == 0).item())
         self.assertTrue(torch.all(output[6][0][:, 26:] == 1).item())
         self.assertEqual(output[7][0].shape, (1, 60, 60))
         self.assertTrue(torch.all(output[7][0][:, :26] == 0).item())
         self.assertTrue(torch.all(output[7][0][:, 26:] == 1).item())
+
+    def test_fill_modes_preserve_both_area_masks_and_bbox_geometry(self):
+        image = torch.rand((1, 80, 100, 3)) + 0.1
+        node = face_detection.RPFaceDetection()
+        black = node.detect(image, square=True, scale=4, pad_outside_image="pad")
+        for mode in ("pad_edge", "pad_edge_pixel"):
+            with self.subTest(mode=mode):
+                output = node.detect(image, square=True, scale=4, pad_outside_image=mode)
+                for slot in range(2, 8):
+                    for reference, actual in zip(black[slot], output[slot]):
+                        if isinstance(reference, torch.Tensor):
+                            torch.testing.assert_close(reference, actual, rtol=0, atol=0)
+                        else:
+                            self.assertEqual(reference, actual)
+                for face in range(2):
+                    added_area = output[6][face] == 0
+                    self.assertTrue(torch.all(output[0][face][added_area] > 0).item())
+
+    def test_old_toggle_values_retain_behavior_and_pass_prompt_validation(self):
+        image = torch.rand((1, 80, 100, 3))
+        node = face_detection.RPFaceDetection()
+        for old, mode in ((False, "none"), (True, "pad")):
+            self.assertIs(node.VALIDATE_INPUTS(old), True)
+            legacy = node.detect(image, square=True, scale=4, pad_outside_image=old)
+            current = node.detect(image, square=True, scale=4, pad_outside_image=mode)
+            for slot in range(8):
+                for reference, actual in zip(legacy[slot], current[slot]):
+                    if isinstance(reference, torch.Tensor):
+                        torch.testing.assert_close(reference, actual, rtol=0, atol=0)
+                    else:
+                        self.assertEqual(reference, actual)
+        self.assertIsNot(node.VALIDATE_INPUTS("unknown"), True)
+
+
+class FacePaddingFillTests(unittest.TestCase):
+    def test_edge_pixel_extends_each_pixel_including_corners_and_large_padding(self):
+        image = torch.arange(2 * 2 * 3 * 3, dtype=torch.float64).reshape(2, 2, 3, 3) / 100
+        output = face_detection.pad_image(image, (4, 5, 6, 7), "pad_edge_pixel")
+        self.assertEqual(output.shape, (2, 15, 12, 3))
+        self.assertEqual(output.dtype, image.dtype)
+        torch.testing.assert_close(output[:, 6:8, 4:7], image, rtol=0, atol=0)
+        torch.testing.assert_close(output[:, 0, 4:7], image[:, 0], rtol=0, atol=0)
+        torch.testing.assert_close(output[:, -1, 4:7], image[:, -1], rtol=0, atol=0)
+        torch.testing.assert_close(output[:, 6:8, 0], image[:, :, 0], rtol=0, atol=0)
+        torch.testing.assert_close(output[:, 0, 0], image[:, 0, 0], rtol=0, atol=0)
+        torch.testing.assert_close(output[:, -1, -1], image[:, -1, -1], rtol=0, atol=0)
+
+    def test_edge_fill_uses_each_edges_mean_color(self):
+        image = torch.arange(2 * 2 * 3 * 3, dtype=torch.float64).reshape(2, 2, 3, 3) / 100
+        output = face_detection.pad_image(image, (4, 5, 6, 7), "pad_edge")
+        torch.testing.assert_close(output[:, 6:8, 4:7], image, rtol=0, atol=0)
+        torch.testing.assert_close(output[:, 0, 4:7], image[:, 0].mean(1, keepdim=True).expand(-1, 3, -1))
+        torch.testing.assert_close(output[:, -1, 4:7], image[:, -1].mean(1, keepdim=True).expand(-1, 3, -1))
+        torch.testing.assert_close(output[:, 6:8, 0], image[:, :, 0].mean(1, keepdim=True).expand(-1, 2, -1))
+        torch.testing.assert_close(output[:, 0, 0], image[:, :, 0].mean(1))
+        torch.testing.assert_close(output[:, -1, -1], image[:, :, -1].mean(1))
+
+    def test_fill_modes_accept_one_pixel_images(self):
+        image = torch.tensor([[[[0.2, 0.4, 0.6]]]])
+        for mode in ("pad_edge", "pad_edge_pixel"):
+            output = face_detection.pad_image(image, (4, 5, 6, 7), mode)
+            torch.testing.assert_close(output, image.expand(1, 14, 10, 3), rtol=0, atol=0)
 
 
 class FaceCropAlignmentTests(unittest.TestCase):

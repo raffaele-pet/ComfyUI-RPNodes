@@ -87,15 +87,30 @@ test("visibility follows ComfyUI widget type restoration semantics", () => {
     assert.equal(widget.hidden, false);
 });
 
-test("padding toggle stays visible while advanced options are hidden", () => {
+test("padding menu stays visible while advanced options are hidden", () => {
     const node = fixture();
-    const padding = { name: "pad_outside_image", type: "toggle", value: true };
+    const padding = { name: "pad_outside_image", type: "combo", value: "pad_edge_pixel" };
     node.widgets.push(padding);
     context.configureAdvancedWidgets(node);
-    assert.equal(padding.type, "toggle");
+    assert.equal(padding.type, "combo");
     assert.equal(padding.hidden, undefined);
-    assert.equal(padding.value, true);
+    assert.equal(padding.value, "pad_edge_pixel");
     node.widgets[0].value = true;
     node.widgets[0].callback(true);
-    assert.equal(padding.value, true);
+    assert.equal(padding.value, "pad_edge_pixel");
+});
+
+test("old toggle values migrate when reopening and menu choices survive", () => {
+    function Node() {
+        Object.assign(this, fixture());
+        this.widgets.push({ name: "pad_outside_image", type: "combo", value: "none" });
+    }
+    Node.prototype.onConfigure = function (data) { this.widgets.at(-1).value = data.padding; };
+    extension.beforeRegisterNodeDef(Node, { name: "RPFaceDetection" });
+    for (const [saved, expected] of [[false, "none"], [true, "pad"], ["none", "none"], ["pad", "pad"], ["pad_edge", "pad_edge"], ["pad_edge_pixel", "pad_edge_pixel"]]) {
+        const node = new Node();
+        node.onNodeCreated();
+        node.onConfigure({ padding: saved });
+        assert.equal(node.widgets.at(-1).value, expected);
+    }
 });

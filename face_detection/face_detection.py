@@ -3,6 +3,7 @@ import torch
 
 
 DEFAULT_MODEL = "bbox/face_yolov8m.pt"
+PADDING_MODES = ["none", "pad", "pad_edge", "pad_edge_pixel"]
 DEPENDENCIES = {
     "UltralyticsDetectorProvider": "ComfyUI Impact Subpack",
     "BboxDetectorSEGS": "ComfyUI Impact Pack",
@@ -69,14 +70,33 @@ def face_padding(mask, crop_size_mult, bbox_smooth_alpha, width=0, height=0, sca
     )
 
 
+def pad_image(frame, padding, mode):
+    left, right, top, bottom = padding
+    if mode == "pad_edge_pixel":
+        return torch.nn.functional.pad(frame.movedim(-1, 1), padding, mode="replicate").movedim(1, -1)
+    if mode == "pad_edge":
+        batch, height, width, channels = frame.shape
+        output = frame.new_empty((batch, height + top + bottom, width + left + right, channels))
+        if top:
+            output[:, :top] = frame[:, 0].mean(dim=1, keepdim=True).unsqueeze(1)
+        if bottom:
+            output[:, top + height:] = frame[:, -1].mean(dim=1, keepdim=True).unsqueeze(1)
+        if left:
+            output[:, :, :left] = frame[:, :, 0].mean(dim=1, keepdim=True).unsqueeze(1)
+        if right:
+            output[:, :, left + width:] = frame[:, :, -1].mean(dim=1, keepdim=True).unsqueeze(1)
+        output[:, top:top + height, left:left + width] = frame
+        return output
+    return torch.nn.functional.pad(frame, (0, 0, left, right, top, bottom))
+
+
 def crop_face(mask, frame, crop_size_mult, bbox_smooth_alpha,
-              width=0, height=0, scale=1.0, square=False, padding=(0, 0, 0, 0)):
+              width=0, height=0, scale=1.0, square=False, padding=(0, 0, 0, 0), padding_mode="pad"):
     left, top, crop_width, crop_height = crop_geometry(mask, crop_size_mult, bbox_smooth_alpha, width, height, scale, square)
     if any(padding):
-        pad_left, pad_right, pad_top, pad_bottom = padding
-        frame = torch.nn.functional.pad(frame, (0, 0, pad_left, pad_right, pad_top, pad_bottom))
-        left += pad_left
-        top += pad_top
+        frame = pad_image(frame, padding, padding_mode)
+        left += padding[0]
+        top += padding[2]
     image_height, image_width = frame.shape[1:3]
     right, bottom = min(image_width, left + crop_width), min(image_height, top + crop_height)
     left, top = max(0, left), max(0, top)
@@ -121,8 +141,8 @@ class RPFaceDetection:
                 "bbox_smooth_alpha": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             },
             "optional": {
-                "pad_outside_image": ("BOOLEAN", {"default": False,
-                    "tooltip": "Add black padding to keep the entire mask and crop outside image borders. original_images, bboxes and bbox_masks use the expanded canvas."}),
+                "pad_outside_image": (PADDING_MODES, {"default": "none",
+                    "tooltip": "none: clip at image borders. pad: black fill. pad_edge: mean color of each edge. pad_edge_pixel: extend edge pixels. Area masks remain black on all padding."}),
             },
         }
 
@@ -133,10 +153,18 @@ class RPFaceDetection:
     CATEGORY = "RP/face_detection"
     DESCRIPTION = "Face detection, mask resizing and cropping in one node. BBOX coordinates connect to BatchUncrop; bbox_masks connects to MaskPreview."
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, pad_outside_image="none"):
+        if isinstance(pad_outside_image, bool) or pad_outside_image in PADDING_MODES:
+            return True
+        return "pad_outside_image must be none, pad, pad_edge or pad_edge_pixel."
+
     def detect(self, image, model_name=DEFAULT_MODEL, width=0, height=0, scale=1.0,
                square=False, show_advanced=False, threshold=0.5, dilation=10,
                crop_factor=1.5, drop_size=10, crop_size_mult=3.0, bbox_smooth_alpha=0.5,
-               pad_outside_image=False):
+               pad_outside_image="none"):
+        if isinstance(pad_outside_image, bool):
+            pad_outside_image = "pad" if pad_outside_image else "none"
         for name, package in DEPENDENCIES.items():
             if name not in nodes.NODE_CLASS_MAPPINGS:
                 raise RuntimeError(f"RP Face Detection requires {package} ({name}). Install it and restart ComfyUI.")
@@ -153,8 +181,8 @@ class RPFaceDetection:
             for mask in masks:
                 if not torch.any(mask > 0):
                     raise ValueError(f"RP Face Detection: no face detected in image {frame_index + 1}. Try a lower threshold or another detector model.")
-                padding = face_padding(mask, crop_size_mult, bbox_smooth_alpha, width, height, scale, square) if pad_outside_image else (0, 0, 0, 0)
-                cropped = crop_face(mask, frame, crop_size_mult, bbox_smooth_alpha, width, height, scale, square, padding)
+                padding = face_padding(mask, crop_size_mult, bbox_smooth_alpha, width, height, scale, square) if pad_outside_image != "none" else (0, 0, 0, 0)
+                cropped = crop_face(mask, frame, crop_size_mult, bbox_smooth_alpha, width, height, scale, square, padding, pad_outside_image)
                 mask = resize_bbox_mask(mask, width, height, scale, square, padding)
                 image_area_mask = frame.new_ones(frame.shape[:3], dtype=torch.float32)
                 if any(padding):

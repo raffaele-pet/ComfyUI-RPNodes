@@ -51,6 +51,8 @@ app.registerExtension({
         const onConfigure = nodeType.prototype.onConfigure;
         nodeType.prototype.onConfigure = function (...args) {
             const result = onConfigure?.apply(this, args);
+            const padding = this.widgets?.find((widget) => widget.name === "pad_outside_image");
+            if (typeof padding?.value === "boolean") padding.value = padding.value ? "pad" : "none";
             this.rpFaceAdvancedUpdate?.();
             return result;
         };

@@ -41,12 +41,18 @@ Models are loaded locally by the original provider.
   All sizes use the original detection's center and dimensions. Regions that
   extend beyond the image are clipped without moving their center. A requested
   square may therefore have only a rectangular portion visible at an edge.
-- `pad_outside_image` (default **off**) keeps the entire requested mask and
-  crop by adding black padding only where needed. The original detection stays
+- `pad_outside_image` offers **none** (default, clip at image borders), **pad**
+  (black padding), **pad_edge** (the mean color of each image edge), and
+  **pad_edge_pixel** (extend the individual edge pixels). These fill modes match
+  RP Smart Image Resize. Any padding mode keeps the entire requested mask and
+  crop by adding space only where needed. The original detection stays
   the reference; pixels are never scaled or stretched. `original_images` becomes
   the expanded canvas, and `bbox_masks` and `bboxes` use its updated coordinates.
   Connect this `original_images` output to **BatchUncrop** to retain alignment;
   the reconstructed image includes the padding. Padding is calculated per face.
+  Existing workflows with the old toggle retain their off/on behavior as
+  **none**/**pad**. Area masks remain black on all added padding, regardless of
+  its fill color.
 - `show_advanced` reveals `threshold` **0.5**, `dilation` **10**,
   `crop_factor` **1.5**, `drop_size` **10**, `crop_size_mult` **3.0**, and
   `bbox_smooth_alpha` **0.5**. Hiding them preserves their saved values.

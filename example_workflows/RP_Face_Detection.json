@@ -175,7 +175,7 @@
         10,
         3.0,
         0.5,
-        false
+        "none"
       ],
       "widgets_values_named": {
         "model_name": "bbox/face_yolov8m.pt",
@@ -190,7 +190,7 @@
         "drop_size": 10,
         "crop_size_mult": 3.0,
         "bbox_smooth_alpha": 0.5,
-        "pad_outside_image": false
+        "pad_outside_image": "none"
       },
       "color": "#223",
       "bgcolor": "#335"
