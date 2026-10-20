@@ -49,7 +49,7 @@ class ExampleWorkflowTests(unittest.TestCase):
                     self.assertIn(link, links)
 
     def test_face_group_has_bilingual_note_inside_its_bounds(self):
-        group = next(group for group in self.workflow["groups"] if group["title"] == "15 RP Face Detection")
+        group = next(group for group in self.workflow["groups"] if "face detection" in group["title"].lower())
         note = next(node for node in self.workflow["nodes"] if node["type"] == "Note" and node.get("title") == "RP Face Detection")
         self.assertIn("ENGLISH", note["widgets_values"][0])
         self.assertIn("ITALIANO", note["widgets_values"][0])

@@ -1,434 +1,205 @@
 # ComfyUI RPNodes
 
-A collection of utility nodes for ComfyUI:
+Utility nodes for ComfyUI, listed in the same order as the example workflow:
 
-- **Image sizing and resizing:** `RP Smart Image Size`, `RP Smart Image Resize`,
-  and `RP Image Minimum 1K`
-- **Image folder processing:** `RP Load Images from Folder`,
-  `RP Load Prompt from File`, `RP Save Image to Folder (No Loop)`, and
-  `RP Save Images to Folder`
-- **Image saving:** `RP Image Comparer` and `RP Preview Image`
-- **Face detection:** `RP Face Detection`
-- **Video frame processing:** `RP Video to Frames` and `RP Frames to Video`
-- **MiniMax H3 keyframing:** `RP H3-Keyframes`
-- **Workflow utilities:** `RP Import Workflow`, `RP Fix Workflow`,
-  `RP Groups Muter`, and `RP Bypasser`
-
-Python nodes are grouped in `image_sizing_and_resizing` and
-`video_frame_processing`, the folder-processing nodes in
-`image_folder_processing`, the keyframe node in `h3_keyframes`, and the workflow
-utilities in `workflow_utilities`. Shared
-browser extensions live under `web`. The complete example workflow is in
-`example_workflows`.
-
-## RP Face Detection
-
-Available under `RP/face_detection`, with Python code in `face_detection`.
-Combines **UltralyticsDetectorProvider → BBOX Detector (SEGS) →
-SEGS to Mask List → Batch Crop From Mask**, with corrected crop geometry for
-scaling and image borders. Requires **ComfyUI Impact Subpack** and
-**ComfyUI Impact Pack**; install **ComfyUI KJNodes** to use **BatchUncrop**.
-The model selector
-uses Impact Subpack's installed models, preferring `bbox/face_yolov8m.pt`.
-Models are loaded locally by the original provider.
-
-- `width` and `height` set the white mask rectangle's pixel dimensions;
-  **0** preserves the corresponding detected dimension.
-- `scale` multiplies those dimensions, default **1.0**. Fractional values
-  such as **1.1**, **1.2**, and **1.3** are supported.
-- `square` uses the longer original mask side for both sides. Explicit size
-  overrides then use the larger requested side, and scale is applied last.
-  All sizes use the original detection's center and dimensions. Regions that
-  extend beyond the image are clipped without moving their center. A requested
-  square may therefore have only a rectangular portion visible at an edge.
-- `pad_outside_image` offers **none** (default, clip at image borders), **pad**
-  (black padding), **pad_edge** (the mean color of each image edge), and
-  **pad_edge_pixel** (extend the individual edge pixels). These fill modes match
-  RP Smart Image Resize. Any padding mode keeps the entire requested mask and
-  crop by adding space only where needed. The original detection stays
-  the reference; pixels are never scaled or stretched. `original_images` becomes
-  the expanded canvas, and `bbox_masks` and `bboxes` use its updated coordinates.
-  Connect this `original_images` output to **BatchUncrop** to retain alignment;
-  the reconstructed image includes the padding. Padding is calculated per face.
-  Existing workflows with the old toggle retain their off/on behavior as
-  **none**/**pad**. Area masks remain black on all added padding, regardless of
-  its fill color.
-- `show_advanced` reveals `threshold` **0.5**, `dilation` **10**,
-  `crop_factor` **1.5**, `drop_size` **10**, `crop_size_mult` **3.0**, and
-  `bbox_smooth_alpha` **0.5**. Hiding them preserves their saved values.
-
-With width/height **0**, scale **1**, and square disabled, masks and crop sizing
-use the original workflow settings. The original crop multiplier and smoothing
-still affect the reference crop size; scale is applied to that original size.
-The crop is an exact slice of the source canvas, expanded first when padding
-is enabled: the crop pixels are never resized. `bboxes` describes that
-same slice, so **BatchUncrop** restores alignment at any scale, pixel size, or
-image border. The output `width`/`height` report the actual output crop size,
-not the white mask rectangle or the size requested outside the image.
-Very small crops retain at least two pixels per available axis to preserve
-RGB channels through KJNodes' image conversion.
-
-Outputs are `original_images`, `cropped_images`, `bboxes` (KJNodes BBOX
-coordinates), `width`, `height`, `bbox_masks` (white rectangles on black),
-`image_area_mask`, and `cropped_image_mask`.
-Connect the first three to **BatchUncrop** and `bbox_masks` to **MaskPreview**.
-`image_area_mask` matches `original_images`: original image pixels are white
-and added padding is black. `cropped_image_mask` shows the same valid image
-area for `cropped_images`, including any black padding inside the crop.
-Both masks are fully white when no padding is present, even for black source
-pixels. Connect either mask directly to **MaskPreview**.
-Outputs are lists, as in the original mask-list workflow: each detected face
-gets its own crop, source image, coordinates, and mask. Image batches are
-detected one image at a time. An image without detections reports a clear error.
-See group **15 RP Face Detection** in
-`example_workflows/RP_All_Nodes_Examples.json` for the complete example.
-
-## Workflow utilities
-
-All four nodes are available under `RP/workflow_utilities` and share the
-`workflow_utilities` Python directory and `web/js/workflow_utilities` browser
-extensions. Existing Import/Fix Workflow nodes keep their registered names.
-
-### RP Bypasser
-
-Connect an output from each node you want to control to RP Bypasser. A new
-empty input appears after each connection. Each connected row shows the
-source node's name and a **yes/no** toggle showing whether it is enabled.
-Clicking the toggle switches that source between enabled and ComfyUI's native
-bypass mode. **Bypass all** bypasses every connected source in one action.
-Once all sources are bypassed, the button becomes **Enable all** and clicking
-it enables them again. The label follows the actual modes, including manual
-changes and reopening. There is no output or repeater node to connect.
-
-Connecting, disconnecting, loading, and saving never change source node modes.
-The controls read those modes directly, so manual changes and RP Groups Muter
-stay in sync. Duplicate connections control the same source, and reroutes
-resolve to their actual source node. The controller is editor-only and does
-not execute in the queue. Native bypass passes compatible upstream data through;
-it does not replace nodes that have no compatible input with generated data.
-
-### RP Groups Muter
-
-Shows one **Enable** toggle per group in the node's graph, with **yes/no**
-indicating whether any node in that group is enabled. Click a row to mute or
-enable all its nodes, including notes, labels, reroutes, and editor controls
-such as RP Bypasser. The arrow navigates to the group. No node type is excluded.
-
-The first toggle, **Hide nested groups**, is on by default: groups completely
-contained in another group are hidden from the list, while their nodes remain
-controlled by the outer group. Partially overlapping groups stay listed. Turn
-it off to list all groups. This setting is saved with the workflow.
-
-The bottom **Mute all** button mutes all matching groups in one action, then
-becomes **Unmute all** to enable them together. It follows the same title/color
-filters and **Hide nested groups** setting as the group rows. The label follows
-the actual node modes, including manual changes and other muters.
-
-The rows always read the actual node modes, including after manual changes,
-moving nodes, and reopening a saved workflow. Group toggle values are not saved as
-a separate source of state. No queue execution or rgthree service is needed.
-
-Use the node properties to configure `matchTitle` (text or regular expression),
-`matchColors` (comma-separated hex colors or ComfyUI color names), `sort`
-(`position` or `alphanumeric`), and `showNav`. Multiple muters stay synchronized,
-and groups with identical names remain independent. Group membership uses the
-center of each node; nested and overlapping groups reflect their shared nodes.
-
-### RP Fix Workflow
-
-Click **Fix workflow** to clean the current canvas, including its subgraphs.
-It removes links to missing nodes, stale input/output link references, and
-stale reroute references. Existing nodes, IDs, positions, groups, widget values,
-and valid connections are retained.
-
-A green notification reports the number of repaired links and references,
-or **Workflow is already clean** when no changes are needed. The node has no
-execution inputs or outputs and uses ComfyUI's standard layout.
-
-**Fix workflow** changes only the canvas. **Fix workflow and save** also saves
-directly under the current workflow name, overwriting its saved file without
-asking for another name. It saves even when no fixes are needed.
-The notification confirms saving only when it completes successfully.
-
-### RP Import Workflow
-
-Available under `RP/workflow_utilities`. Add the node to the main workflow canvas:
-
-- Select a JSON from `workflow` and click **Import saved workflow**. The list
-  reads the current ComfyUI user's `workflows` directory, including subfolders
-  (normally `ComfyUI/user/default/workflows`). **Refresh saved workflows**
-  updates the list after saving new workflows.
-- **Choose file to import** opens the browser's file picker for JSON files in
-  any folder. Multiple files can be selected and imported together.
-- `placement` adds imports to the right or below the existing workflow;
-  `gap` sets the spacing. `group_import` wraps each import in a named group.
-
-Imports happen immediately without running the queue or opening another tab.
-Existing node IDs and positions are retained; imported nodes, links, groups,
-native reroutes, and subgraph definitions receive independent IDs. Internal
-connections and widget values are preserved. Both Save-format v0.4 and v1 JSON
-are supported, including mixed-format imports. API-format prompts are not
-workflow files. Required custom nodes must be installed to run imported nodes.
-
-Stale links to deleted nodes, missing link references, and stale reroute
-references are discarded automatically so they do not block the import.
-All available nodes and valid connections are imported; source files are unchanged.
-
-Imports use ComfyUI's normal loading hooks for custom-node compatibility.
-During graph loading, legacy connection callbacks can use string node IDs;
-this also covers reopening the saved workflow.
-
-The imported nodes are selected. Use Fit View to see the complete canvas
-and save the combined workflow normally. The success notification shows only
-the number of imported nodes; no status text is displayed inside the node. The
-importer is an editor-only control with no execution inputs or outputs; it can
-be removed after importing. Source files are read only and files selected in
-the picker are processed in the browser.
-
-The merge logic is adapted from
-[`comfyui-workflow-merger`](https://github.com/raffaele-pet/comfyui-workflow-merger).
-Regression tests:
-`node --test tests/test_workflow_merge.mjs tests/test_workflow_load.mjs tests/test_workflow_fix.mjs tests/test_groups_muter.mjs tests/test_bypasser.mjs`.
+- [Image saving](#image-saving)
+- [Image sizing and resizing](#image-sizing-and-resizing)
+- [Workflow utilities](#workflow-utilities)
+- [Face detection](#face-detection)
+- [Image folder processing](#image-folder-processing)
+- [Video frame processing](#video-frame-processing)
+- [MiniMax H3 keyframes](#minimax-h3-keyframes)
 
 ## Image saving
 
-### RP Image Comparer
-
-Compares two images in the same node using the Image Comparer interaction from
-rgthree. In the default `Slide` mode, move the pointer over the preview to
-reveal either side. The `comparer_mode` property also provides `Click`, which
-switches between the two images on each click, and `Side-by-side`, which
-shows both images next to each other.
-
-The `Display name` field identifies the image or model and defaults to `#1`.
-The `Save name` field controls the browser-download filename and defaults to
-`%display_name-date:yyyy-MM-dd_HHmmss%`. For example, a display name of
-`qwen_image_2.1` produces a filename such as
-`qwen_image_2.1-2026-09-21_155258.png`.
-
-Right-click the left or right half of the preview and choose `Save Image` to
-download the corresponding image. If either input contains a batch, use the
-labels above the preview to select the two images to compare.
-The `images` output passes `image_a` through unchanged, including its full
-batch, so it can be connected to Preview Image or another processing node.
+Both nodes support a display name and a download filename template. Right-click
+the preview and choose **Save Image** to download a PNG.
 
 ### RP Preview Image
 
-Shows one image at a time, with its exact dimensions and aspect ratio below
-the preview. `Display name` and `Save name` use the same defaults and filename
-tokens as RP Image Comparer. Right-click and choose `Save Image` to download
-the displayed PNG. For a batch, use the arrows on the preview to switch images.
+Displays an image or image batch with its pixel dimensions and aspect ratio.
+Use it to inspect processing results and download them with a chosen filename.
+Its `images` output passes the input through unchanged.
+
+### RP Image Comparer
+
+Compares two images in one preview using a wipe, click, or side-by-side view.
+Use it to check differences between an original image and a processed version.
+Either image can be downloaded separately. The `images` output returns
+`image_a` unchanged, including its full batch.
+
+The default save-name template, `%display_name-date:yyyy-MM-dd_HHmmss%`, combines
+the display name with a timestamp. Custom templates also support
+`%display_name%` and `%date:...%`.
 
 ## Image sizing and resizing
 
-`RP Smart Image Size` and `RP Smart Image Resize` share the same model-aware
-resolution database and dependent controls.
+The smart image nodes share model-specific resolution and aspect-ratio presets.
+The catalog includes Boogu-Image-0.1, FireRed-Image-Edit-1.0, FLUX.2/3 Klein,
+HiDream-O1-Image, Ideogram 4, Krea 2, MOSS-Image, Qwen-Image, SDXL, and
+Z-Image-Turbo. New smart image nodes default to FLUX.3 Klein.
 
-### Supported models
-
-- Boogu-Image-0.1 Base / Edit
-- Boogu-Image-0.1 Turbo
-- FireRed-Image-Edit-1.0
-- FLUX.2 Klein
-- FLUX.3 Klein (default)
-- HiDream-O1-Image / Dev
-- Ideogram 4
-- Krea 2
-- MOSS-Image (Base / SFT)
-- Qwen-Image-2.1
-- Qwen-Image-2512
-- Qwen-Image-Edit-2511
-- SDXL
-- Z-Image-Turbo
-
-The resolution menus show the megapixel class, its K equivalent where
-applicable, and the corresponding square dimensions. Each model only exposes
-the resolution tiers it supports.
-
-New Smart Image Size and Smart Image Resize nodes default to `FLUX.3 Klein`.
-Its catalog includes 768, 1K, 1.5K, 2K and 4K square-reference classes, with
-21 aspect ratios on a 16-pixel grid. Presets use the same target pixel budgets
-as Set Reference Multi Latent: 0.5625, 1.0, 2.25, 4.0 and 16.0. Non-square
-4K presets can exceed 4096 pixels per side to retain the selected budget.
-
-`MOSS-Image (Base / SFT)` follows OpenMOSS's official Gradio sizing rule:
-1, 1.5 and 2 MP are recommended; 0.25 and 4 MP are extrapolation tiers.
-The model's pixel-budget unit is 1024² pixels. Square presets are respectively
-1024, 1248, 1456, 512 and 2048 pixels per side after rounding to the 16-pixel
-grid. The catalog provides 27 ratios, including OpenMOSS's 1:8 through 8:1
-presets; arbitrary ratios are supported by the model. These entries use the
-official sizing rule, not a published table of optimal dimensions.
-The `megapixels` output reports actual output area, including grid rounding.
+See [Smart image preset sources](./docs/smart-image-presets.md) for model
+variants, supported tiers, pixel-grid rounding, and megapixel conventions.
 
 ### RP Smart Image Size
 
-Selects a model, a supported resolution class, and an aspect-ratio preset. It
-is useful for configuring latent-image nodes, samplers, image generators, and
-other nodes that require explicit width and height values.
+Provides width, height, aspect ratio, resolution, and megapixels from a model's
+size presets. Use its outputs to configure image generation, latent dimensions,
+or other nodes that need an explicit image size.
 
-#### Outputs
-
-- `width` - selected width in pixels
-- `height` - selected height in pixels
-- `aspect_ratio_approx` - named preset ratio, such as `5:3`
-- `aspect_ratio` - exact ratio of the selected pixel dimensions, such as `41:25` for `1312 × 800`
-- `resolution` - numeric square-side resolution
-- `megapixels` - FLUX.3 Klein: selected target budget; other models:
-  exact pixel area in ComfyUI units (`width × height / 1024²`)
+`aspect_ratio` reports the exact ratio of the selected dimensions;
+`aspect_ratio_approx` identifies the preset ratio. For FLUX.3 Klein,
+`megapixels` carries the selected target budget for downstream reference sizing.
 
 ### RP Smart Image Resize
 
-Accepts an image, a mask, or both and adapts them to dimensions suitable for
-the selected model. When only a mask is connected, the node also creates a
-three-channel preview image from that mask.
+Resizes an image, a mask, or both to a model's dimensions while keeping image
+and mask aligned. Automatic mode selects the closest aspect-ratio preset;
+manual mode lets you choose dimensions directly. It supports proportional
+resizing, stretching, cropping, and padding.
 
-The optional `resolution` input accepts an integer longer-side value from nodes
-such as `ImageSize (LongerSide)`. When connected, RP Smart Image Resize preserves
-that longer-side resolution while calculating the other side from the selected
-aspect ratio.
+`pad` uses a chosen color, `pad_edge` uses each edge's mean color, and
+`pad_edge_pixel` extends its individual pixels. `pillarbox_blur` fills the
+background with a blurred version of the image.
 
-#### Selection modes
-
-- `automatic` - selects the available preset whose aspect ratio is closest to
-  the connected image or mask and uses its exact catalog width and height. The
-  dimensions, width, and height controls are disabled in the interface.
-- `manual` - allows direct preset selection and editable width and height
-  values.
-
-#### Outputs
-
-- `IMAGE`
-- `width`
-- `height`
-- `aspect_ratio_approx` - retains the former aspect-ratio output behavior
-- `aspect_ratio` - exact ratio calculated from the output image width and height
-- `resolution`
-- `mask`
-- `resized_image_no_pad` - the source image resized proportionally to fit the
-  selected target, exactly as if `keep_proportion` were `resize`, regardless
-  of the selected mode. Uses the same preset, dimension override, and
-  interpolation; preserves the source content without padding or cropping.
-- `megapixels` - FLUX.3 Klein automatic selection or an unchanged preset canvas:
-  selected target budget. Custom manual sizes, resolution overrides and other
-  models: exact primary output area in ComfyUI units (`width × height / 1024²`).
-
-Connect `resized_image_no_pad` to **Get Image Size & Count**, then send its
-width/height to a downstream crop node to remove the generated image's padding.
-The existing `IMAGE`, width/height, ratio, resolution, and mask outputs still
-describe the primary result using the chosen `keep_proportion` mode.
-
-Connect `megapixels` to **Set Reference Multi Latent**'s `resolution.megapixels`
-input when using `resize`. FLUX.3 Klein presets are sized so the reference
-resize and the VAE's 16-pixel crop retain the same canvas dimensions. For
-example, the 1 MP 4:5 preset is **912×1136** and reports **1.0**, its target
-budget. Its actual pixel area is slightly smaller because of the grid crop.
-The reference resize can still resample and crop image content; `keep resolution`
-avoids that second transformation. These are sizing presets, not a claim of
-optimal image quality. ComfyUI uses 1024² pixels per unit, rather than the
-decimal 1,000,000-pixel unit; the 768-square class therefore targets 0.5625.
+`resized_image_no_pad` returns a proportional resize without cropping or
+padding, independently of the main output mode. The width, height, mask, and
+ratio outputs describe the main result. The optional `resolution` input can
+set its longer-side size; `megapixels` can drive downstream reference sizing.
 
 ### RP Image Minimum 1K
 
-Upscales images whose longer side is below 1024 px while preserving their
-aspect ratio. Images already at or above 1024 px remain unchanged.
+Enlarges images whose longer side is below 1024 pixels while preserving their
+proportions. Images already at or above that size remain unchanged.
 
-## Video frame processing
+## Workflow utilities
 
-Paired nodes for extracting, processing, and rebuilding videos frame by frame.
+These nodes control the editor directly, without running the queue.
 
-### RP Video to Frames
+### RP Bypasser
 
-Extracts a video to persistent PNG frames and starts the integrated processing
-loop.
+Enables or bypasses individual processing nodes connected to it. Each row
+controls one source; **Bypass all / Enable all** controls all connected sources.
+The controls follow the actual node modes, including manual changes.
 
-### RP Frames to Video
+### RP Groups Muter
 
-Saves the processed frames and rebuilds the MP4, with optional source audio and
-an in-node preview.
+Mutes or enables whole workflow groups. Each row controls one group, and
+**Mute all / Unmute all** controls all listed groups together.
 
-When `overwrite` is disabled, existing output videos are kept and the next
-available numbered name is used, such as `processed_video_1.mp4`,
-`processed_video_2.mp4`. Enabling `overwrite` replaces the requested file.
+**Hide nested groups** hides child-group rows while their nodes remain
+controlled by the outer group. The node properties can filter group names and
+colors, change sorting, and show navigation arrows. Rows and buttons stay
+synchronized with the actual node modes.
 
-### Connecting the pair
+### RP Fix Workflow
 
-- `flow` to `flow`
-- `video_context` to `video_context`
-- `image` through the processing nodes to `processed_image`
+Repairs broken links and invalid references in the current workflow, including
+subgraphs. Existing nodes, settings, and valid connections are kept.
+**Fix workflow and save** also saves under the current workflow name,
+overwriting its saved file.
 
-Source and processed frames remain accessible under `ComfyUI/output`. FFmpeg is
-provided through the package requirements.
+### RP Import Workflow
+
+Adds one or more saved workflows to the current canvas while preserving
+existing nodes and valid connections. Use it to combine workflow branches
+without replacing the workflow already open. Imported nodes can be placed
+beside or below the current content and wrapped in groups.
+
+Supports saved workflow JSON v0.4 and v1. Source files are unchanged.
+Importing is adapted from
+[comfyui-workflow-merger](https://github.com/raffaele-pet/comfyui-workflow-merger).
+
+## Face detection
+
+### RP Face Detection
+
+Detects faces and returns aligned crops, bounding boxes, and masks so each face
+can be processed separately. The box can be resized, scaled around its original
+center, or made square. **show_advanced** exposes the detection and crop settings.
+
+`pad_outside_image` offers `none` (clip at image borders), `pad` (black),
+`pad_edge` (mean edge colors), and `pad_edge_pixel` (extend edge pixels).
+Padding preserves the full requested box without stretching image content.
+
+Connect `original_images`, the processed `cropped_images`, and `bboxes` to
+KJNodes **BatchUncrop** to return faces to their original positions. When padding
+is enabled, `original_images` includes the expanded canvas.
+
+- `bbox_masks` shows the detection rectangles.
+- `image_area_mask` matches `original_images`: white for original image pixels,
+  black for padding.
+- `cropped_image_mask` shows the same valid image area within `cropped_images`.
+
+Outputs are lists with one item per detected face. Requires **ComfyUI Impact
+Pack**, **Impact Subpack**, and an installed detector model; the preferred model
+is `bbox/face_yolov8m.pt`.
 
 ## Image folder processing
 
-The image-folder nodes provide an integrated, one-item-at-a-time flow without
-extracting or rebuilding a video.
+Processes folder contents one image at a time. The processing chain runs between
+the loader and the loop saver, linked by `flow` and `image_context`.
+Relative input folders use `ComfyUI/input`; relative output folders use
+`ComfyUI/output`.
 
 ### RP Load Images from Folder
 
-Reads supported images from one folder in natural filename order and sends one
-`IMAGE` and `MASK` through the workflow at a time. Relative source paths are
-resolved from `ComfyUI/input`. Supported formats are BMP, JPEG, PNG, TIFF, and
-WebP.
+Loads images from a folder one at a time in natural filename order. It supplies
+the current image, mask, and image context to the processing chain. Supports
+BMP, JPEG, PNG, TIFF, and WebP.
 
 ### RP Save Images to Folder
 
-Saves each processed image to the selected destination, preserving its original
-filename and format, then advances the integrated flow to the next source image.
-Relative destination paths are resolved from `ComfyUI/output`.
+Saves each processed result with its original filename and format, then advances
+the loop to the next image. Place it at the end of the processing chain; one run
+processes the folder. Use one loop saver per loader.
 
-### Connecting the pair
-
-- `flow` to `flow`
-- `image_context` to `image_context`
-- `image` through the processing nodes to `processed_image`
-
-Source and destination folders must be different. `clear_output_folder` removes
-supported image files from the destination at the start of the run, while
-`overwrite` controls whether matching destination filenames may be replaced.
-
-### RP Load Prompt from File
-
-Reads one prompt block for the current image by using the index stored in
-`image_context`. Prompt blocks are separated by a line containing the selected
-separator, `*` by default. When `require_matching_count` is enabled, execution
-stops if the number of prompt blocks differs from the number of source images.
+`overwrite` controls replacement of existing files. `clear_output_folder`
+removes supported image files from the destination at the start of a run.
 
 ### RP Save Image to Folder (No Loop)
 
-Saves an intermediate image and returns the same image unchanged so processing
-can continue downstream. This node never advances or starts the folder loop and
-is intended for one or more intermediate saves inside the processing chain.
+Saves an intermediate result and passes the image through unchanged. It does
+not start or advance the loop, so it can save multiple processing stages before
+the final loop saver.
 
-Only one `RP Save Images to Folder` should be connected to a given
-`RP Load Images from Folder`. Place it at the end of the complete chain as the
-loop controller. Use `RP Save Image to Folder (No Loop)` for every intermediate
-save. The loop controller reports an error if another loop controller is
-connected to the same loader.
+### RP Load Prompt from File
+
+Reads the prompt associated with the current image using `image_context`.
+Use it to assign a different prompt to each image in a folder loop. Prompt
+blocks are separated by a line containing `*` by default; the node can check
+that prompt and image counts match.
+
+## Video frame processing
+
+Processes a video one frame at a time. The two nodes share `flow` and
+`video_context`, with the image-processing chain between them. Extracted and
+processed frames remain available in their output folders. FFmpeg is provided
+through the package requirements.
+
+### RP Video to Frames
+
+Extracts a video into PNG frames and starts the frame-processing loop. It
+preserves the source timing and audio information for rebuilding the video.
+
+### RP Frames to Video
+
+Saves the processed frames and rebuilds the video with its original frame rate
+and optional source audio. It also provides an in-node preview. Existing videos
+receive a numbered filename unless `overwrite` is enabled.
 
 ## MiniMax H3 keyframes
 
 ### RP H3-Keyframes
 
-Adds an ordered sequence of still images to MiniMax H3 conditioning without
-manual position controls. The connected images are distributed automatically
-across the exact length of the H3 AV latent.
+Uses an ordered sequence of still images to guide MiniMax H3 video generation.
+The images are distributed automatically across the video duration, with up to
+32 keyframes. Connecting an image reveals the next input.
 
-The image inputs grow automatically. The node initially shows
-`frame_1`; connecting it reveals `frame_2`, and the sequence
-continues up to 32 images. Each input accepts one still image rather than an
-image batch. The `crop` option either stretches each image to the target canvas
-or applies a centered cover crop before VAE encoding.
-
-Typical wiring is:
-
-1. Connect the H3 conditioning and AV latent to `conditioning` and `latent`.
-2. Connect the MiniMax H3 video VAE to `vae`.
-3. Connect the still images in their intended order, then send the output
-   conditioning to the sampler path.
-
-The node replaces the conditioning's keyframe list with the connected images
-in input order.
+The node needs H3 conditioning, its video VAE, and the AV latent. It returns
+conditioning with the connected keyframes in order. Each image input accepts
+one still image; images can be fitted by centered cropping or stretching.
 
 ## Installation
 
@@ -439,40 +210,15 @@ git clone https://github.com/raffaele-pet/ComfyUI-RPNodes.git
 python -m pip install -r ComfyUI-RPNodes/requirements.txt
 ```
 
-Restart ComfyUI and refresh the browser. The image-sizing nodes are available
-under `image/resolution`; the image-folder nodes are available under
-`image/RPNodes`; the image comparer is available under `image/saving`; the
-video-processing nodes are available under `video/RPNodes`; the MiniMax H3
-keyframe node is available under `RP/MiniMax H3`; the workflow utilities are
-available under `RP/workflow_utilities`.
+Restart ComfyUI and refresh the browser. Find the nodes by their RP names in
+the node search.
 
 ## Example workflow
 
 [`RP_All_Nodes_Examples.json`](./example_workflows/RP_All_Nodes_Examples.json)
-contains all 16 RP nodes in 14 example groups, with English and Italian notes.
-It covers image sizing, resizing, folder processing, previews and comparison,
-video frame processing, workflow utilities, and a complete FastH3 keyframe chain.
+contains all 17 RP nodes in 15 example groups, in the same order as this README.
+Each group has a short English and Italian note describing its purpose.
 
-Drag the JSON onto the ComfyUI canvas or load it through the workflow menu.
-Enable only the example group you want to run and choose your input files,
-folders, and models as described in its note. The H3 example also needs the H3
-models and auxiliary nodes used by its sampling chain. Workflow utility buttons
-work directly on the canvas without running the queue.
-
-## Notes
-
-- The resolution database includes both manufacturer-published presets and
-  practical model-aware dimensions for additional aspect ratios.
-- `aspect_ratio_approx` is the named preset when the output canvas uses its
-  catalog dimensions. Pixel-grid rounding can make the mathematical ratio of
-  those dimensions differ slightly from that name. In Resize, modes that retain
-  the input shape and manually overridden dimensions retain the former behavior
-  of reporting the actual pixel ratio in `aspect_ratio_approx`. The new
-  `aspect_ratio` output always reports the exact ratio of the output pixels.
-- Sources and estimation rules for each model are documented in
-  [Smart image preset sources](./docs/smart-image-presets.md).
-- Qwen-Image-2.1 keeps the manufacturer-published native 2K sizes. Its other
-  presets are calculated from the selected square pixel budget on a 32-pixel
-  grid, matching the model's official ComfyUI workflow.
-- Very wide or tall formats may be less stable than a model's native training
-  ratios.
+Load the JSON through ComfyUI's workflow menu or drag it onto the canvas.
+Choose your files and models before running the relevant groups. Workflow
+utility buttons work without queue execution.

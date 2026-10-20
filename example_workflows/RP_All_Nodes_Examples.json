@@ -1,642 +1,28 @@
 {
   "id": "cddd54c8-2732-44eb-b74e-3490f5748d3e",
-  "revision": 1,
-  "last_node_id": 560,
-  "last_link_id": 596,
+  "revision": 2,
+  "last_node_id": 568,
+  "last_link_id": 598,
   "nodes": [
-    {
-      "id": 344,
-      "type": "LoadImage",
-      "pos": [
-        3300,
-        3530
-      ],
-      "size": [
-        400,
-        370
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            339
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "title": "Load Frame 2",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ],
-      "widgets_values_named": {
-        "image": "",
-        "upload": "image"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
-      "id": 348,
-      "type": "LoadImage",
-      "pos": [
-        3800,
-        3530
-      ],
-      "size": [
-        400,
-        370
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            490
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "title": "Load Frame 3",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ],
-      "widgets_values_named": {
-        "image": "",
-        "upload": "image"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
-      "id": 359,
-      "type": "LoadImage",
-      "pos": [
-        4300,
-        3530
-      ],
-      "size": [
-        400,
-        370
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            491
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "title": "Load Frame 4",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ],
-      "widgets_values_named": {
-        "image": "",
-        "upload": "image"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
-      "id": 364,
-      "type": "LoadImage",
-      "pos": [
-        4800,
-        3530
-      ],
-      "size": [
-        400,
-        370
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            492
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "title": "Load Frame 5",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ],
-      "widgets_values_named": {
-        "image": "",
-        "upload": "image"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
-      "id": 376,
-      "type": "LoadImage",
-      "pos": [
-        5300,
-        3530
-      ],
-      "size": [
-        400,
-        370
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            493
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "title": "Load Frame 6",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ],
-      "widgets_values_named": {
-        "image": "",
-        "upload": "image"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
-      "id": 383,
-      "type": "LoadImage",
-      "pos": [
-        5800,
-        3530
-      ],
-      "size": [
-        400,
-        370
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            494
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "title": "Load Frame 7",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ],
-      "widgets_values_named": {
-        "image": "",
-        "upload": "image"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
-      "id": 393,
-      "type": "LoadImage",
-      "pos": [
-        6300,
-        3530
-      ],
-      "size": [
-        400,
-        370
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            495
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "title": "Load Frame 8",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ],
-      "widgets_values_named": {
-        "image": "",
-        "upload": "image"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
-      "id": 418,
-      "type": "CLIPLoader",
-      "pos": [
-        2800,
-        2990
-      ],
-      "size": [
-        500,
-        110
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "links": [
-            422
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "CLIPLoader",
-        "models": [
-          {
-            "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-            "directory": "text_encoders"
-          }
-        ]
-      },
-      "widgets_values": [
-        "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-        "minimax",
-        "default"
-      ],
-      "widgets_values_named": {
-        "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-        "type": "minimax",
-        "device": "default"
-      },
-      "color": "#766c3b",
-      "bgcolor": "#625827"
-    },
-    {
-      "id": 421,
-      "type": "UNETLoader",
-      "pos": [
-        2800,
-        2830
-      ],
-      "size": [
-        500,
-        90
-      ],
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            419
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "UNETLoader",
-        "models": [
-          {
-            "name": "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
-            "url": "https://huggingface.co/FastVideo/FastVideo-FastH3-Comfy/resolve/main/diffusion_models/fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
-            "directory": "diffusion_models"
-          }
-        ]
-      },
-      "widgets_values": [
-        "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
-        "default"
-      ],
-      "widgets_values_named": {
-        "unet_name": "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
-        "weight_dtype": "default"
-      },
-      "color": "#5e566b",
-      "bgcolor": "#4a4257"
-    },
-    {
-      "id": 422,
-      "type": "VAELoader",
-      "pos": [
-        2800,
-        3340
-      ],
-      "size": [
-        500,
-        60
-      ],
-      "flags": {},
-      "order": 9,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "links": [
-            446
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "VAELoader",
-        "models": [
-          {
-            "name": "minimax_h3_audio_vae_fp32.safetensors",
-            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
-            "directory": "vae"
-          }
-        ]
-      },
-      "widgets_values": [
-        "minimax_h3_audio_vae_fp32.safetensors"
-      ],
-      "widgets_values_named": {
-        "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
-      },
-      "color": "#723f3f",
-      "bgcolor": "#5e2b2b"
-    },
-    {
-      "id": 423,
-      "type": "MiniMaxH3SigmaShift",
-      "pos": [
-        3400,
-        2830
-      ],
-      "size": [
-        300,
-        90
-      ],
-      "flags": {},
-      "order": 47,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 419
-        }
-      ],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            420
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.36.0",
-        "Node name for S&R": "MiniMaxH3SigmaShift"
-      },
-      "widgets_values": [
-        10,
-        3
-      ],
-      "widgets_values_named": {
-        "shift_video": 10,
-        "shift_audio": 3
-      },
-      "color": "#223",
-      "bgcolor": "#335"
-    },
-    {
-      "id": 424,
-      "type": "ModelAttentionBackend",
-      "pos": [
-        3400,
-        2990
-      ],
-      "size": [
-        300,
-        60
-      ],
-      "flags": {},
-      "order": 62,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 420
-        }
-      ],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            421
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.36.0",
-        "Node name for S&R": "ModelAttentionBackend"
-      },
-      "widgets_values": [
-        "comfy kitchen attention"
-      ],
-      "widgets_values_named": {
-        "attention": "comfy kitchen attention"
-      },
-      "color": "#223",
-      "bgcolor": "#335"
-    },
-    {
-      "id": 426,
-      "type": "BlockSparseAttention",
-      "pos": [
-        3400,
-        3150
-      ],
-      "size": [
-        300,
-        250
-      ],
-      "flags": {},
-      "order": 77,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 421
-        }
-      ],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            430,
-            432
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.36.0",
-        "Node name for S&R": "BlockSparseAttention"
-      },
-      "widgets_values": [
-        "vsa",
-        10,
-        0.2,
-        1,
-        "",
-        12288,
-        256,
-        "exact_kv_and_rows",
-        false
-      ],
-      "widgets_values_named": {
-        "selection": "vsa",
-        "selection.keep_percent": 10,
-        "start_percent": 0.2,
-        "end_percent": 1,
-        "dense_blocks": "",
-        "min_tokens": 12288,
-        "extra_tokens": 256,
-        "sink_conditioning": "exact_kv_and_rows",
-        "verbose": false
-      },
-      "color": "#223",
-      "bgcolor": "#335"
-    },
     {
       "id": 446,
       "type": "BasicGuider",
       "pos": [
-        5600,
-        2970
+        9600,
+        7230
       ],
       "size": [
-        300,
+        200,
         50
       ],
       "flags": {},
-      "order": 89,
+      "order": 53,
       "mode": 0,
       "inputs": [
         {
           "name": "model",
           "type": "MODEL",
-          "link": 430
+          "link": null
         },
         {
           "name": "conditioning",
@@ -648,9 +34,7 @@
         {
           "name": "GUIDER",
           "type": "GUIDER",
-          "links": [
-            437
-          ]
+          "links": []
         }
       ],
       "properties": {
@@ -662,310 +46,18 @@
       "bgcolor": "#593930"
     },
     {
-      "id": 447,
-      "type": "KSamplerSelect",
-      "pos": [
-        5600,
-        3070
-      ],
-      "size": [
-        300,
-        60
-      ],
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "SAMPLER",
-          "type": "SAMPLER",
-          "links": [
-            438
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "KSamplerSelect"
-      },
-      "widgets_values": [
-        "res_multistep"
-      ],
-      "widgets_values_named": {
-        "sampler_name": "res_multistep"
-      },
-      "color": "#332922",
-      "bgcolor": "#593930"
-    },
-    {
-      "id": 448,
-      "type": "BasicScheduler",
-      "pos": [
-        5600,
-        3180
-      ],
-      "size": [
-        300,
-        120
-      ],
-      "flags": {},
-      "order": 88,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 432
-        }
-      ],
-      "outputs": [
-        {
-          "name": "SIGMAS",
-          "type": "SIGMAS",
-          "links": [
-            439
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "BasicScheduler"
-      },
-      "widgets_values": [
-        "simple",
-        8,
-        1
-      ],
-      "widgets_values_named": {
-        "scheduler": "simple",
-        "steps": 8,
-        "denoise": 1
-      },
-      "color": "#332922",
-      "bgcolor": "#593930"
-    },
-    {
-      "id": 452,
-      "type": "SamplerCustomAdvanced",
-      "pos": [
-        5930,
-        2830
-      ],
-      "size": [
-        270,
-        110
-      ],
-      "flags": {},
-      "order": 91,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "noise",
-          "type": "NOISE",
-          "link": 436
-        },
-        {
-          "name": "guider",
-          "type": "GUIDER",
-          "link": 437
-        },
-        {
-          "name": "sampler",
-          "type": "SAMPLER",
-          "link": 438
-        },
-        {
-          "name": "sigmas",
-          "type": "SIGMAS",
-          "link": 439
-        },
-        {
-          "name": "latent_image",
-          "type": "LATENT",
-          "link": 440
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "LATENT",
-          "links": [
-            445,
-            447
-          ]
-        },
-        {
-          "name": "denoised_output",
-          "type": "LATENT",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "SamplerCustomAdvanced"
-      },
-      "color": "#332922",
-      "bgcolor": "#593930"
-    },
-    {
-      "id": 458,
-      "type": "VAEDecodeAudio",
-      "pos": [
-        6300,
-        2930
-      ],
-      "size": [
-        200,
-        50
-      ],
-      "flags": {},
-      "order": 92,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 445
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 446
-        }
-      ],
-      "outputs": [
-        {
-          "name": "AUDIO",
-          "type": "AUDIO",
-          "links": [
-            455
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "VAEDecodeAudio"
-      },
-      "color": "#323",
-      "bgcolor": "#535"
-    },
-    {
-      "id": 460,
-      "type": "VAEDecode",
-      "pos": [
-        6300,
-        2830
-      ],
-      "size": [
-        200,
-        50
-      ],
-      "flags": {},
-      "order": 93,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 447
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 448
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            454
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "VAEDecode"
-      },
-      "color": "#323",
-      "bgcolor": "#535"
-    },
-    {
-      "id": 464,
-      "type": "CreateVideo",
-      "pos": [
-        6600,
-        2830
-      ],
-      "size": [
-        300,
-        150
-      ],
-      "flags": {},
-      "order": 94,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 454
-        },
-        {
-          "name": "audio",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": 455
-        }
-      ],
-      "outputs": [
-        {
-          "name": "VIDEO",
-          "type": "VIDEO",
-          "links": [
-            457
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "CreateVideo"
-      },
-      "widgets_values": [
-        24,
-        "auto",
-        "sRGB",
-        "none"
-      ],
-      "widgets_values_named": {
-        "fps": 24,
-        "bit_depth": "auto",
-        "color_space": "sRGB",
-        "codec": "none"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
       "id": 362,
       "type": "RPH3Keyframes",
       "pos": [
-        5200,
-        2830
+        9200,
+        7230
       ],
       "size": [
         300,
-        300
+        140
       ],
       "flags": {},
-      "order": 78,
+      "order": 39,
       "mode": 0,
       "inputs": [
         {
@@ -976,7 +68,7 @@
         {
           "name": "vae",
           "type": "VAE",
-          "link": 484
+          "link": null
         },
         {
           "name": "latent",
@@ -987,52 +79,10 @@
           "label": "frame_1",
           "name": "keyframes.frame_1",
           "type": "IMAGE",
-          "link": 338
+          "link": null
         },
         {
           "name": "keyframes.frame_2",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 339
-        },
-        {
-          "name": "keyframes.frame_3",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 490
-        },
-        {
-          "name": "keyframes.frame_4",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 491
-        },
-        {
-          "name": "keyframes.frame_5",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 492
-        },
-        {
-          "name": "keyframes.frame_6",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 493
-        },
-        {
-          "name": "keyframes.frame_7",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 494
-        },
-        {
-          "name": "keyframes.frame_8",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 495
-        },
-        {
-          "name": "keyframes.frame_9",
           "shape": 7,
           "type": "IMAGE",
           "link": null
@@ -1062,201 +112,29 @@
       "bgcolor": "#335"
     },
     {
-      "id": 420,
-      "type": "VAELoader",
-      "pos": [
-        2800,
-        3230
-      ],
-      "size": [
-        500,
-        60
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "links": [
-            423,
-            448,
-            484
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "VAELoader",
-        "models": [
-          {
-            "name": "minimax_h3_video_vae_fp16.safetensors",
-            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
-            "directory": "vae"
-          }
-        ]
-      },
-      "widgets_values": [
-        "minimax_h3_video_vae_fp16.safetensors"
-      ],
-      "widgets_values_named": {
-        "vae_name": "minimax_h3_video_vae_fp16.safetensors"
-      },
-      "color": "#723f3f",
-      "bgcolor": "#5e2b2b"
-    },
-    {
-      "id": 429,
-      "type": "PrimitiveStringMultiline",
-      "pos": [
-        3800,
-        2830
-      ],
-      "size": [
-        400,
-        570
-      ],
-      "flags": {},
-      "order": 12,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "STRING",
-          "type": "STRING",
-          "links": [
-            426
-          ]
-        }
-      ],
-      "title": "Text",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.2",
-        "Node name for S&R": "PrimitiveStringMultiline"
-      },
-      "widgets_values": [
-        "[keyframe completion] A single continuous cinematic shot follows the supplied pictures in order, from Picture 1 through Picture 8. Keep the same subject, identity, clothing, props and environment throughout. Smooth natural movement connects the successive poses and compositions."
-      ],
-      "widgets_values_named": {
-        "value": "[keyframe completion] A single continuous cinematic shot follows the supplied pictures in order, from Picture 1 through Picture 8. Keep the same subject, identity, clothing, props and environment throughout. Smooth natural movement connects the successive poses and compositions."
-      },
-      "color": "#232",
-      "bgcolor": "#353"
-    },
-    {
-      "id": 445,
-      "type": "RandomNoise",
-      "pos": [
-        5600,
-        2830
-      ],
-      "size": [
-        300,
-        90
-      ],
-      "flags": {},
-      "order": 13,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "NOISE",
-          "type": "NOISE",
-          "links": [
-            436
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "RandomNoise"
-      },
-      "widgets_values": [
-        1038473999590812,
-        "randomize"
-      ],
-      "widgets_values_named": {
-        "noise_seed": 1038473999590812,
-        "control_after_generate": "randomize"
-      },
-      "color": "#332922",
-      "bgcolor": "#593930"
-    },
-    {
-      "id": 345,
-      "type": "LoadImage",
-      "pos": [
-        2800,
-        3530
-      ],
-      "size": [
-        400,
-        370
-      ],
-      "flags": {},
-      "order": 14,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            338
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "title": "Load Frame 1",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ],
-      "widgets_values_named": {
-        "image": "",
-        "upload": "image"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
       "id": 441,
       "type": "MiniMaxH3ImageToVideo",
       "pos": [
-        4800,
-        2830
+        8800,
+        7230
       ],
       "size": [
         300,
         220
       ],
       "flags": {},
-      "order": 63,
+      "order": 0,
       "mode": 0,
       "inputs": [
         {
           "name": "clip",
           "type": "CLIP",
-          "link": 422
+          "link": null
         },
         {
           "name": "vae",
           "type": "VAE",
-          "link": 423
+          "link": null
         },
         {
           "name": "first_frame",
@@ -1269,38 +147,6 @@
           "shape": 7,
           "type": "IMAGE",
           "link": null
-        },
-        {
-          "name": "prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "prompt"
-          },
-          "link": 426
-        },
-        {
-          "name": "width",
-          "type": "INT",
-          "widget": {
-            "name": "width"
-          },
-          "link": 427
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "widget": {
-            "name": "height"
-          },
-          "link": 428
-        },
-        {
-          "name": "length",
-          "type": "INT",
-          "widget": {
-            "name": "length"
-          },
-          "link": 429
         }
       ],
       "outputs": [
@@ -1315,7 +161,6 @@
           "name": "LATENT",
           "type": "LATENT",
           "links": [
-            440,
             485
           ]
         }
@@ -1341,224 +186,18 @@
       "bgcolor": "#653"
     },
     {
-      "id": 434,
-      "type": "ResolutionSelector",
-      "pos": [
-        4300,
-        2830
-      ],
-      "size": [
-        300,
-        150
-      ],
-      "flags": {},
-      "order": 15,
-      "mode": 0,
-      "showAdvanced": false,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "width",
-          "type": "INT",
-          "links": [
-            427
-          ]
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "links": [
-            428
-          ]
-        }
-      ],
-      "title": "Resolution Selector (Size)",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.2",
-        "Node name for S&R": "ResolutionSelector",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "2:3 (Portrait Photo)",
-        0.7,
-        32
-      ],
-      "widgets_values_named": {
-        "aspect_ratio": "2:3 (Portrait Photo)",
-        "megapixels": 0.7,
-        "multiple": 32
-      },
-      "color": "#322",
-      "bgcolor": "#533"
-    },
-    {
-      "id": 443,
-      "type": "PrimitiveFloat",
-      "pos": [
-        4300,
-        3130
-      ],
-      "size": [
-        210,
-        70
-      ],
-      "flags": {},
-      "order": 16,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "FLOAT",
-          "type": "FLOAT",
-          "links": [
-            435
-          ]
-        }
-      ],
-      "title": "Float (duration)",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "PrimitiveFloat"
-      },
-      "widgets_values": [
-        15
-      ],
-      "widgets_values_named": {
-        "value": 15
-      },
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
-    {
-      "id": 451,
-      "type": "ComfyMathExpression",
-      "pos": [
-        4300,
-        3300
-      ],
-      "size": [
-        360,
-        170
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 48,
-      "mode": 0,
-      "inputs": [
-        {
-          "label": "a",
-          "name": "values.a",
-          "type": "FLOAT,INT,BOOLEAN",
-          "link": 435
-        },
-        {
-          "name": "values.b",
-          "shape": 7,
-          "type": "FLOAT,INT,BOOLEAN",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "FLOAT",
-          "type": "FLOAT",
-          "links": null
-        },
-        {
-          "name": "INT",
-          "type": "INT",
-          "links": [
-            429
-          ]
-        },
-        {
-          "name": "BOOL",
-          "type": "BOOLEAN",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "ComfyMathExpression"
-      },
-      "widgets_values": [
-        "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17"
-      ],
-      "widgets_values_named": {
-        "expression": "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17"
-      },
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
-    {
-      "id": 467,
-      "type": "SaveVideo",
-      "pos": [
-        7000,
-        2830
-      ],
-      "size": [
-        600,
-        570
-      ],
-      "flags": {},
-      "order": 95,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video",
-          "type": "VIDEO",
-          "link": 457
-        }
-      ],
-      "outputs": [
-        {
-          "name": "video",
-          "type": "VIDEO",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "SaveVideo"
-      },
-      "widgets_values": [
-        "rp_examples/h3_keyframes",
-        "auto",
-        "auto",
-        "auto"
-      ],
-      "widgets_values_named": {
-        "filename_prefix": "rp_examples/h3_keyframes",
-        "format": "auto",
-        "format.codec": "auto",
-        "codec": "auto"
-      },
-      "color": "#375570",
-      "bgcolor": "#23415c"
-    },
-    {
       "id": 468,
       "type": "SmartImageSize",
       "pos": [
-        500,
-        630
+        6500,
+        4030
       ],
       "size": [
         300,
         206
       ],
       "flags": {},
-      "order": 17,
+      "order": 1,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -1621,15 +260,15 @@
       "id": 469,
       "type": "EmptyImage",
       "pos": [
-        900,
-        630
+        6900,
+        4030
       ],
       "size": [
         300,
         130
       ],
       "flags": {},
-      "order": 49,
+      "order": 40,
       "mode": 0,
       "inputs": [
         {
@@ -1680,15 +319,15 @@
       "id": 470,
       "type": "PreviewImage",
       "pos": [
-        1600,
-        630
+        7600,
+        4030
       ],
       "size": [
         400,
         370
       ],
       "flags": {},
-      "order": 64,
+      "order": 54,
       "mode": 0,
       "inputs": [
         {
@@ -1714,15 +353,15 @@
       "id": 471,
       "type": "PreviewAny",
       "pos": [
-        900,
-        830
+        6900,
+        4230
       ],
       "size": [
         210,
         130
       ],
       "flags": {},
-      "order": 50,
+      "order": 41,
       "mode": 0,
       "inputs": [
         {
@@ -1751,15 +390,15 @@
       "id": 472,
       "type": "PreviewAny",
       "pos": [
-        1200,
-        830
+        7200,
+        4230
       ],
       "size": [
         210,
         130
       ],
       "flags": {},
-      "order": 51,
+      "order": 42,
       "mode": 0,
       "inputs": [
         {
@@ -1788,25 +427,25 @@
       "id": 473,
       "type": "Note",
       "pos": [
-        100,
-        630
+        6100,
+        4030
       ],
       "size": [
         300,
         280
       ],
       "flags": {},
-      "order": 18,
+      "order": 2,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Smart Image Size",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nChoose the model, resolution tier and aspect-ratio preset. Width and height drive the core Empty Image node; Preview Image displays the resulting canvas. The text previews show the exact ratio and numeric resolution. No model download is needed: this example creates a solid-color image. Use width/height to configure a latent or generator in your own workflow.\n\nITALIANO\n\nScegli modello, classe di risoluzione e formato. Larghezza e altezza pilotano Empty Image; Preview Image mostra il risultato. Le anteprime testuali mostrano rapporto esatto e risoluzione numerica. Non occorre caricare un modello: questo esempio crea un’immagine a tinta unita. Nel tuo workflow puoi usare width/height per configurare un latent o un generatore."
+        "ENGLISH\n\nProvides width, height and aspect ratio from a model's resolution presets. Use its outputs to set dimensions for image generation, latents or other processing nodes.\n\nITALIANO\n\nFornisce larghezza, altezza e proporzioni dai preset di risoluzione di un modello. Le uscite servono a impostare le dimensioni per generazione, latent o altri nodi di elaborazione."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nChoose the model, resolution tier and aspect-ratio preset. Width and height drive the core Empty Image node; Preview Image displays the resulting canvas. The text previews show the exact ratio and numeric resolution. No model download is needed: this example creates a solid-color image. Use width/height to configure a latent or generator in your own workflow.\n\nITALIANO\n\nScegli modello, classe di risoluzione e formato. Larghezza e altezza pilotano Empty Image; Preview Image mostra il risultato. Le anteprime testuali mostrano rapporto esatto e risoluzione numerica. Non occorre caricare un modello: questo esempio crea un’immagine a tinta unita. Nel tuo workflow puoi usare width/height per configurare un latent o un generatore."
+        "text": "ENGLISH\n\nProvides width, height and aspect ratio from a model's resolution presets. Use its outputs to set dimensions for image generation, latents or other processing nodes.\n\nITALIANO\n\nFornisce larghezza, altezza e proporzioni dai preset di risoluzione di un modello. Le uscite servono a impostare le dimensioni per generazione, latent o altri nodi di elaborazione."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -1815,15 +454,15 @@
       "id": 474,
       "type": "LoadImage",
       "pos": [
-        2700,
-        630
+        8700,
+        4030
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 19,
+      "order": 3,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -1860,15 +499,15 @@
       "id": 475,
       "type": "SmartImageResize",
       "pos": [
-        3100,
-        630
+        9100,
+        4030
       ],
       "size": [
         300,
         434
       ],
       "flags": {},
-      "order": 52,
+      "order": 43,
       "mode": 0,
       "inputs": [
         {
@@ -1975,15 +614,15 @@
       "id": 476,
       "type": "PreviewImage",
       "pos": [
-        3500,
-        630
+        9500,
+        4030
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 65,
+      "order": 55,
       "mode": 0,
       "inputs": [
         {
@@ -2009,8 +648,8 @@
       "id": 477,
       "type": "MaskToImage",
       "pos": [
-        3500,
-        1070
+        9500,
+        4470
       ],
       "size": [
         200,
@@ -2019,7 +658,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 66,
+      "order": 56,
       "mode": 0,
       "inputs": [
         {
@@ -2047,15 +686,15 @@
       "id": 478,
       "type": "PreviewImage",
       "pos": [
-        3900,
-        630
+        9900,
+        4030
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 79,
+      "order": 67,
       "mode": 0,
       "inputs": [
         {
@@ -2081,25 +720,25 @@
       "id": 479,
       "type": "Note",
       "pos": [
-        2300,
-        630
+        8300,
+        4030
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 20,
+      "order": 4,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Smart Image Resize",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nChoose an image in Load Image, then run this group. Automatic mode selects a model preset close to the source aspect ratio; manual mode exposes the selected preset and width/height controls. The original mask is connected too, so image and mask stay aligned. Preview Image shows the resized image; Mask to Image displays the resized mask. Interpolation, crop/padding and alignment are configurable.\n\nITALIANO\n\nScegli un’immagine in Load Image ed esegui il gruppo. Automatic sceglie un preset del modello vicino al rapporto dell’immagine; manual permette di impostare preset, larghezza e altezza. Anche la maschera originale è collegata, così immagine e maschera restano allineate. Le anteprime mostrano immagine e maschera ridimensionate. Puoi scegliere interpolazione, ritaglio/padding e allineamento."
+        "ENGLISH\n\nResizes an image, a mask or both to dimensions suited to a model, keeping them aligned. It can select a preset automatically or use manual dimensions, with proportional resizing, cropping or padding.\n\nITALIANO\n\nRidimensiona un'immagine, una maschera o entrambe alle dimensioni adatte a un modello, mantenendole allineate. Può scegliere un preset automaticamente o usare misure manuali, con ridimensionamento proporzionale, ritaglio o padding."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nChoose an image in Load Image, then run this group. Automatic mode selects a model preset close to the source aspect ratio; manual mode exposes the selected preset and width/height controls. The original mask is connected too, so image and mask stay aligned. Preview Image shows the resized image; Mask to Image displays the resized mask. Interpolation, crop/padding and alignment are configurable.\n\nITALIANO\n\nScegli un’immagine in Load Image ed esegui il gruppo. Automatic sceglie un preset del modello vicino al rapporto dell’immagine; manual permette di impostare preset, larghezza e altezza. Anche la maschera originale è collegata, così immagine e maschera restano allineate. Le anteprime mostrano immagine e maschera ridimensionate. Puoi scegliere interpolazione, ritaglio/padding e allineamento."
+        "text": "ENGLISH\n\nResizes an image, a mask or both to dimensions suited to a model, keeping them aligned. It can select a preset automatically or use manual dimensions, with proportional resizing, cropping or padding.\n\nITALIANO\n\nRidimensiona un'immagine, una maschera o entrambe alle dimensioni adatte a un modello, mantenendole allineate. Può scegliere un preset automaticamente o usare misure manuali, con ridimensionamento proporzionale, ritaglio o padding."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2108,15 +747,15 @@
       "id": 480,
       "type": "LoadImage",
       "pos": [
-        4900,
-        630
+        10900,
+        4030
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 21,
+      "order": 5,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -2151,15 +790,15 @@
       "id": 481,
       "type": "RPImageMinimum1K",
       "pos": [
-        5300,
-        630
+        11300,
+        4030
       ],
       "size": [
         190,
         30
       ],
       "flags": {},
-      "order": 53,
+      "order": 44,
       "mode": 0,
       "inputs": [
         {
@@ -2187,25 +826,25 @@
       "id": 484,
       "type": "Note",
       "pos": [
-        4500,
-        630
+        10500,
+        4030
       ],
       "size": [
         300,
         270
       ],
       "flags": {},
-      "order": 22,
+      "order": 6,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Image Minimum 1K",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nLoad an image and run. If its longer side is below 1024 pixels, the node enlarges it to 1024 while preserving aspect ratio. Images already at or above 1024 pass through unchanged; it never downscales them. This is ordinary image resizing, not an AI upscaler.\n\nITALIANO\n\nCarica un’immagine ed esegui. Se il lato lungo è inferiore a 1024 pixel, il nodo lo porta a 1024 mantenendo le proporzioni. Le immagini già almeno 1024 passano inalterate: il nodo non le riduce. È un normale ridimensionamento, non un upscale tramite AI."
+        "ENGLISH\n\nEnlarges smaller images to a 1024-pixel long side, keeping their proportions. Images already at or above that size remain unchanged.\n\nITALIANO\n\nPorta a 1024 pixel il lato lungo delle immagini più piccole, mantenendo le proporzioni. Le immagini già almeno di quella dimensione restano invariate."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nLoad an image and run. If its longer side is below 1024 pixels, the node enlarges it to 1024 while preserving aspect ratio. Images already at or above 1024 pass through unchanged; it never downscales them. This is ordinary image resizing, not an AI upscaler.\n\nITALIANO\n\nCarica un’immagine ed esegui. Se il lato lungo è inferiore a 1024 pixel, il nodo lo porta a 1024 mantenendo le proporzioni. Le immagini già almeno 1024 passano inalterate: il nodo non le riduce. È un normale ridimensionamento, non un upscale tramite AI."
+        "text": "ENGLISH\n\nEnlarges smaller images to a 1024-pixel long side, keeping their proportions. Images already at or above that size remain unchanged.\n\nITALIANO\n\nPorta a 1024 pixel il lato lungo delle immagini più piccole, mantenendo le proporzioni. Le immagini già almeno di quella dimensione restano invariate."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2214,15 +853,15 @@
       "id": 489,
       "type": "RPLoadImagesFromFolder",
       "pos": [
-        4900,
-        1330
+        10900,
+        6430
       ],
       "size": [
         300,
         170
       ],
       "flags": {},
-      "order": 23,
+      "order": 7,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -2270,15 +909,15 @@
       "id": 490,
       "type": "RPLoadPromptFromFile",
       "pos": [
-        5300,
-        1330
+        11300,
+        6430
       ],
       "size": [
         300,
         170
       ],
       "flags": {},
-      "order": 54,
+      "order": 45,
       "mode": 0,
       "inputs": [
         {
@@ -2323,15 +962,15 @@
       "id": 491,
       "type": "PreviewAny",
       "pos": [
-        5700,
-        1330
+        11700,
+        6430
       ],
       "size": [
         220,
         170
       ],
       "flags": {},
-      "order": 68,
+      "order": 58,
       "mode": 0,
       "inputs": [
         {
@@ -2360,15 +999,15 @@
       "id": 492,
       "type": "PreviewAny",
       "pos": [
-        5660,
-        1570
+        11660,
+        6670
       ],
       "size": [
         260,
         130
       ],
       "flags": {},
-      "order": 69,
+      "order": 59,
       "mode": 0,
       "inputs": [
         {
@@ -2397,25 +1036,25 @@
       "id": 493,
       "type": "Note",
       "pos": [
-        4500,
-        1330
+        10500,
+        6430
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 24,
+      "order": 8,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Load Prompt from File",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nPrepare images in input/rp_examples/images and a text file input/rp_examples/prompts.txt. Write one prompt block per image, separated by a line containing *. Connect image_context from the folder loader: its index selects the matching prompt. With require_matching_count enabled, the number of blocks must match the image count. This example displays the first prompt and its number; use the prompt output in a text encoder inside a folder loop for batch processing.\n\nITALIANO\n\nPrepara immagini in input/rp_examples/images e il file input/rp_examples/prompts.txt. Scrivi un blocco di prompt per immagine, separando i blocchi con una riga contenente *. Collega image_context del loader: il suo indice seleziona il prompt corrispondente. Con require_matching_count attivo, blocchi e immagini devono avere lo stesso numero. Qui vengono mostrati il primo prompt e il suo numero; in un loop collega prompt a un encoder testuale."
+        "ENGLISH\n\nReads the prompt associated with the current image using image_context. Use it to assign a different prompt to each image in a folder loop. Prompt blocks are separated by a separator line, using * by default.\n\nITALIANO\n\nLegge il prompt associato all'immagine corrente tramite image_context. Serve ad assegnare un prompt diverso a ogni immagine nel loop di una cartella. I blocchi di testo sono divisi da una riga separatrice, con * come valore predefinito."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nPrepare images in input/rp_examples/images and a text file input/rp_examples/prompts.txt. Write one prompt block per image, separated by a line containing *. Connect image_context from the folder loader: its index selects the matching prompt. With require_matching_count enabled, the number of blocks must match the image count. This example displays the first prompt and its number; use the prompt output in a text encoder inside a folder loop for batch processing.\n\nITALIANO\n\nPrepara immagini in input/rp_examples/images e il file input/rp_examples/prompts.txt. Scrivi un blocco di prompt per immagine, separando i blocchi con una riga contenente *. Collega image_context del loader: il suo indice seleziona il prompt corrispondente. Con require_matching_count attivo, blocchi e immagini devono avere lo stesso numero. Qui vengono mostrati il primo prompt e il suo numero; in un loop collega prompt a un encoder testuale."
+        "text": "ENGLISH\n\nReads the prompt associated with the current image using image_context. Use it to assign a different prompt to each image in a folder loop. Prompt blocks are separated by a separator line, using * by default.\n\nITALIANO\n\nLegge il prompt associato all'immagine corrente tramite image_context. Serve ad assegnare un prompt diverso a ogni immagine nel loop di una cartella. I blocchi di testo sono divisi da una riga separatrice, con * come valore predefinito."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2424,15 +1063,15 @@
       "id": 494,
       "type": "RPLoadImagesFromFolder",
       "pos": [
-        2800,
-        1330
+        8800,
+        6430
       ],
       "size": [
         300,
         170
       ],
       "flags": {},
-      "order": 25,
+      "order": 9,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -2482,15 +1121,15 @@
       "id": 495,
       "type": "ImageScaleBy",
       "pos": [
-        3200,
-        1410
+        9200,
+        6510
       ],
       "size": [
         220,
         90
       ],
       "flags": {},
-      "order": 55,
+      "order": 46,
       "mode": 0,
       "inputs": [
         {
@@ -2526,15 +1165,15 @@
       "id": 496,
       "type": "RPSaveImageToFolder",
       "pos": [
-        3500,
-        1330
+        9500,
+        6430
       ],
       "size": [
         300,
         170
       ],
       "flags": {},
-      "order": 70,
+      "order": 60,
       "mode": 0,
       "inputs": [
         {
@@ -2584,15 +1223,15 @@
       "id": 497,
       "type": "PreviewImage",
       "pos": [
-        3900,
-        1330
+        9900,
+        6430
       ],
       "size": [
         300,
         270
       ],
       "flags": {},
-      "order": 80,
+      "order": 68,
       "mode": 0,
       "inputs": [
         {
@@ -2618,15 +1257,15 @@
       "id": 498,
       "type": "PreviewAny",
       "pos": [
-        3500,
-        1570
+        9500,
+        6670
       ],
       "size": [
         300,
         130
       ],
       "flags": {},
-      "order": 81,
+      "order": 69,
       "mode": 0,
       "inputs": [
         {
@@ -2655,25 +1294,25 @@
       "id": 499,
       "type": "Note",
       "pos": [
-        2300,
-        1330
+        8300,
+        6430
       ],
       "size": [
         400,
         370
       ],
       "flags": {},
-      "order": 26,
+      "order": 10,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Save Image to Folder (No Loop)",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nThe folder loader supplies one image and its image_context. Upscale Image By demonstrates a processing stage; the RP node saves that result, keeping the source filename, then returns the same image to Preview Image. Output is relative to ComfyUI/output. This node does not start or advance a loop: here only the first image is processed. In a batch workflow, place it before the single RP Save Images to Folder controller to save intermediate stages.\n\nITALIANO\n\nIl loader fornisce un’immagine e il relativo image_context. Upscale Image By simula un’elaborazione; il nodo RP salva il risultato mantenendo il nome originale, poi restituisce la stessa immagine all’anteprima. L’output è relativo a ComfyUI/output. Questo nodo non avvia né avanza il loop: qui elabora solo la prima immagine. Nei batch mettilo prima dell’unico RP Save Images to Folder per salvare passaggi intermedi."
+        "ENGLISH\n\nSaves an intermediate image and passes it through unchanged so processing can continue. It does not start or advance the folder loop. Use it to save different stages before the final RP Save Images to Folder node.\n\nITALIANO\n\nSalva un'immagine intermedia e la restituisce invariata per proseguire l'elaborazione. Non avvia né fa avanzare il loop della cartella. Serve a salvare passaggi diversi prima del nodo finale RP Save Images to Folder."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nThe folder loader supplies one image and its image_context. Upscale Image By demonstrates a processing stage; the RP node saves that result, keeping the source filename, then returns the same image to Preview Image. Output is relative to ComfyUI/output. This node does not start or advance a loop: here only the first image is processed. In a batch workflow, place it before the single RP Save Images to Folder controller to save intermediate stages.\n\nITALIANO\n\nIl loader fornisce un’immagine e il relativo image_context. Upscale Image By simula un’elaborazione; il nodo RP salva il risultato mantenendo il nome originale, poi restituisce la stessa immagine all’anteprima. L’output è relativo a ComfyUI/output. Questo nodo non avvia né avanza il loop: qui elabora solo la prima immagine. Nei batch mettilo prima dell’unico RP Save Images to Folder per salvare passaggi intermedi."
+        "text": "ENGLISH\n\nSaves an intermediate image and passes it through unchanged so processing can continue. It does not start or advance the folder loop. Use it to save different stages before the final RP Save Images to Folder node.\n\nITALIANO\n\nSalva un'immagine intermedia e la restituisce invariata per proseguire l'elaborazione. Non avvia né fa avanzare il loop della cartella. Serve a salvare passaggi diversi prima del nodo finale RP Save Images to Folder."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2682,15 +1321,15 @@
       "id": 500,
       "type": "RPLoadImagesFromFolder",
       "pos": [
-        600,
-        1330
+        6600,
+        6430
       ],
       "size": [
         300,
         170
       ],
       "flags": {},
-      "order": 27,
+      "order": 11,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -2742,15 +1381,15 @@
       "id": 501,
       "type": "ImageScaleBy",
       "pos": [
-        1000,
-        1410
+        7000,
+        6510
       ],
       "size": [
         210,
         90
       ],
       "flags": {},
-      "order": 56,
+      "order": 47,
       "mode": 0,
       "inputs": [
         {
@@ -2786,15 +1425,15 @@
       "id": 502,
       "type": "RPSaveImagesToFolder",
       "pos": [
-        1300,
-        1330
+        7300,
+        6430
       ],
       "size": [
         300,
         170
       ],
       "flags": {},
-      "order": 71,
+      "order": 61,
       "mode": 0,
       "inputs": [
         {
@@ -2854,15 +1493,15 @@
       "id": 503,
       "type": "PreviewAny",
       "pos": [
-        1700,
-        1530
+        7700,
+        6630
       ],
       "size": [
         300,
         130
       ],
       "flags": {},
-      "order": 83,
+      "order": 71,
       "mode": 0,
       "inputs": [
         {
@@ -2891,15 +1530,15 @@
       "id": 504,
       "type": "PreviewAny",
       "pos": [
-        1700,
-        1330
+        7700,
+        6430
       ],
       "size": [
         300,
         130
       ],
       "flags": {},
-      "order": 82,
+      "order": 70,
       "mode": 0,
       "inputs": [
         {
@@ -2928,25 +1567,25 @@
       "id": 505,
       "type": "Note",
       "pos": [
-        100,
-        1330
+        6100,
+        6430
       ],
       "size": [
         420,
         370
       ],
       "flags": {},
-      "order": 28,
+      "order": 12,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Load Images from Folder & RP Save Images to Folder",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nSet images_folder to an absolute folder or a folder relative to ComfyUI/input. Supported images are read in deterministic natural filename order.\nOnce the images folder is set, start a single run. The RP controller processes every source image through Upscale Image By and saves each result with its original filename. All three connections are required: flow from the loader, processed_image from the last processing node, and image_context from the loader. Use only one loop controller per loader. clear_output_folder and overwrite are disabled. Relative output folders are inside ComfyUI/output.\n\nITALIANO\n\nImposta images_folder con una cartella assoluta oppure relativa a ComfyUI/input. Le immagini supportate vengono lette in ordine naturale dei nomi. \nUna volta impostata images_folder, avvia una sola esecuzione. Il controller RP elabora tutte le immagini tramite Upscale Image By e salva ogni risultato con il nome originale. Servono tutti e tre i collegamenti: flow dal loader, processed_image dall’ultimo nodo di elaborazione e image_context dal loader. Usa un solo controller per loader. clear_output_folder e overwrite sono disattivati. L’output relativo si trova in ComfyUI/output."
+        "ENGLISH\n\nRP Load Images from Folder loads images from a folder one at a time. The processing chain runs between this node and RP Save Images to Folder, linked by flow and image_context. The saver writes each result with the source filename and advances to the next image.\n\nITALIANO\n\nRP Load Images from Folder carica una alla volta le immagini di una cartella. L'elaborazione avviene tra questo nodo e RP Save Images to Folder, collegati da flow e image_context. Il nodo di salvataggio conserva il nome originale e passa all'immagine successiva."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nSet images_folder to an absolute folder or a folder relative to ComfyUI/input. Supported images are read in deterministic natural filename order.\nOnce the images folder is set, start a single run. The RP controller processes every source image through Upscale Image By and saves each result with its original filename. All three connections are required: flow from the loader, processed_image from the last processing node, and image_context from the loader. Use only one loop controller per loader. clear_output_folder and overwrite are disabled. Relative output folders are inside ComfyUI/output.\n\nITALIANO\n\nImposta images_folder con una cartella assoluta oppure relativa a ComfyUI/input. Le immagini supportate vengono lette in ordine naturale dei nomi. \nUna volta impostata images_folder, avvia una sola esecuzione. Il controller RP elabora tutte le immagini tramite Upscale Image By e salva ogni risultato con il nome originale. Servono tutti e tre i collegamenti: flow dal loader, processed_image dall’ultimo nodo di elaborazione e image_context dal loader. Usa un solo controller per loader. clear_output_folder e overwrite sono disattivati. L’output relativo si trova in ComfyUI/output."
+        "text": "ENGLISH\n\nRP Load Images from Folder loads images from a folder one at a time. The processing chain runs between this node and RP Save Images to Folder, linked by flow and image_context. The saver writes each result with the source filename and advances to the next image.\n\nITALIANO\n\nRP Load Images from Folder carica una alla volta le immagini di una cartella. L'elaborazione avviene tra questo nodo e RP Save Images to Folder, collegati da flow e image_context. Il nodo di salvataggio conserva il nome originale e passa all'immagine successiva."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2955,15 +1594,15 @@
       "id": 510,
       "type": "RPVideoToFrames",
       "pos": [
-        500,
-        2030
+        6500,
+        7230
       ],
       "size": [
         400,
         422
       ],
       "flags": {},
-      "order": 29,
+      "order": 13,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -3025,15 +1664,15 @@
       "id": 511,
       "type": "ImageScaleBy",
       "pos": [
-        1000,
-        2030
+        7000,
+        7230
       ],
       "size": [
         210,
         90
       ],
       "flags": {},
-      "order": 57,
+      "order": 48,
       "mode": 0,
       "inputs": [
         {
@@ -3069,15 +1708,15 @@
       "id": 512,
       "type": "RPFramesToVideo",
       "pos": [
-        1300,
-        2030
+        7300,
+        7230
       ],
       "size": [
         300,
         360
       ],
       "flags": {},
-      "order": 72,
+      "order": 62,
       "mode": 0,
       "inputs": [
         {
@@ -3139,15 +1778,15 @@
       "id": 513,
       "type": "PreviewAny",
       "pos": [
-        1700,
-        2030
+        7700,
+        7230
       ],
       "size": [
         300,
         170
       ],
       "flags": {},
-      "order": 84,
+      "order": 72,
       "mode": 0,
       "inputs": [
         {
@@ -3176,25 +1815,25 @@
       "id": 514,
       "type": "Note",
       "pos": [
-        100,
-        2030
+        6100,
+        7230
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 30,
+      "order": 14,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Frames to Video",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nChoose/upload a video, then Queue once. RP Video to Frames starts the loop; Upscale Image By resizes each frame to 50%; RP Frames to Video saves each processed frame and assembles the final video. Connect flow and video_context directly from the start node, and processed_image from the processing chain. The original FPS is retained and audio is copied when present. processed_video.mp4 is saved inside the processed-frames folder, under output/rp_examples/video_loop/processed. FFmpeg is required.\n\nITALIANO\n\nScegli/carica un video e avvia una sola esecuzione. RP Video to Frames avvia il loop; Upscale Image By riduce ogni frame al 50%; RP Frames to Video salva i frame elaborati e assembla il video. Collega flow e video_context direttamente dal nodo iniziale e processed_image dalla catena di elaborazione. Mantiene gli FPS originali e copia l’audio se presente. processed_video.mp4 viene salvato nella cartella dei frame elaborati, output/rp_examples/video_loop/processed. Serve FFmpeg."
+        "ENGLISH\n\nRP Video to Frames extracts a video for frame-by-frame processing. RP Frames to Video saves the processed frames and rebuilds the video with its original frame rate and optional audio. The pair shares flow and video_context.\n\nITALIANO\n\nRP Video to Frames estrae i fotogrammi di un video per elaborarli uno alla volta. RP Frames to Video salva i fotogrammi elaborati e ricrea il video con gli FPS originali e l'audio opzionale. I due nodi condividono flow e video_context."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nChoose/upload a video, then Queue once. RP Video to Frames starts the loop; Upscale Image By resizes each frame to 50%; RP Frames to Video saves each processed frame and assembles the final video. Connect flow and video_context directly from the start node, and processed_image from the processing chain. The original FPS is retained and audio is copied when present. processed_video.mp4 is saved inside the processed-frames folder, under output/rp_examples/video_loop/processed. FFmpeg is required.\n\nITALIANO\n\nScegli/carica un video e avvia una sola esecuzione. RP Video to Frames avvia il loop; Upscale Image By riduce ogni frame al 50%; RP Frames to Video salva i frame elaborati e assembla il video. Collega flow e video_context direttamente dal nodo iniziale e processed_image dalla catena di elaborazione. Mantiene gli FPS originali e copia l’audio se presente. processed_video.mp4 viene salvato nella cartella dei frame elaborati, output/rp_examples/video_loop/processed. Serve FFmpeg."
+        "text": "ENGLISH\n\nRP Video to Frames extracts a video for frame-by-frame processing. RP Frames to Video saves the processed frames and rebuilds the video with its original frame rate and optional audio. The pair shares flow and video_context.\n\nITALIANO\n\nRP Video to Frames estrae i fotogrammi di un video per elaborarli uno alla volta. RP Frames to Video salva i fotogrammi elaborati e ricrea il video con gli FPS originali e l'audio opzionale. I due nodi condividono flow e video_context."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3203,15 +1842,15 @@
       "id": 515,
       "type": "LoadImage",
       "pos": [
-        4200,
-        2030
+        8000,
+        3130
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 31,
+      "order": 15,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -3247,15 +1886,15 @@
       "id": 516,
       "type": "ImageScaleBy",
       "pos": [
-        4600,
-        2130
+        8400,
+        3230
       ],
       "size": [
         300,
         90
       ],
       "flags": {},
-      "order": 58,
+      "order": 49,
       "mode": 0,
       "inputs": [
         {
@@ -3291,15 +1930,15 @@
       "id": 517,
       "type": "RPImageComparer",
       "pos": [
-        5000,
-        2030
+        8800,
+        3130
       ],
       "size": [
         400,
         370
       ],
       "flags": {},
-      "order": 73,
+      "order": 63,
       "mode": 0,
       "inputs": [
         {
@@ -3319,7 +1958,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "links": null
+          "links": []
         }
       ],
       "properties": {
@@ -3337,19 +1976,19 @@
             {
               "name": "A",
               "selected": true,
-              "url": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Ca&rand=0.9343546191383684",
-              "downloadUrl": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Ca&rand=0.32232802359305235",
+              "url": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Ca&rand=0.89201977682926",
+              "downloadUrl": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Ca&rand=0.5729387839624182",
               "img": {
-                "rpDownloadUrl": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Ca&rand=0.32232802359305235"
+                "rpDownloadUrl": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Ca&rand=0.5729387839624182"
               }
             },
             {
               "name": "B",
               "selected": true,
-              "url": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Cb&rand=0.9740244990959961",
-              "downloadUrl": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Cb&rand=0.21407157166191904",
+              "url": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Cb&rand=0.5694538973588966",
+              "downloadUrl": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Cb&rand=0.26852020540119115",
               "img": {
-                "rpDownloadUrl": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Cb&rand=0.21407157166191904"
+                "rpDownloadUrl": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Cb&rand=0.26852020540119115"
               }
             }
           ]
@@ -3364,19 +2003,19 @@
             {
               "name": "A",
               "selected": true,
-              "url": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Ca&rand=0.9343546191383684",
-              "downloadUrl": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Ca&rand=0.32232802359305235",
+              "url": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Ca&rand=0.89201977682926",
+              "downloadUrl": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Ca&rand=0.5729387839624182",
               "img": {
-                "rpDownloadUrl": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Ca&rand=0.32232802359305235"
+                "rpDownloadUrl": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Ca&rand=0.5729387839624182"
               }
             },
             {
               "name": "B",
               "selected": true,
-              "url": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Cb&rand=0.9740244990959961",
-              "downloadUrl": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Cb&rand=0.21407157166191904",
+              "url": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Cb&rand=0.5694538973588966",
+              "downloadUrl": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Cb&rand=0.26852020540119115",
               "img": {
-                "rpDownloadUrl": "/api/view?filename=original_vs_resized-2026-10-12_043539.png&type=temp&subfolder=rp_image_comparer%5C9d7864bb2518402aaca62188b12efcac%5Cb&rand=0.21407157166191904"
+                "rpDownloadUrl": "/api/view?filename=original_vs_resized-2026-10-20_194946.png&type=temp&subfolder=rp_image_comparer%5Ce955c2fd4d504fbaa6df2a2eeeb3dae3%5Cb&rand=0.26852020540119115"
               }
             }
           ]
@@ -3387,25 +2026,25 @@
       "id": 518,
       "type": "Note",
       "pos": [
-        3800,
-        2030
+        7600,
+        3130
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 32,
+      "order": 16,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Image Comparer",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nLoad an image and Queue this group. image_a receives the original; image_b receives a 50% resized version. Move the pointer over the comparison to reveal the two images. The comparer_mode property supports Slide, Click and Side-by-side. Set Display name and Save name to control downloaded PNG names. Right-click the desired side and choose Save Image. You can replace the resize branch with any processing or generation chain. The images output passes image_a unchanged to downstream nodes.\n\nITALIANO\n\nCarica un’immagine ed esegui il gruppo. image_a riceve l’originale; image_b la versione ridotta al 50%. Muovi il puntatore sul confronto per vedere le due immagini. La proprietà comparer_mode supporta Slide, Click e Side-by-side. Display name e Save name controllano il nome del PNG scaricato. Clic destro sul lato desiderato e Save Image per scaricarlo. Puoi sostituire il resize con qualsiasi elaborazione o generazione. L'uscita images restituisce image_a invariata ai nodi successivi."
+        "ENGLISH\n\nCompares two images in the same preview to check differences between an original and a processed result. Supports wipe, click and side-by-side views, and downloads either image. The images output returns image_a unchanged.\n\nITALIANO\n\nConfronta due immagini nella stessa anteprima per verificare le differenze tra un originale e il risultato elaborato. Offre confronto a scorrimento, a clic e affiancato, e permette di scaricare entrambe le immagini. L'uscita images restituisce image_a invariata."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nLoad an image and Queue this group. image_a receives the original; image_b receives a 50% resized version. Move the pointer over the comparison to reveal the two images. The comparer_mode property supports Slide, Click and Side-by-side. Set Display name and Save name to control downloaded PNG names. Right-click the desired side and choose Save Image. You can replace the resize branch with any processing or generation chain. The images output passes image_a unchanged to downstream nodes.\n\nITALIANO\n\nCarica un’immagine ed esegui il gruppo. image_a riceve l’originale; image_b la versione ridotta al 50%. Muovi il puntatore sul confronto per vedere le due immagini. La proprietà comparer_mode supporta Slide, Click e Side-by-side. Display name e Save name controllano il nome del PNG scaricato. Clic destro sul lato desiderato e Save Image per scaricarlo. Puoi sostituire il resize con qualsiasi elaborazione o generazione. L'uscita images restituisce image_a invariata ai nodi successivi."
+        "text": "ENGLISH\n\nCompares two images in the same preview to check differences between an original and a processed result. Supports wipe, click and side-by-side views, and downloads either image. The images output returns image_a unchanged.\n\nITALIANO\n\nConfronta due immagini nella stessa anteprima per verificare le differenze tra un originale e il risultato elaborato. Offre confronto a scorrimento, a clic e affiancato, e permette di scaricare entrambe le immagini. L'uscita images restituisce image_a invariata."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3414,15 +2053,15 @@
       "id": 519,
       "type": "LoadImage",
       "pos": [
-        2700,
-        2030
+        6500,
+        3130
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 33,
+      "order": 17,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -3457,15 +2096,15 @@
       "id": 520,
       "type": "RPPreviewImage",
       "pos": [
-        3100,
-        2030
+        6900,
+        3130
       ],
       "size": [
         400,
         370
       ],
       "flags": {},
-      "order": 59,
+      "order": 50,
       "mode": 0,
       "inputs": [
         {
@@ -3501,25 +2140,25 @@
       "id": 521,
       "type": "Note",
       "pos": [
-        2300,
-        2030
+        6100,
+        3130
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 34,
+      "order": 18,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Preview Image",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nChoose an image and Queue this group to display it with its exact dimensions and aspect ratio. Display name identifies the preview; Save name is a filename template. The default template includes that display name and a timestamp. Right-click the preview and choose Save Image to download the displayed PNG. With a batch, use the preview arrows to switch images. Replace Load Image with the output of your own image-processing chain.\n\nITALIANO\n\nScegli un’immagine ed esegui il gruppo per visualizzarla con dimensioni esatte e rapporto d’aspetto. Display name identifica l’anteprima; Save name è un template per il nome del file. Quello predefinito include nome e data/ora. Clic destro sull’anteprima e Save Image per scaricare il PNG visualizzato. Nei batch usa le frecce per cambiare immagine. Puoi sostituire Load Image con l’output della tua catena."
+        "ENGLISH\n\nDisplays an image or batch with its dimensions and aspect ratio. Use it to inspect results and download them as PNG files with a chosen name. The images output passes the input through unchanged.\n\nITALIANO\n\nMostra un'immagine o un batch con dimensioni e proporzioni. Serve a controllare i risultati e scaricarli come PNG con un nome scelto. L'uscita images restituisce l'immagine ricevuta senza modificarla."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nChoose an image and Queue this group to display it with its exact dimensions and aspect ratio. Display name identifies the preview; Save name is a filename template. The default template includes that display name and a timestamp. Right-click the preview and choose Save Image to download the displayed PNG. With a batch, use the preview arrows to switch images. Replace Load Image with the output of your own image-processing chain.\n\nITALIANO\n\nScegli un’immagine ed esegui il gruppo per visualizzarla con dimensioni esatte e rapporto d’aspetto. Display name identifica l’anteprima; Save name è un template per il nome del file. Quello predefinito include nome e data/ora. Clic destro sull’anteprima e Save Image per scaricare il PNG visualizzato. Nei batch usa le frecce per cambiare immagine. Puoi sostituire Load Image con l’output della tua catena."
+        "text": "ENGLISH\n\nDisplays an image or batch with its dimensions and aspect ratio. Use it to inspect results and download them as PNG files with a chosen name. The images output passes the input through unchanged.\n\nITALIANO\n\nMostra un'immagine o un batch con dimensioni e proporzioni. Serve a controllare i risultati e scaricarli come PNG con un nome scelto. L'uscita images restituisce l'immagine ricevuta senza modificarla."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3528,15 +2167,15 @@
       "id": 522,
       "type": "RPImportWorkflow",
       "pos": [
-        1500,
-        2830
+        11400,
+        4830
       ],
       "size": [
         300,
         210
       ],
       "flags": {},
-      "order": 35,
+      "order": 19,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -3562,25 +2201,25 @@
       "id": 523,
       "type": "Note",
       "pos": [
-        1100,
-        2830
+        11000,
+        4830
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 36,
+      "order": 20,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Import Workflow",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nThis is an editor utility: use its buttons without running the queue. Refresh saved workflows, select a JSON from the current user’s workflows folder, then Import saved workflow. Choose file to import accepts JSON files from another folder and supports multiple selections. placement/gap control where the imported nodes go; group_import wraps each imported file in a group. Existing nodes and valid links are kept. The source JSON is not overwritten. Save the combined canvas when ready.\n\nITALIANO\n\nÈ uno strumento per l’editor: usa i pulsanti senza avviare la coda. Aggiorna l’elenco, scegli un JSON dalla cartella workflows dell’utente e premi Import saved workflow. Choose file to import accetta JSON da altre cartelle, anche multipli. placement/gap decidono la posizione; group_import racchiude ogni file importato in un gruppo. Mantiene nodi esistenti e collegamenti validi. Non sovrascrive il JSON sorgente. Salva il canvas unito quando vuoi conservarlo."
+        "ENGLISH\n\nAdds one or more saved workflows to the current canvas while keeping existing nodes and valid connections. Use it to combine workflow branches without replacing the workflow already open. Source files are unchanged; no queue execution is needed.\n\nITALIANO\n\nAggiunge uno o più workflow salvati al canvas corrente, mantenendo nodi e collegamenti validi già presenti. Serve a unire parti di workflow senza sostituire quello aperto. I file sorgenti restano invariati e non serve avviare la coda."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nThis is an editor utility: use its buttons without running the queue. Refresh saved workflows, select a JSON from the current user’s workflows folder, then Import saved workflow. Choose file to import accepts JSON files from another folder and supports multiple selections. placement/gap control where the imported nodes go; group_import wraps each imported file in a group. Existing nodes and valid links are kept. The source JSON is not overwritten. Save the combined canvas when ready.\n\nITALIANO\n\nÈ uno strumento per l’editor: usa i pulsanti senza avviare la coda. Aggiorna l’elenco, scegli un JSON dalla cartella workflows dell’utente e premi Import saved workflow. Choose file to import accetta JSON da altre cartelle, anche multipli. placement/gap decidono la posizione; group_import racchiude ogni file importato in un gruppo. Mantiene nodi esistenti e collegamenti validi. Non sovrascrive il JSON sorgente. Salva il canvas unito quando vuoi conservarlo."
+        "text": "ENGLISH\n\nAdds one or more saved workflows to the current canvas while keeping existing nodes and valid connections. Use it to combine workflow branches without replacing the workflow already open. Source files are unchanged; no queue execution is needed.\n\nITALIANO\n\nAggiunge uno o più workflow salvati al canvas corrente, mantenendo nodi e collegamenti validi già presenti. Serve a unire parti di workflow senza sostituire quello aperto. I file sorgenti restano invariati e non serve avviare la coda."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3589,15 +2228,15 @@
       "id": 524,
       "type": "RPFixWorkflow",
       "pos": [
-        500,
-        2830
+        10400,
+        4830
       ],
       "size": [
         300,
         90
       ],
       "flags": {},
-      "order": 37,
+      "order": 21,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -3613,25 +2252,25 @@
       "id": 525,
       "type": "Note",
       "pos": [
-        100,
-        2830
+        10000,
+        4830
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 38,
+      "order": 22,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Fix Workflow",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nThis button acts on the entire current canvas, including subgraphs, without queue execution. Fix workflow removes stale links to absent nodes and invalid link/reroute references, preserving existing nodes, valid connections and settings. The green notification reports repairs or says the workflow is already clean. Fix workflow and save also saves with the current workflow name, overwriting its saved file without asking for another name. It cannot recreate missing nodes or install missing custom nodes.\n\nITALIANO\n\nIl pulsante agisce su tutto il canvas corrente, inclusi i subgraph, senza eseguire la coda. Fix workflow elimina link verso nodi assenti e riferimenti non validi di link/reroute, mantenendo nodi presenti, collegamenti validi e impostazioni. La notifica verde mostra le correzioni o indica che il workflow è già pulito. Fix workflow and save salva anche con il nome corrente, sovrascrivendo il file senza chiedere un altro nome. Non ricrea nodi mancanti né installa custom node assenti."
+        "ENGLISH\n\nRepairs broken links and invalid references in the current workflow, including subgraphs. Keeps existing nodes, settings and valid connections. Fix workflow and save also saves the repaired workflow under its current name.\n\nITALIANO\n\nRipara collegamenti interrotti e riferimenti non validi nel workflow corrente, inclusi i subgraph. Mantiene nodi, impostazioni e collegamenti validi. Fix workflow and save salva anche il workflow corretto con il nome corrente."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nThis button acts on the entire current canvas, including subgraphs, without queue execution. Fix workflow removes stale links to absent nodes and invalid link/reroute references, preserving existing nodes, valid connections and settings. The green notification reports repairs or says the workflow is already clean. Fix workflow and save also saves with the current workflow name, overwriting its saved file without asking for another name. It cannot recreate missing nodes or install missing custom nodes.\n\nITALIANO\n\nIl pulsante agisce su tutto il canvas corrente, inclusi i subgraph, senza eseguire la coda. Fix workflow elimina link verso nodi assenti e riferimenti non validi di link/reroute, mantenendo nodi presenti, collegamenti validi e impostazioni. La notifica verde mostra le correzioni o indica che il workflow è già pulito. Fix workflow and save salva anche con il nome corrente, sovrascrivendo il file senza chiedere un altro nome. Non ricrea nodi mancanti né installa custom node assenti."
+        "text": "ENGLISH\n\nRepairs broken links and invalid references in the current workflow, including subgraphs. Keeps existing nodes, settings and valid connections. Fix workflow and save also saves the repaired workflow under its current name.\n\nITALIANO\n\nRipara collegamenti interrotti e riferimenti non validi nel workflow corrente, inclusi i subgraph. Mantiene nodi, impostazioni e collegamenti validi. Fix workflow and save salva anche il workflow corretto con il nome corrente."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3640,25 +2279,25 @@
       "id": 526,
       "type": "Note",
       "pos": [
-        2300,
-        2830
+        8300,
+        7230
       ],
       "size": [
         400,
         370
       ],
       "flags": {},
-      "order": 39,
+      "order": 23,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP H3-Keyframes",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nComplete FastH3 example adapted from your saved MiniMax_FastH3 workflow. Choose eight still images in order and verify the H3 model, text encoder and both VAEs. RP H3-Keyframes receives H3 conditioning, the video VAE and the same AV latent used by the sampler. It automatically spaces the connected stills across the exact video length; connecting an input reveals the next, up to 32. Each input needs one image. crop=center fits by centered cropping; disabled stretches. The output conditioning goes to BasicGuider; the sampled AV latent is decoded to video and audio, then saved.\n\nITALIANO\n\nEsempio FastH3 completo ricavato dal tuo MiniMax_FastH3 salvato. Scegli otto immagini in ordine e verifica modello H3, encoder testuale e i due VAE. RP H3-Keyframes riceve conditioning H3, VAE video e lo stesso latent AV del sampler. Distribuisce automaticamente le immagini sulla durata esatta; collegando un input compare il successivo, fino a 32. Ogni input richiede una singola immagine. crop=center adatta con ritaglio centrale; disabled deforma alle dimensioni richieste. Il conditioning va a BasicGuider; il latent AV campionato viene decodificato in video e audio e salvato."
+        "ENGLISH\n\nUses an ordered sequence of still images to guide MiniMax H3 video generation. Images are distributed automatically across the video duration, with up to 32 keyframes. Requires H3 conditioning, its video VAE and the AV latent.\n\nITALIANO\n\nUsa una sequenza ordinata di immagini per guidare la generazione video di MiniMax H3. Le immagini vengono distribuite automaticamente lungo la durata del video, fino a 32 keyframe. Richiede conditioning H3, il suo VAE video e il latent AV."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nComplete FastH3 example adapted from your saved MiniMax_FastH3 workflow. Choose eight still images in order and verify the H3 model, text encoder and both VAEs. RP H3-Keyframes receives H3 conditioning, the video VAE and the same AV latent used by the sampler. It automatically spaces the connected stills across the exact video length; connecting an input reveals the next, up to 32. Each input needs one image. crop=center fits by centered cropping; disabled stretches. The output conditioning goes to BasicGuider; the sampled AV latent is decoded to video and audio, then saved.\n\nITALIANO\n\nEsempio FastH3 completo ricavato dal tuo MiniMax_FastH3 salvato. Scegli otto immagini in ordine e verifica modello H3, encoder testuale e i due VAE. RP H3-Keyframes riceve conditioning H3, VAE video e lo stesso latent AV del sampler. Distribuisce automaticamente le immagini sulla durata esatta; collegando un input compare il successivo, fino a 32. Ogni input richiede una singola immagine. crop=center adatta con ritaglio centrale; disabled deforma alle dimensioni richieste. Il conditioning va a BasicGuider; il latent AV campionato viene decodificato in video e audio e salvato."
+        "text": "ENGLISH\n\nUses an ordered sequence of still images to guide MiniMax H3 video generation. Images are distributed automatically across the video duration, with up to 32 keyframes. Requires H3 conditioning, its video VAE and the AV latent.\n\nITALIANO\n\nUsa una sequenza ordinata di immagini per guidare la generazione video di MiniMax H3. Le immagini vengono distribuite automaticamente lungo la durata del video, fino a 32 keyframe. Richiede conditioning H3, il suo VAE video e il latent AV."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3667,15 +2306,15 @@
       "id": 529,
       "type": "PreviewImage",
       "pos": [
-        5600,
-        630
+        11600,
+        4030
       ],
       "size": [
         300,
         370
       ],
       "flags": {},
-      "order": 67,
+      "order": 57,
       "mode": 0,
       "inputs": [
         {
@@ -3701,25 +2340,25 @@
       "id": 540,
       "type": "Note",
       "pos": [
-        100,
-        3530
+        8300,
+        4830
       ],
       "size": [
         700,
         270
       ],
       "flags": {},
-      "order": 40,
+      "order": 24,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Groups Muter",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nRP Groups Muter lists groups and reads their actual node modes. Click Enable to mute or enable all nodes in the group; the arrow navigates to that group. Muting a group mutes every node inside it, including notes and editor controls. The node stays synchronized after manual changes and reopening the workflow. In Properties, matchTitle filters names (including regular expressions), matchColors filters colors, sort chooses position/alphanumeric, and showNav controls arrows. Mute all / Unmute all acts on every listed group and follows the filters and Hide nested groups toggle. Hidden nested groups remain controlled by their outer group. No queue execution is needed.\n\nITALIANO\n\nRP Groups Muter elenca i gruppi e legge la modalità reale dei nodi. Clicca Enable per disattivare o attivare tutti i nodi nel gruppo; la freccia porta al gruppo. Disattivare un gruppo disattiva tutti i nodi al suo interno, inclusi note e controlli dell’editor. Il nodo resta sincronizzato dopo modifiche manuali e riapertura. Nelle proprietà, matchTitle filtra i nomi (anche con espressioni regolari), matchColors filtra i colori, sort ordina per posizione/nome e showNav controlla le frecce. Mute all / Unmute all agisce su tutti i gruppi elencati e segue i filtri e il toggle Hide nested groups. I gruppi nested nascosti restano controllati dal gruppo esterno. Non serve eseguire la coda."
+        "ENGLISH\n\nMutes or enables whole workflow groups. Each row controls one group; Mute all / Unmute all controls all listed groups. Hide nested groups hides child rows while their nodes remain controlled by the outer group. Works without running the queue.\n\nITALIANO\n\nDisattiva o attiva interi gruppi del workflow. Ogni riga controlla un gruppo; Mute all / Unmute all controlla tutti quelli elencati. Hide nested groups nasconde le righe dei sottogruppi, i cui nodi restano controllati dal gruppo esterno. Funziona senza avviare la coda."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nRP Groups Muter lists groups and reads their actual node modes. Click Enable to mute or enable all nodes in the group; the arrow navigates to that group. Muting a group mutes every node inside it, including notes and editor controls. The node stays synchronized after manual changes and reopening the workflow. In Properties, matchTitle filters names (including regular expressions), matchColors filters colors, sort chooses position/alphanumeric, and showNav controls arrows. Mute all / Unmute all acts on every listed group and follows the filters and Hide nested groups toggle. Hidden nested groups remain controlled by their outer group. No queue execution is needed.\n\nITALIANO\n\nRP Groups Muter elenca i gruppi e legge la modalità reale dei nodi. Clicca Enable per disattivare o attivare tutti i nodi nel gruppo; la freccia porta al gruppo. Disattivare un gruppo disattiva tutti i nodi al suo interno, inclusi note e controlli dell’editor. Il nodo resta sincronizzato dopo modifiche manuali e riapertura. Nelle proprietà, matchTitle filtra i nomi (anche con espressioni regolari), matchColors filtra i colori, sort ordina per posizione/nome e showNav controlla le frecce. Mute all / Unmute all agisce su tutti i gruppi elencati e segue i filtri e il toggle Hide nested groups. I gruppi nested nascosti restano controllati dal gruppo esterno. Non serve eseguire la coda."
+        "text": "ENGLISH\n\nMutes or enables whole workflow groups. Each row controls one group; Mute all / Unmute all controls all listed groups. Hide nested groups hides child rows while their nodes remain controlled by the outer group. Works without running the queue.\n\nITALIANO\n\nDisattiva o attiva interi gruppi del workflow. Ogni riga controlla un gruppo; Mute all / Unmute all controlla tutti quelli elencati. Hide nested groups nasconde le righe dei sottogruppi, i cui nodi restano controllati dal gruppo esterno. Funziona senza avviare la coda."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3728,15 +2367,15 @@
       "id": 542,
       "type": "EmptyImage",
       "pos": [
-        900,
-        4230
+        6600,
+        4830
       ],
       "size": [
         300,
         130
       ],
       "flags": {},
-      "order": 41,
+      "order": 25,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -3771,15 +2410,15 @@
       "id": 543,
       "type": "ImageScaleBy",
       "pos": [
-        1290,
-        4330
+        6600,
+        5130
       ],
       "size": [
         300,
         90
       ],
       "flags": {},
-      "order": 74,
+      "order": 64,
       "mode": 0,
       "inputs": [
         {
@@ -3817,8 +2456,8 @@
       "id": 545,
       "type": "ImageInvert",
       "pos": [
-        1300,
-        4230
+        6600,
+        5030
       ],
       "size": [
         170,
@@ -3827,7 +2466,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 60,
+      "order": 51,
       "mode": 0,
       "inputs": [
         {
@@ -3857,15 +2496,15 @@
       "id": 546,
       "type": "PreviewImage",
       "pos": [
-        2100,
-        4230
+        7400,
+        4830
       ],
       "size": [
         300,
         270
       ],
       "flags": {},
-      "order": 85,
+      "order": 73,
       "mode": 0,
       "inputs": [
         {
@@ -3892,15 +2531,15 @@
       "id": 547,
       "type": "RPBypasser",
       "pos": [
-        1700,
-        4230
+        7000,
+        4830
       ],
       "size": [
         360,
         118
       ],
       "flags": {},
-      "order": 86,
+      "order": 74,
       "mode": 0,
       "inputs": [
         {
@@ -3932,25 +2571,25 @@
       "id": 548,
       "type": "Note",
       "pos": [
-        100,
-        4230
+        6100,
+        4830
       ],
       "size": [
-        700,
-        270
+        400,
+        370
       ],
       "flags": {},
-      "order": 42,
+      "order": 26,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Bypasser",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nRP Bypasser replaces the repeater + fast bypasser pair with one editor node. Connect an output from each node you want to control; a free input is added automatically. The yes/no toggle on each row reads the actual source mode. Click yes to enable or no to bypass that source. Bypass all bypasses every connected source together, then changes to Enable all to re-enable them with the next click. Connecting and reopening never activate sources. Here it controls two resize steps and an invert step; the main image connections stay separate. Enable this example group before Queue. Compare the result with the resize/invert steps enabled, individually bypassed, or all bypassed. No rgthree controller is needed.\n\nITALIANO\n\nRP Bypasser sostituisce la coppia repeater + fast bypasser con un solo nodo editor. Collega un output di ogni nodo da controllare; compare automaticamente un nuovo ingresso libero. Il toggle yes/no di ogni riga legge la modalità reale della sorgente. Clicca yes per abilitarla oppure no per bypassarla. Bypass all bypassa tutte le sorgenti collegate insieme, poi diventa Enable all per riabilitarle al clic successivo. Collegamento e riapertura non attivano le sorgenti. Qui controlla due resize e un invert; i collegamenti immagine principali restano separati. Attiva il gruppo prima di eseguire. Confronta il risultato con i passaggi attivi, bypassati singolarmente oppure tutti bypassati. Non serve un controller rgthree."
+        "ENGLISH\n\nEnables or bypasses the processing nodes connected to it. Each row controls one node; Bypass all / Enable all controls all connected nodes together. The controls follow the actual node modes and work without running the queue.\n\nITALIANO\n\nAttiva o mette in bypass i nodi di elaborazione collegati. Ogni riga controlla un nodo; Bypass all / Enable all li controlla tutti insieme. I controlli seguono lo stato reale dei nodi e funzionano senza avviare la coda."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nRP Bypasser replaces the repeater + fast bypasser pair with one editor node. Connect an output from each node you want to control; a free input is added automatically. The yes/no toggle on each row reads the actual source mode. Click yes to enable or no to bypass that source. Bypass all bypasses every connected source together, then changes to Enable all to re-enable them with the next click. Connecting and reopening never activate sources. Here it controls two resize steps and an invert step; the main image connections stay separate. Enable this example group before Queue. Compare the result with the resize/invert steps enabled, individually bypassed, or all bypassed. No rgthree controller is needed.\n\nITALIANO\n\nRP Bypasser sostituisce la coppia repeater + fast bypasser con un solo nodo editor. Collega un output di ogni nodo da controllare; compare automaticamente un nuovo ingresso libero. Il toggle yes/no di ogni riga legge la modalità reale della sorgente. Clicca yes per abilitarla oppure no per bypassarla. Bypass all bypassa tutte le sorgenti collegate insieme, poi diventa Enable all per riabilitarle al clic successivo. Collegamento e riapertura non attivano le sorgenti. Qui controlla due resize e un invert; i collegamenti immagine principali restano separati. Attiva il gruppo prima di eseguire. Confronta il risultato con i passaggi attivi, bypassati singolarmente oppure tutti bypassati. Non serve un controller rgthree."
+        "text": "ENGLISH\n\nEnables or bypasses the processing nodes connected to it. Each row controls one node; Bypass all / Enable all controls all connected nodes together. The controls follow the actual node modes and work without running the queue.\n\nITALIANO\n\nAttiva o mette in bypass i nodi di elaborazione collegati. Ogni riga controlla un nodo; Bypass all / Enable all li controlla tutti insieme. I controlli seguono lo stato reale dei nodi e funzionano senza avviare la coda."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3959,15 +2598,15 @@
       "id": 549,
       "type": "LoadImage",
       "pos": [
-        2700,
-        4330
+        6700,
+        5630
       ],
       "size": [
         400,
         370
       ],
       "flags": {},
-      "order": 43,
+      "order": 27,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -4002,8 +2641,8 @@
       "id": 550,
       "type": "Label (rgthree)",
       "pos": [
-        3030,
-        4240
+        6930,
+        5540
       ],
       "size": [
         100.7109375,
@@ -4012,7 +2651,7 @@
       "flags": {
         "allow_interaction": true
       },
-      "order": 44,
+      "order": 28,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -4035,15 +2674,15 @@
       "id": 551,
       "type": "RPFaceDetection",
       "pos": [
-        3200,
-        4330
+        7200,
+        5630
       ],
       "size": [
         300,
         350
       ],
       "flags": {},
-      "order": 61,
+      "order": 52,
       "mode": 0,
       "inputs": [
         {
@@ -4152,15 +2791,15 @@
       "id": 552,
       "type": "BatchUncrop",
       "pos": [
-        4000,
-        4480
+        8000,
+        5780
       ],
       "size": [
         300,
         220
       ],
       "flags": {},
-      "order": 87,
+      "order": 75,
       "mode": 0,
       "inputs": [
         {
@@ -4217,15 +2856,15 @@
       "id": 553,
       "type": "LayerColor: ColorTemperature",
       "pos": [
-        3600,
-        4640
+        7600,
+        5940
       ],
       "size": [
         300,
         60
       ],
       "flags": {},
-      "order": 75,
+      "order": 65,
       "mode": 0,
       "inputs": [
         {
@@ -4260,15 +2899,15 @@
       "id": 554,
       "type": "PreviewImage",
       "pos": [
-        4400,
-        4430
+        8400,
+        5730
       ],
       "size": [
         300,
         270
       ],
       "flags": {},
-      "order": 90,
+      "order": 76,
       "mode": 0,
       "inputs": [
         {
@@ -4297,15 +2936,15 @@
       "id": 555,
       "type": "MaskPreview",
       "pos": [
-        3600,
-        4330
+        7600,
+        5630
       ],
       "size": [
         210,
         260
       ],
       "flags": {},
-      "order": 76,
+      "order": 66,
       "mode": 0,
       "inputs": [
         {
@@ -4331,15 +2970,15 @@
       "id": 556,
       "type": "RPGroupsMuter",
       "pos": [
-        900,
-        3530
+        9100,
+        4800
       ],
       "size": [
-        900,
-        430
+        600,
+        448
       ],
       "flags": {},
-      "order": 45,
+      "order": 29,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -4358,15 +2997,15 @@
       "id": 559,
       "type": "RPGroupsMuter",
       "pos": [
-        -1000,
-        530
+        5200,
+        3030
       ],
       "size": [
-        900,
-        430
+        600,
+        470
       ],
       "flags": {},
-      "order": 46,
+      "order": 30,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -4385,199 +3024,255 @@
       "id": 560,
       "type": "Note",
       "pos": [
-        2700,
-        4840
+        6100,
+        5630
       ],
       "size": [
-        2000,
-        360
+        500,
+        370
       ],
       "flags": {},
-      "order": 96,
+      "order": 31,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "title": "RP Face Detection",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nLoad a photo and select a locally installed face detector, such as bbox/face_yolov8m.pt. Requires Impact Pack and Impact Subpack; this example also uses KJNodes BatchUncrop and LayerStyle ColorTemperature. Width/height 0 retain detected dimensions; square uses the longer side and scale grows/shrinks the box around its original center. show_advanced reveals detection and crop settings. pad_outside_image selects none (clip), pad (black), pad_edge (mean edge colors), or pad_edge_pixel (extend edge pixels). The cropped image passes through a color change, then BatchUncrop reinserts it using original_images and bboxes from the same RP node. With padding enabled, original_images is the expanded canvas. bbox_masks previews the detection rectangle; image_area_mask and cropped_image_mask mark photo pixels white and padding black. Outputs are lists, one item per detected face.\n\nITALIANO\n\nCarica una foto e scegli un detector per volti installato, ad esempio bbox/face_yolov8m.pt. Servono Impact Pack e Impact Subpack; questo esempio usa anche BatchUncrop di KJNodes e ColorTemperature di LayerStyle. Width/height a 0 mantengono le misure rilevate; square usa il lato lungo e scale ingrandisce/riduce il box intorno al centro originale. show_advanced mostra i parametri di rilevamento e crop. pad_outside_image offre none (taglio), pad (nero), pad_edge (colore medio dei bordi) e pad_edge_pixel (estensione dei pixel dei bordi). Il crop attraversa una modifica colore, poi BatchUncrop lo reinserisce usando original_images e bboxes dello stesso nodo RP. Con il padding attivo, original_images include lo spazio aggiunto. bbox_masks mostra il rettangolo rilevato; image_area_mask e cropped_image_mask indicano in bianco la foto e in nero il padding. Gli output sono liste, con un elemento per volto rilevato."
+        "ENGLISH\n\nDetects faces and returns aligned crops, bounding boxes and masks for processing each face separately. The box can be resized around its original center, made square or extended with padding. BatchUncrop can return the processed face to its position. image_area_mask and cropped_image_mask show photo pixels in white and padding in black.\n\nITALIANO\n\nRileva i volti e restituisce ritagli allineati, box e maschere per elaborare ogni volto separatamente. Il box si può ridimensionare dal centro originale, rendere quadrato o estendere con padding. BatchUncrop può reinserire il volto elaborato nella sua posizione. image_area_mask e cropped_image_mask mostrano in bianco la foto e in nero il padding."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nLoad a photo and select a locally installed face detector, such as bbox/face_yolov8m.pt. Requires Impact Pack and Impact Subpack; this example also uses KJNodes BatchUncrop and LayerStyle ColorTemperature. Width/height 0 retain detected dimensions; square uses the longer side and scale grows/shrinks the box around its original center. show_advanced reveals detection and crop settings. pad_outside_image selects none (clip), pad (black), pad_edge (mean edge colors), or pad_edge_pixel (extend edge pixels). The cropped image passes through a color change, then BatchUncrop reinserts it using original_images and bboxes from the same RP node. With padding enabled, original_images is the expanded canvas. bbox_masks previews the detection rectangle; image_area_mask and cropped_image_mask mark photo pixels white and padding black. Outputs are lists, one item per detected face.\n\nITALIANO\n\nCarica una foto e scegli un detector per volti installato, ad esempio bbox/face_yolov8m.pt. Servono Impact Pack e Impact Subpack; questo esempio usa anche BatchUncrop di KJNodes e ColorTemperature di LayerStyle. Width/height a 0 mantengono le misure rilevate; square usa il lato lungo e scale ingrandisce/riduce il box intorno al centro originale. show_advanced mostra i parametri di rilevamento e crop. pad_outside_image offre none (taglio), pad (nero), pad_edge (colore medio dei bordi) e pad_edge_pixel (estensione dei pixel dei bordi). Il crop attraversa una modifica colore, poi BatchUncrop lo reinserisce usando original_images e bboxes dello stesso nodo RP. Con il padding attivo, original_images include lo spazio aggiunto. bbox_masks mostra il rettangolo rilevato; image_area_mask e cropped_image_mask indicano in bianco la foto e in nero il padding. Gli output sono liste, con un elemento per volto rilevato."
+        "text": "ENGLISH\n\nDetects faces and returns aligned crops, bounding boxes and masks for processing each face separately. The box can be resized around its original center, made square or extended with padding. BatchUncrop can return the processed face to its position. image_area_mask and cropped_image_mask show photo pixels in white and padding in black.\n\nITALIANO\n\nRileva i volti e restituisce ritagli allineati, box e maschere per elaborare ogni volto separatamente. Il box si può ridimensionare dal centro originale, rendere quadrato o estendere con padding. BatchUncrop può reinserire il volto elaborato nella sua posizione. image_area_mask e cropped_image_mask mostrano in bianco la foto e in nero il padding."
       },
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "id": 562,
+      "type": "Label (rgthree)",
+      "pos": [
+        6000,
+        5400
+      ],
+      "size": [
+        629.71875,
+        96
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 32,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Face detection",
+      "properties": {
+        "fontSize": 96,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 563,
+      "type": "Label (rgthree)",
+      "pos": [
+        6000,
+        4600
+      ],
+      "size": [
+        713.0625,
+        96
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 33,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Workflow utilities",
+      "properties": {
+        "fontSize": 96,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 564,
+      "type": "Label (rgthree)",
+      "pos": [
+        6000,
+        2900
+      ],
+      "size": [
+        570.984375,
+        96
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 34,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Image saving",
+      "properties": {
+        "fontSize": 96,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 565,
+      "type": "Label (rgthree)",
+      "pos": [
+        6000,
+        3800
+      ],
+      "size": [
+        1083.234375,
+        96
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 35,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Image sizing and resizing",
+      "properties": {
+        "fontSize": 96,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 566,
+      "type": "Label (rgthree)",
+      "pos": [
+        6000,
+        7000
+      ],
+      "size": [
+        1006.78125,
+        96
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 36,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Video frame processing",
+      "properties": {
+        "fontSize": 96,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 567,
+      "type": "Label (rgthree)",
+      "pos": [
+        6000,
+        6200
+      ],
+      "size": [
+        1024.546875,
+        96
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 37,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Image folder processing",
+      "properties": {
+        "fontSize": 96,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 568,
+      "type": "Label (rgthree)",
+      "pos": [
+        8200,
+        7000
+      ],
+      "size": [
+        976.21875,
+        96
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 38,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "MiniMax H3 keyframes",
+      "properties": {
+        "fontSize": 96,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
     }
   ],
   "links": [
-    [
-      419,
-      421,
-      0,
-      423,
-      0,
-      "MODEL"
-    ],
-    [
-      420,
-      423,
-      0,
-      424,
-      0,
-      "MODEL"
-    ],
-    [
-      422,
-      418,
-      0,
-      441,
-      0,
-      "CLIP"
-    ],
-    [
-      423,
-      420,
-      0,
-      441,
-      1,
-      "VAE"
-    ],
-    [
-      426,
-      429,
-      0,
-      441,
-      4,
-      "STRING"
-    ],
-    [
-      427,
-      434,
-      0,
-      441,
-      5,
-      "INT"
-    ],
-    [
-      428,
-      434,
-      1,
-      441,
-      6,
-      "INT"
-    ],
-    [
-      429,
-      451,
-      1,
-      441,
-      7,
-      "INT"
-    ],
-    [
-      430,
-      426,
-      0,
-      446,
-      0,
-      "MODEL"
-    ],
-    [
-      432,
-      426,
-      0,
-      448,
-      0,
-      "MODEL"
-    ],
-    [
-      436,
-      445,
-      0,
-      452,
-      0,
-      "NOISE"
-    ],
-    [
-      437,
-      446,
-      0,
-      452,
-      1,
-      "GUIDER"
-    ],
-    [
-      438,
-      447,
-      0,
-      452,
-      2,
-      "SAMPLER"
-    ],
-    [
-      439,
-      448,
-      0,
-      452,
-      3,
-      "SIGMAS"
-    ],
-    [
-      440,
-      441,
-      1,
-      452,
-      4,
-      "LATENT"
-    ],
-    [
-      445,
-      452,
-      0,
-      458,
-      0,
-      "LATENT"
-    ],
-    [
-      446,
-      422,
-      0,
-      458,
-      1,
-      "VAE"
-    ],
-    [
-      447,
-      452,
-      0,
-      460,
-      0,
-      "LATENT"
-    ],
-    [
-      448,
-      420,
-      0,
-      460,
-      1,
-      "VAE"
-    ],
-    [
-      454,
-      460,
-      0,
-      464,
-      0,
-      "IMAGE"
-    ],
-    [
-      455,
-      458,
-      0,
-      464,
-      1,
-      "AUDIO"
-    ],
     [
       483,
       362,
@@ -4947,30 +3642,6 @@
       "IMAGE"
     ],
     [
-      421,
-      424,
-      0,
-      426,
-      0,
-      "MODEL"
-    ],
-    [
-      435,
-      443,
-      0,
-      451,
-      0,
-      "FLOAT"
-    ],
-    [
-      457,
-      464,
-      0,
-      467,
-      0,
-      "VIDEO"
-    ],
-    [
       482,
       441,
       0,
@@ -4979,84 +3650,12 @@
       "CONDITIONING"
     ],
     [
-      484,
-      420,
-      0,
-      362,
-      1,
-      "VAE"
-    ],
-    [
       485,
       441,
       1,
       362,
       2,
       "LATENT"
-    ],
-    [
-      338,
-      345,
-      0,
-      362,
-      3,
-      "IMAGE"
-    ],
-    [
-      339,
-      344,
-      0,
-      362,
-      4,
-      "IMAGE"
-    ],
-    [
-      490,
-      348,
-      0,
-      362,
-      5,
-      "IMAGE"
-    ],
-    [
-      491,
-      359,
-      0,
-      362,
-      6,
-      "IMAGE"
-    ],
-    [
-      492,
-      364,
-      0,
-      362,
-      7,
-      "IMAGE"
-    ],
-    [
-      493,
-      376,
-      0,
-      362,
-      8,
-      "IMAGE"
-    ],
-    [
-      494,
-      383,
-      0,
-      362,
-      9,
-      "IMAGE"
-    ],
-    [
-      495,
-      393,
-      0,
-      362,
-      10,
-      "IMAGE"
     ],
     [
       595,
@@ -5078,10 +3677,10 @@
   "groups": [
     {
       "id": 1,
-      "title": "01 - RP Smart Image Size",
+      "title": "RP Smart Image Size",
       "bounding": [
-        0,
-        500,
+        6000,
+        3900,
         2100,
         600
       ],
@@ -5090,10 +3689,10 @@
     },
     {
       "id": 2,
-      "title": "02 - RP Smart Image Resize",
+      "title": "RP Smart Image Resize",
       "bounding": [
-        2200,
-        500,
+        8200,
+        3900,
         2100,
         600
       ],
@@ -5102,10 +3701,10 @@
     },
     {
       "id": 3,
-      "title": "03 - RP Image Minimum 1K",
+      "title": "RP Image Minimum 1K",
       "bounding": [
-        4400,
-        500,
+        10400,
+        3900,
         1600,
         600
       ],
@@ -5114,10 +3713,10 @@
     },
     {
       "id": 4,
-      "title": "04 - RP Load Images from Folder & RP Save Images to Folder",
+      "title": "RP Load Images from Folder & RP Save Images to Folder",
       "bounding": [
-        0,
-        1200,
+        6000,
+        6300,
         2100,
         600
       ],
@@ -5126,10 +3725,10 @@
     },
     {
       "id": 5,
-      "title": "06 - RP Load Prompt from File",
+      "title": "RP Load Prompt from File",
       "bounding": [
-        4400,
-        1200,
+        10400,
+        6300,
         1600,
         600
       ],
@@ -5138,10 +3737,10 @@
     },
     {
       "id": 6,
-      "title": "05 - RP Save Image to Folder (No Loop)",
+      "title": "RP Save Image to Folder (No Loop)",
       "bounding": [
-        2200,
-        1200,
+        8200,
+        6300,
         2100,
         600
       ],
@@ -5150,22 +3749,22 @@
     },
     {
       "id": 9,
-      "title": "07 - RP Video to Frames & RP Frames to Video",
+      "title": "RP Video to Frames & RP Frames to Video",
       "bounding": [
-        0,
-        1900,
+        6000,
+        7100,
         2100,
-        700
+        600
       ],
       "color": "#3f789e",
       "flags": {}
     },
     {
       "id": 10,
-      "title": "09 - RP Image Comparer",
+      "title": "RP Image Comparer",
       "bounding": [
-        3700,
-        1900,
+        7500,
+        3000,
         1800,
         700
       ],
@@ -5174,10 +3773,10 @@
     },
     {
       "id": 11,
-      "title": "08 - RP Preview Image",
+      "title": "RP Preview Image",
       "bounding": [
-        2200,
-        1900,
+        6000,
+        3000,
         1400,
         700
       ],
@@ -5186,10 +3785,10 @@
     },
     {
       "id": 12,
-      "title": "11 - RP Import Workflow",
+      "title": "RP Import Workflow",
       "bounding": [
-        1000,
-        2700,
+        10900,
+        4700,
         1100,
         600
       ],
@@ -5198,10 +3797,10 @@
     },
     {
       "id": 13,
-      "title": "10 - RP Fix Workflow",
+      "title": "RP Fix Workflow",
       "bounding": [
-        0,
-        2700,
+        9900,
+        4700,
         900,
         600
       ],
@@ -5210,23 +3809,23 @@
     },
     {
       "id": 14,
-      "title": "12 - RP H3-Keyframes | Complete FastH3 example",
+      "title": "RP H3-Keyframes",
       "bounding": [
-        2200,
-        2700,
-        5500,
-        1300
+        8200,
+        7100,
+        1700,
+        600
       ],
-      "color": "#8065a5",
+      "color": "#3f789e",
       "flags": {}
     },
     {
       "id": 15,
-      "title": "13 - RP Groups Muter",
+      "title": "RP Groups Muter",
       "bounding": [
-        0,
-        3400,
-        2100,
+        8200,
+        4700,
+        1600,
         600
       ],
       "color": "#3f789e",
@@ -5234,24 +3833,24 @@
     },
     {
       "id": 16,
-      "title": "14 - RP Bypasser",
+      "title": "RP Bypasser",
       "bounding": [
-        0,
-        4100,
-        2500,
-        700
+        6000,
+        4700,
+        2100,
+        600
       ],
-      "color": "#676798",
+      "color": "#3f789e",
       "flags": {}
     },
     {
       "id": 17,
-      "title": "15 RP Face Detection",
+      "title": "RP Face Detection",
       "bounding": [
-        2600,
-        4100,
-        2200,
-        1200
+        6000,
+        5500,
+        2800,
+        600
       ],
       "color": "#3f789e",
       "flags": {}
@@ -5260,10 +3859,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.12100000000000086,
+      "scale": 0.11000000000000043,
       "offset": [
-        5676.655918924837,
-        1091.7872369732404
+        367.0589197383812,
+        -1532.7330905525432
       ]
     },
     "frontendVersion": "1.55.18",
@@ -5278,7 +3877,5 @@
     }
   },
   "version": 0.4,
-  "seed_widgets": {
-    "445": 0
-  }
+  "seed_widgets": {}
 }
