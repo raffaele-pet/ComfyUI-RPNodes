@@ -49,8 +49,9 @@ class SmartImageSizeTests(unittest.TestCase):
     def test_moss_official_resolution_classes_and_examples(self):
         tiers = smart_image_size.RESOLUTIONS["MOSS-Image (Base / SFT)"]
         self.assertEqual(list(tiers), [
+            "0.25 MP ~ 0.5K (512 × 512)",
             "1 MP ~ 1K (1024 × 1024)", "1.5 MP (1248 × 1248)",
-            "2 MP (1456 × 1456)", "0.25 MP ~ 0.5K (512 × 512)",
+            "2 MP (1456 × 1456)",
             "4 MP ~ 2K (2048 × 2048)",
         ])
         for tier, square_side, portrait, widescreen in (

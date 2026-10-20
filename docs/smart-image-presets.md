@@ -65,8 +65,8 @@ from the budget and ratio, then round each edge independently to its nearest
 multiple of 16, with half values rounded upward. The square presets are
 512×512, 1024×1024, 1248×1248, 1456×1456 and 2048×2048. The 1.5M and
 2M tiers use the original budgets, not the rounded square's pixel area, when
-calculating non-square presets. Recommended tiers come first, with 1M selected
-when switching to MOSS; 0.25M and 4M follow as extrapolation choices.
+calculating non-square presets. Tiers are listed in ascending order:
+0.25M, 1M, 1.5M, 2M and 4M.
 
 OpenMOSS's visible ratio shortcuts are 9:16, 2:3, 3:4, 1:1, 4:3, 3:2 and
 16:9. Its preset module also names 1:8, 1:4, 1:3, 1:2, 2:1, 3:1, 4:1 and
