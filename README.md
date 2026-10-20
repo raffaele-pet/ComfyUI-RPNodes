@@ -80,8 +80,8 @@ pixels. Connect either mask directly to **MaskPreview**.
 Outputs are lists, as in the original mask-list workflow: each detected face
 gets its own crop, source image, coordinates, and mask. Image batches are
 detected one image at a time. An image without detections reports a clear error.
-See `example_workflows/RP_Face_Detection.json` for the supplied workflow
-converted to this single node.
+See group **15 RP Face Detection** in
+`example_workflows/RP_All_Nodes_Examples.json` for the complete example.
 
 ## Workflow utilities
 
@@ -118,6 +118,11 @@ The first toggle, **Hide nested groups**, is on by default: groups completely
 contained in another group are hidden from the list, while their nodes remain
 controlled by the outer group. Partially overlapping groups stay listed. Turn
 it off to list all groups. This setting is saved with the workflow.
+
+The bottom **Mute all** button mutes all matching groups in one action, then
+becomes **Unmute all** to enable them together. It follows the same title/color
+filters and **Hide nested groups** setting as the group rows. The label follows
+the actual node modes, including manual changes and other muters.
 
 The rows always read the actual node modes, including after manual changes,
 moving nodes, and reopening a saved workflow. Group toggle values are not saved as
@@ -204,6 +209,8 @@ The `Save name` field controls the browser-download filename and defaults to
 Right-click the left or right half of the preview and choose `Save Image` to
 download the corresponding image. If either input contains a batch, use the
 labels above the preview to select the two images to compare.
+The `images` output passes `image_a` through unchanged, including its full
+batch, so it can be connected to Preview Image or another processing node.
 
 ### RP Preview Image
 

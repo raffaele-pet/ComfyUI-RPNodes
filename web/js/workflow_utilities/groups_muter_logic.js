@@ -13,15 +13,20 @@ export function isGroupEnabled(group) {
 }
 
 export function setGroupEnabled(group, enabled) {
+    setGroupsEnabled([group], enabled);
+}
+
+export function setGroupsEnabled(groups, enabled) {
     const mode = enabled ? 0 : 2;
-    const nodes = getGroupNodes(group).filter((node) => node.mode !== mode);
+    const nodes = [...new Set(groups.flatMap(getGroupNodes))].filter((node) => node.mode !== mode);
     if (!nodes.length) return;
-    group.graph.beforeChange();
+    const graph = groups[0].graph;
+    graph.beforeChange();
     try {
         for (const node of nodes) node.mode = mode;
     } finally {
-        group.graph.afterChange();
-        group.graph.setDirtyCanvas(true, true);
+        graph.afterChange();
+        graph.setDirtyCanvas(true, true);
     }
 }
 

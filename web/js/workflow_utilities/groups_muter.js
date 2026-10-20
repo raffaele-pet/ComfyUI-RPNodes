@@ -1,5 +1,5 @@
 import { app } from "/scripts/app.js";
-import { getMatchingGroups, isGroupEnabled, setGroupEnabled } from "./groups_muter_logic.js";
+import { getMatchingGroups, isGroupEnabled, setGroupEnabled, setGroupsEnabled } from "./groups_muter_logic.js";
 
 const muters = new Set();
 let timer;
@@ -81,7 +81,13 @@ function refreshGroups(node) {
     const hideNestedGroups = node.properties.hideNestedGroups !== false;
     let changed = toggle.value !== hideNestedGroups;
     toggle.value = hideNestedGroups;
-    const widgets = [toggle, ...groupWidgets];
+    const button = node.muteAllWidget;
+    const buttonName = groups.length && !groups.some(isGroupEnabled) ? "Unmute all" : "Mute all";
+    changed ||= button.name !== buttonName;
+    button.name = buttonName;
+    button.label = buttonName;
+    button.clicked = false;
+    const widgets = [toggle, ...groupWidgets, button];
     for (const widget of groupWidgets) {
         const name = `Enable ${widget.group.title}`;
         const enabled = isGroupEnabled(widget.group);
@@ -118,6 +124,12 @@ app.registerExtension({
             this.addProperty("matchColors", "", "string");
             this.addProperty("showNav", true, "boolean");
             this.addProperty("sort", "position", "enum", { values: ["position", "alphanumeric"] });
+            this.muteAllWidget = this.addWidget("button", "Mute all", null, () => {
+                const groups = getMatchingGroups(this.graph, this.properties, LGraphCanvas.node_colors);
+                setGroupsEnabled(groups, !groups.some(isGroupEnabled));
+                refreshAll();
+            }, { serialize: false });
+            this.muteAllWidget.serialize = false;
             return result;
         };
         const onAdded = nodeType.prototype.onAdded;

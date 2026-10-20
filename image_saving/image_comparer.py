@@ -106,6 +106,8 @@ class RPImageComparer(_NamedPreviewImage):
     """Compare two images and download either preview with a chosen name."""
 
     FUNCTION = "compare_images"
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("images",)
     CATEGORY = "image/saving"
     DESCRIPTION = (
         "Compares two images with a hover slider, click mode, or side-by-side "
@@ -162,7 +164,8 @@ class RPImageComparer(_NamedPreviewImage):
                 "a_images": [],
                 "b_images": [],
                 "download_name": [download_name],
-            }
+            },
+            "result": (image_a,),
         }
         if image_a is not None and len(image_a) > 0:
             result["ui"]["a_images"] = self._save_named_previews(

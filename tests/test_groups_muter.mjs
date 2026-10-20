@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { getGroupNodes, getMatchingGroups, isGroupEnabled, setGroupEnabled } from "../web/js/workflow_utilities/groups_muter_logic.js";
+import { getGroupNodes, getMatchingGroups, isGroupEnabled, setGroupEnabled, setGroupsEnabled } from "../web/js/workflow_utilities/groups_muter_logic.js";
 
 function fixture() {
     const graph = { nodes: [], groups: [], changes: [],
@@ -83,4 +83,33 @@ test("filters support title patterns, hex shorthand, palette colors and natural 
     assert.equal(graph.groups[0].title, "Group 10");
     group.title = "Group [";graph.groups = [group];
     assert.equal(getMatchingGroups(graph, { matchTitle: "[" }).length, 1);
+});
+
+test("bulk changes overlapping and nested groups once in one undo operation", () => {
+    const { graph, group } = fixture();
+    const nested = { ...group, title: "Nested", pos: [10, 10], size: [60, 60] };
+    graph.groups = [group, nested];
+    setGroupsEnabled(graph.groups, true);
+    assert.ok(getGroupNodes(group).every((node) => node.mode === 0));
+    assert.deepEqual(graph.changes, ["before", "after"]);
+    setGroupsEnabled(graph.groups, false);
+    assert.ok(getGroupNodes(group).every((node) => node.mode === 2));
+    assert.equal(graph.nodes.at(-1).mode, 0);
+    assert.deepEqual(graph.changes, ["before", "after", "before", "after"]);
+    setGroupsEnabled([], true);
+    setGroupsEnabled(graph.groups, false);
+    assert.equal(graph.changes.length, 4);
+});
+
+test("bulk follows the nested toggle and filters exactly like group rows", () => {
+    const { graph, group } = fixture();
+    const nested = { ...group, title: "Nested", pos: [10, 10], size: [60, 60] };
+    graph.groups = [group, nested];
+    const properties = { matchTitle: "^Nested$", hideNestedGroups: true };
+    setGroupsEnabled(getMatchingGroups(graph, properties), true);
+    assert.ok(getGroupNodes(nested).every((node) => node.mode === 2));
+    properties.hideNestedGroups = false;
+    setGroupsEnabled(getMatchingGroups(graph, properties), true);
+    assert.ok(getGroupNodes(nested).every((node) => node.mode === 0));
+    assert.deepEqual(graph.changes, ["before", "after"]);
 });

@@ -114,6 +114,28 @@ class ImageComparerTests(unittest.TestCase):
                         (Path(temp_dir) / image["subfolder"] / image["filename"]).is_file()
                     )
 
+    def test_comparer_output_passes_exact_image_a_batch_to_downstream_nodes(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            image_comparer.folder_paths.get_temp_directory = lambda: temp_dir
+            node = image_comparer.RPImageComparer()
+            node.output_dir = temp_dir
+            images_a = [object(), object()]
+            images_b = [object()]
+            result = node.compare_images(image_a=images_a, image_b=images_b)
+            self.assertEqual(node.RETURN_TYPES, ("IMAGE",))
+            self.assertEqual(node.RETURN_NAMES, ("images",))
+            self.assertEqual(len(result["result"]), 1)
+            self.assertIs(result["result"][0], images_a)
+
+    def test_comparer_without_image_a_still_returns_one_output_slot(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            image_comparer.folder_paths.get_temp_directory = lambda: temp_dir
+            node = image_comparer.RPImageComparer()
+            node.output_dir = temp_dir
+            result = node.compare_images(image_b=[object()])
+            self.assertEqual(result["result"], (None,))
+            self.assertEqual(len(result["ui"]["b_images"]), 1)
+
     def test_preview_image_uses_named_temp_files_and_passes_images_through(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             image_comparer.folder_paths.get_temp_directory = lambda: temp_dir
