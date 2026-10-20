@@ -25,6 +25,32 @@ from image_sizing_and_resizing.smart_image_size import (
 
 
 class SmartImageResizeSelectionTests(unittest.TestCase):
+    def test_moss_automatic_resize_matches_size_for_all_resolution_classes(self):
+        model = "MOSS-Image (Base / SFT)"
+        for tier, items in RESOLUTIONS[model].items():
+            with self.subTest(tier=tier):
+                item = next(item for item in items if item["ratio"] == "4:5")
+                expected = SmartImageSize().get_resolution(model, tier, dimension_text(item))
+                result = SmartImageResize().resize(
+                    model=model, resolution_preset=tier, selection_mode="automatic",
+                    dimensions="", width=1, height=1, upscale_method="nearest-exact",
+                    keep_proportion="pad_edge_pixel", pad_color="0, 0, 0",
+                    crop_position="center", image=torch.zeros((1, 5, 4, 3)),
+                )
+                self.assertEqual((*result[1:6], result[8]), expected)
+                self.assertEqual(tuple(result[0].shape[1:3]), (item["height"], item["width"]))
+
+    def test_moss_extreme_ratio_is_selected_without_a_side_cap(self):
+        result = SmartImageResize().resize(
+            model="MOSS-Image (Base / SFT)", resolution_preset="2 MP (1456 × 1456)",
+            selection_mode="automatic", dimensions="", width=1, height=1,
+            upscale_method="nearest-exact", keep_proportion="stretch",
+            pad_color="0, 0, 0", crop_position="center",
+            image=torch.zeros((1, 1, 8, 3)),
+        )
+        self.assertEqual(result[1:5], (4096, 512, "8:1", "8:1"))
+        self.assertEqual(result[8], 2.0)
+
     def test_flux3_klein_is_the_default_in_both_nodes(self):
         for node in (SmartImageSize, SmartImageResize):
             models, options = node.INPUT_TYPES()["required"]["model"]

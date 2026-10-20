@@ -1,6 +1,7 @@
 # Smart image preset sources
 
-Initial audit: 2026-09-29; FLUX.3 Klein added and checked on 2026-10-19.
+Initial audit: 2026-09-29; FLUX.3 Klein checked on 2026-10-19;
+MOSS-Image added and checked on 2026-10-20.
 Both smart image nodes read the same `resolutions.json`.
 The resolution tier names use a square image as a reference; non-square presets
 can have a different pixel count. A named aspect ratio is approximate when the
@@ -15,6 +16,7 @@ pixel dimensions have been rounded to a model-compatible grid.
 | HiDream-O1-Image / Dev | [HiDream model card](https://huggingface.co/HiDream-ai/HiDream-O1-Image) and [official demo presets](https://huggingface.co/spaces/HiDream-ai/HiDream-O1-Image/blob/main/app.py) | The 2K entries for 1:1, 4:3, 3:4, 16:9, 9:16, 3:2, 2:3, 21:9, 9:7 and 7:9 follow the demo. Other ratios and the 1K/1.5K buckets are estimates. |
 | Ideogram 4 | [Ideogram model specification](https://ideogram.ai/blog/ideogram-4.0/) and [inference guide](https://github.com/ideogram-oss/ideogram4/blob/main/docs/inference.md) | The open-weight model accepts multiples of 16 from 256 to 2048 pixels per side and ratios up to 6:1. Catalog dimensions within those limits are estimates, including the intermediate 1.5K tier. The hosted API exposes 1K and 2K resolution options. |
 | Krea 2 | [Krea official demo](https://huggingface.co/spaces/krea/Krea-2/blob/main/app.py) | Its demo publishes 1024 square, 832×1216 portrait (13:19), 1216×832 landscape (19:13) and 2048 square. These portrait and landscape sizes have their own ratio entries rather than being labeled 2:3 and 3:2. The remaining entries are estimates. The 2K estimates stay within the demo's 2048-pixel-per-side limit. 2K may need more GPU memory. |
+| MOSS-Image (Base / SFT) | [OpenMOSS guide](https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE.md), [official sizing code](https://github.com/OpenMOSS/MOSS-Image/blob/20f5592077916ec8d439bed7b34d18e45c20d657/gradio_presets.py), [SFT model card](https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT), [ComfyUI template](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_moss_image_t2i.json) | 1M, 1.5M and 2M recommended; 0.25M and 4M extrapolation. Positive multiples of 16 and arbitrary ratios. All 135 catalog sizes reproduce OpenMOSS's `fit_size` function, with 27 ratios per tier. |
 | Qwen-Image-2.1 | [Qwen model card](https://huggingface.co/Qwen/Qwen-Image-2.1) | Seven 2K dimensions come directly from the model card. The other 2K ratios and all 1K, 2 MP and 3 MP entries are 32-pixel-grid estimates using each square preset's pixel budget. |
 | Qwen-Image-2512 | [Qwen model card](https://huggingface.co/Qwen/Qwen-Image-2512) | Seven 1328-based dimensions are published. The remaining ratios are estimates. |
 | Qwen-Image-Edit-2511 | [Qwen model card](https://huggingface.co/Qwen/Qwen-Image-Edit-2511) | The 1K bucket follows common editing use; the extended ratios are estimates. |
@@ -50,3 +52,29 @@ This profile targets distilled Klein. BFL's specifications list up to 4K for
 both checkpoints. Native reference preparation varies by implementation and
 by the number of reference images; this catalog aligns with ComfyUI's
 Set Reference Multi Latent sizing behavior.
+
+## MOSS-Image sizing
+
+Base and SFT use the same architecture and inference pipeline. OpenMOSS
+recommends 1M, 1.5M or 2M pixels and describes 0.25M through 4M as
+extrapolation. Its Gradio code defines those budgets as 262144, 1048576,
+1572864, 2097152 and 4194304 pixels: M means 1024² pixels here.
+
+Every catalog entry uses the official `fit_size`: calculate width and height
+from the budget and ratio, then round each edge independently to its nearest
+multiple of 16, with half values rounded upward. The square presets are
+512×512, 1024×1024, 1248×1248, 1456×1456 and 2048×2048. The 1.5M and
+2M tiers use the original budgets, not the rounded square's pixel area, when
+calculating non-square presets. Recommended tiers come first, with 1M selected
+when switching to MOSS; 0.25M and 4M follow as extrapolation choices.
+
+OpenMOSS's visible ratio shortcuts are 9:16, 2:3, 3:4, 1:1, 4:3, 3:2 and
+16:9. Its preset module also names 1:8, 1:4, 1:3, 1:2, 2:1, 3:1, 4:1 and
+8:1. The local catalog includes all of these and the existing smart nodes'
+additional ratios, for 27 total. Extra ratios follow the same official function;
+they are not claimed to be tested optimal buckets. No independent side cap is
+applied: for example, the official 4M 8:1 calculation is 5792×720.
+
+The MOSS `megapixels` output remains actual pixel area divided by 1024²,
+without FLUX.3's target-budget override. For example, 1M 4:5 is 912×1152
+and reports 1.001953125, while 1.5M 1:1 is 1248×1248 and reports 1.4853515625.

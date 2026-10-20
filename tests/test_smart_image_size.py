@@ -20,11 +20,14 @@ QWEN_21_TIERS = {
 }
 
 ALL_RESOLUTION_LABELS = {
+    "0.25 MP ~ 0.5K (512 × 512)": 512,
     "0.5625 MP ~ 0.75K (768 × 768)": 768,
     "1 MP ~ 1K (1024 × 1024)": 1024,
+    "1.5 MP (1248 × 1248)": 1248,
     "1.56 MP ~ 1.25K (1280 × 1280)": 1280,
     "1.68 MP (1328 × 1328)": 1328,
     "2 MP (1440 × 1440)": 1440,
+    "2 MP (1456 × 1456)": 1456,
     "2.25 MP ~ 1.5K (1536 × 1536)": 1536,
     "3 MP (1760 × 1760)": 1760,
     "4 MP ~ 2K (2048 × 2048)": 2048,
@@ -43,6 +46,34 @@ QWEN_21_OFFICIAL_2K = {
 
 
 class SmartImageSizeTests(unittest.TestCase):
+    def test_moss_official_resolution_classes_and_examples(self):
+        tiers = smart_image_size.RESOLUTIONS["MOSS-Image (Base / SFT)"]
+        self.assertEqual(list(tiers), [
+            "1 MP ~ 1K (1024 × 1024)", "1.5 MP (1248 × 1248)",
+            "2 MP (1456 × 1456)", "0.25 MP ~ 0.5K (512 × 512)",
+            "4 MP ~ 2K (2048 × 2048)",
+        ])
+        for tier, square_side, portrait, widescreen in (
+            ("1 MP ~ 1K (1024 × 1024)", 1024, (912, 1152), (1360, 768)),
+            ("1.5 MP (1248 × 1248)", 1248, (1120, 1408), (1680, 944)),
+            ("2 MP (1456 × 1456)", 1456, (1296, 1616), (1936, 1088)),
+            ("0.25 MP ~ 0.5K (512 × 512)", 512, (464, 576), (688, 384)),
+            ("4 MP ~ 2K (2048 × 2048)", 2048, (1824, 2288), (2736, 1536)),
+        ):
+            with self.subTest(tier=tier):
+                items = {item["ratio"]: item for item in tiers[tier]}
+                self.assertEqual(len(items), 27)
+                self.assertEqual((items["1:1"]["width"], items["1:1"]["height"]),
+                                 (square_side, square_side))
+                self.assertEqual((items["4:5"]["width"], items["4:5"]["height"]), portrait)
+                self.assertEqual((items["16:9"]["width"], items["16:9"]["height"]), widescreen)
+                self.assertTrue({"1:8", "1:4", "1:3", "3:1", "4:1", "8:1"} <= items.keys())
+                for item in items.values():
+                    result = smart_image_size.SmartImageSize().get_resolution(
+                        "MOSS-Image (Base / SFT)", tier, smart_image_size.dimension_text(item)
+                    )
+                    self.assertEqual(result[5], item["width"] * item["height"] / 1024**2)
+
     def test_flux3_klein_resolution_tiers_and_dimension_limits(self):
         tiers = smart_image_size.RESOLUTIONS["FLUX.3 Klein"]
         self.assertEqual(list(tiers), [
@@ -153,7 +184,9 @@ class SmartImageSizeTests(unittest.TestCase):
                         self.assertEqual(item["height"] % 16, 0)
                         ratio_width, ratio_height = map(int, item["ratio"].split(":"))
                         actual_ratio = item["width"] / item["height"]
-                        self.assertLess(abs(math.log(actual_ratio / (ratio_width / ratio_height))), 0.03)
+                        # OpenMOSS's 0.25M 1:8 preset rounds its 181-pixel side to 176.
+                        tolerance = 0.04 if model == "MOSS-Image (Base / SFT)" else 0.03
+                        self.assertLess(abs(math.log(actual_ratio / (ratio_width / ratio_height))), tolerance)
 
     def test_all_models_use_descriptive_resolution_labels(self):
         self.assertEqual(

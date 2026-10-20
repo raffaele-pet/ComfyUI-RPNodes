@@ -227,6 +227,7 @@ resolution database and dependent controls.
 - HiDream-O1-Image / Dev
 - Ideogram 4
 - Krea 2
+- MOSS-Image (Base / SFT)
 - Qwen-Image-2.1
 - Qwen-Image-2512
 - Qwen-Image-Edit-2511
@@ -242,6 +243,15 @@ Its catalog includes 768, 1K, 1.5K, 2K and 4K square-reference classes, with
 21 aspect ratios on a 16-pixel grid. Presets use the same target pixel budgets
 as Set Reference Multi Latent: 0.5625, 1.0, 2.25, 4.0 and 16.0. Non-square
 4K presets can exceed 4096 pixels per side to retain the selected budget.
+
+`MOSS-Image (Base / SFT)` follows OpenMOSS's official Gradio sizing rule:
+1, 1.5 and 2 MP are recommended; 0.25 and 4 MP are extrapolation tiers.
+The model's pixel-budget unit is 1024² pixels. Square presets are respectively
+1024, 1248, 1456, 512 and 2048 pixels per side after rounding to the 16-pixel
+grid. The catalog provides 27 ratios, including OpenMOSS's 1:8 through 8:1
+presets; arbitrary ratios are supported by the model. These entries use the
+official sizing rule, not a published table of optimal dimensions.
+The `megapixels` output reports actual output area, including grid rounding.
 
 ### RP Smart Image Size
 
