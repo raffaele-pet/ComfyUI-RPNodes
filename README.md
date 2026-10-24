@@ -86,8 +86,9 @@ Merge's `tiles`, and `tile_context` directly between the two nodes. Preserve the
 list order. Merge applies normalized cosine feathering at the saved positions,
 removes padding, and integrates native ComfyUI color matching per tile and
 globally (default strengths 0.75 and 0.25). Padding is excluded from both color
-statistics and the output. `scaled_image`, `tile_preview`, and `layout` show
-the comparison reference, tile contact sheet, and computed dimensions.
+statistics and the output. `scaled_image` and `layout` show the comparison
+reference and computed dimensions. Connect `tiles` to an image preview to
+inspect the individual tiles.
 
 Tile count controls the output pixel budget; very large inputs can be reduced.
 Proportions are preserved to the nearest pixel, without cropping. Fixed tile

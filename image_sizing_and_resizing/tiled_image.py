@@ -41,17 +41,6 @@ def tile_layout(width, height, count):
     }
 
 
-def _preview(tiles, rows, columns, batch_size):
-    previews = []
-    count = rows * columns
-    for batch_index in range(batch_size):
-        thumbs = [F.interpolate(tile.movedim(-1, 1), size=(192, 192), mode="area").movedim(1, -1)
-                  for tile in tiles[batch_index * count:(batch_index + 1) * count]]
-        previews.append(torch.cat([torch.cat(thumbs[row * columns:(row + 1) * columns], dim=2)
-                                   for row in range(rows)], dim=1))
-    return torch.cat(previews)
-
-
 def split_tiles(image, count, upscale_method):
     height, width = image.shape[1:3]
     layout = tile_layout(width, height, count)
@@ -64,13 +53,12 @@ def split_tiles(image, count, upscale_method):
     tiles = [padded[b:b + 1, y:y + TILE_SIZE, x:x + TILE_SIZE].clone()
              for b in range(image.shape[0]) for x, y in layout["positions"]]
     context = {**layout, "reference": reference, "original_size": (width, height), "batch_size": image.shape[0]}
-    preview = _preview(tiles, layout["rows"], layout["columns"], image.shape[0])
     description = (
         f'{layout["columns"]} columns x {layout["rows"]} rows; {count} tiles/image, 1024 x 1024; '
         f'overlap {layout["overlap"]} px; output {scaled_width} x {scaled_height}; '
         f'padding L/T/R/B: {left}/{top}/{right}/{bottom}'
     )
-    return tiles, context, reference, preview, description
+    return tiles, context, reference, description
 
 
 def _feather(row, column, rows, columns, overlap, device):
@@ -143,7 +131,6 @@ class RPTileSplit(io.ComfyNode):
                 io.Image.Output(display_name="tiles", is_output_list=True),
                 TileContext.Output(display_name="tile_context"),
                 io.Image.Output(display_name="scaled_image"),
-                io.Image.Output(display_name="tile_preview"),
                 io.String.Output(display_name="layout"),
             ],
         )

@@ -1021,13 +1021,6 @@
           ]
         },
         {
-          "name": "tile_preview",
-          "type": "IMAGE",
-          "links": [
-            4156
-          ]
-        },
-        {
           "name": "layout",
           "type": "STRING",
           "links": [
@@ -1098,34 +1091,6 @@
         "tile_color_strength": 0.75,
         "global_color_strength": 0.25
       }
-    },
-    {
-      "id": 2302,
-      "type": "PreviewImage",
-      "pos": [
-        400,
-        1430
-      ],
-      "size": [
-        640,
-        450
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 4156
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "PreviewImage",
-        "cnr_id": "comfy-core"
-      },
-      "title": "1024 x 1024 Tiles - Contact Sheet"
     },
     {
       "id": 2303,
@@ -1372,17 +1337,9 @@
       "IMAGE"
     ],
     [
-      4156,
-      2300,
-      3,
-      2302,
-      0,
-      "IMAGE"
-    ],
-    [
       4157,
       2300,
-      4,
+      3,
       2303,
       0,
       "STRING"

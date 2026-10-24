@@ -16,6 +16,7 @@ to both the prompt expander's image input and the editing reference input.
 Connect decoded tiles directly to Merge; no batch/list conversion is needed.
 Merge also accepts one IMAGE batch containing all tiles in the same order.
 Do not filter, shuffle, or change the number or dimensions of decoded tiles.
+Connect `tiles` to an image preview when you want to inspect individual tiles.
 
 For FLUX.3, use `ReferenceMultiLatent` with **keep resolution** and its
 `empty_latent` output for sampling. Every reference and decoded tile must remain

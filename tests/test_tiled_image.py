@@ -50,17 +50,16 @@ class TiledImageTests(unittest.TestCase):
         for width, height, preset in [(43, 29, 4), (29, 43, 6), (37, 37, 9), (47, 31, 12), (45, 17, 25)]:
             with self.subTest(preset=preset):
                 source = torch.rand((1, height, width, 3))
-                tiles, context, reference, preview, description = split_tiles(source, preset, "bilinear")
+                tiles, context, reference, description = split_tiles(source, preset, "bilinear")
                 self.assertEqual(len(tiles), preset)
                 self.assertTrue(all(tuple(tile.shape) == (1, 1024, 1024, 3) for tile in tiles))
                 output = merge_tiles(tiles, context, "reinhard_lab", 0, 0)
                 torch.testing.assert_close(output, reference, rtol=0, atol=3e-7)
-                self.assertEqual(preview.shape[1:3], (context["rows"] * 192, context["columns"] * 192))
                 self.assertIn(f"{preset} tiles/image", description)
 
     def test_changed_padding_pixels_never_enter_reconstruction(self):
         source = torch.rand((1, 17, 41, 3))
-        tiles, context, reference, _, _ = split_tiles(source, 4, "nearest-exact")
+        tiles, context, reference, _ = split_tiles(source, 4, "nearest-exact")
         left, top, _, _ = context["padding"]
         width, height = context["content_size"]
         for tile, (x, y) in zip(tiles, context["positions"]):
@@ -72,7 +71,7 @@ class TiledImageTests(unittest.TestCase):
 
     def test_tile_order_batch_order_and_metadata_remain_aligned(self):
         source = torch.cat([torch.full((1, 11, 17, 3), 0.2), torch.full((1, 11, 17, 3), 0.8)])
-        tiles, context, reference, _, _ = split_tiles(source, 6, "nearest-exact")
+        tiles, context, reference, _ = split_tiles(source, 6, "nearest-exact")
         self.assertEqual(len(tiles), 12)
         self.assertAlmostEqual(tiles[0].mean().item(), 0.2, places=5)
         self.assertAlmostEqual(tiles[6].mean().item(), 0.8, places=5)
@@ -80,14 +79,14 @@ class TiledImageTests(unittest.TestCase):
         torch.testing.assert_close(output, reference, rtol=0, atol=3e-7)
 
     def test_merge_accepts_a_decoded_image_batch(self):
-        tiles, context, reference, _, _ = split_tiles(torch.rand((1, 21, 35, 3)), 4, "bilinear")
+        tiles, context, reference, _ = split_tiles(torch.rand((1, 21, 35, 3)), 4, "bilinear")
         output = merge_tiles([torch.cat(tiles)], context, "reinhard_lab", 0, 0)
         torch.testing.assert_close(output, reference, rtol=0, atol=3e-7)
 
     def test_default_lanczos_accepts_one_pixel_and_downsamples_large_inputs(self):
         for source in [torch.full((1, 1, 1, 3), 0.5), torch.rand((1, 50, 5000, 3))]:
             with self.subTest(size=tuple(source.shape)):
-                tiles, context, reference, _, _ = RPTileSplit.execute(source, "4").result
+                tiles, context, reference, _ = RPTileSplit.execute(source, "4").result
                 self.assertTrue(all(tuple(tile.shape) == (1, 1024, 1024, 3) for tile in tiles))
                 self.assertEqual(reference.shape[2], context["content_size"][0])
                 if source.shape[2] == 5000:
@@ -95,7 +94,7 @@ class TiledImageTests(unittest.TestCase):
                 torch.testing.assert_close(merge_tiles(tiles, context, "reinhard_lab", 0, 0), reference, rtol=0, atol=3e-7)
 
     def test_color_matching_uses_only_real_pixels_and_runs_global_last(self):
-        tiles, context, reference, _, _ = split_tiles(torch.rand((1, 19, 43, 3)), 4, "bilinear")
+        tiles, context, reference, _ = split_tiles(torch.rand((1, 19, 43, 3)), 4, "bilinear")
         calls = []
 
         def match(target, ref, method, stats, strength):
@@ -118,14 +117,14 @@ class TiledImageTests(unittest.TestCase):
 
     def test_native_color_match_reduces_shift(self):
         source = torch.full((1, 13, 19, 3), 0.25)
-        tiles, context, reference, _, _ = split_tiles(source, 4, "nearest-exact")
+        tiles, context, reference, _ = split_tiles(source, 4, "nearest-exact")
         shifted = [tile + 0.15 for tile in tiles]
         with patch("comfy.model_management.get_torch_device", return_value=torch.device("cpu")):
             result = merge_tiles(shifted, context, "reinhard_lab", 1.0, 0)
         self.assertLess((result - reference).abs().mean().item(), 0.005)
 
     def test_wrong_count_and_wrong_dimensions_fail_before_silent_misassembly(self):
-        tiles, context, _, _, _ = split_tiles(torch.zeros((1, 13, 17, 3)), 4, "nearest-exact")
+        tiles, context, _, _ = split_tiles(torch.zeros((1, 13, 17, 3)), 4, "nearest-exact")
         with self.assertRaisesRegex(ValueError, "expected 4 tiles"):
             merge_tiles(tiles[:-1], context, "reinhard_lab", 0, 0)
         tiles[0] = tiles[0][:, :1000]
@@ -133,7 +132,7 @@ class TiledImageTests(unittest.TestCase):
             merge_tiles(tiles, context, "reinhard_lab", 0, 0)
 
     def test_v3_list_contracts(self):
-        self.assertEqual(list(RPTileSplit.OUTPUT_IS_LIST), [True, False, False, False, False])
+        self.assertEqual(list(RPTileSplit.OUTPUT_IS_LIST), [True, False, False, False])
         self.assertTrue(RPTileMerge.INPUT_IS_LIST)
         self.assertEqual(RPTileSplit.GET_SCHEMA().category, "RP/image_sizing_and_resizing")
         RPTileSplit.VALIDATE_CLASS()

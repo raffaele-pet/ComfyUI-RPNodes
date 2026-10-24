@@ -3346,7 +3346,7 @@
         "cnr_id": "comfy-core"
       },
       "widgets_values": [
-        "ENGLISH\nChoose a tile count. RP Tile Split produces exact 1024 x 1024 tiles with automatic overlap and edge padding. Insert an editing model between tiles and RP Tile Merge; connect tile_context directly. This model-free example reconstructs the scaled source. The preview shows the tile contact sheet.\n\nITALIANO\nScegli il numero di tile. RP Tile Split crea tile esatti da 1024 x 1024 con overlap e padding automatici. Inserisci il modello di editing tra tiles e RP Tile Merge e collega direttamente tile_context. Questo esempio senza modello ricostruisce l'originale scalato. L'anteprima mostra tutti i tile."
+        "ENGLISH\nChoose a tile count. RP Tile Split produces exact 1024 x 1024 tiles with automatic overlap and edge padding. Insert an editing model between tiles and RP Tile Merge; connect tile_context directly. This model-free example reconstructs the scaled source. Connect tiles to Preview Image to inspect individual tiles.\n\nITALIANO\nScegli il numero di tile. RP Tile Split crea tile esatti da 1024 x 1024 con overlap e padding automatici. Inserisci il modello di editing tra tiles e RP Tile Merge e collega direttamente tile_context. Questo esempio senza modello ricostruisce l'originale scalato. Collega tiles a Preview Image per vedere i singoli tile."
       ],
       "title": "RP Tile Split & RP Tile Merge"
     },
@@ -3429,13 +3429,6 @@
           "name": "scaled_image",
           "type": "IMAGE",
           "links": []
-        },
-        {
-          "name": "tile_preview",
-          "type": "IMAGE",
-          "links": [
-            605
-          ]
         },
         {
           "name": "layout",
@@ -3535,34 +3528,6 @@
         "cnr_id": "comfy-core"
       },
       "title": "Reconstructed Image"
-    },
-    {
-      "id": 577,
-      "type": "PreviewImage",
-      "pos": [
-        8400,
-        7930
-      ],
-      "size": [
-        500,
-        370
-      ],
-      "flags": {},
-      "order": 80,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 605
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "PreviewImage",
-        "cnr_id": "comfy-core"
-      },
-      "title": "Tile Contact Sheet"
     },
     {
       "id": 578,
@@ -4025,17 +3990,9 @@
       "IMAGE"
     ],
     [
-      605,
-      574,
-      3,
-      577,
-      0,
-      "IMAGE"
-    ],
-    [
       606,
       574,
-      4,
+      3,
       578,
       0,
       "STRING"
