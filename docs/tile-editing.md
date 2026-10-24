@@ -18,6 +18,11 @@ Merge also accepts one IMAGE batch containing all tiles in the same order.
 Do not filter, shuffle, or change the number or dimensions of decoded tiles.
 Connect `tiles` to an image preview when you want to inspect individual tiles.
 
+After updating, reload the browser page. Workflows saved with the old
+`tile_preview` output are migrated on load: the `layout` connection moves to its
+current fourth output, duplicate layout ports are removed, and old image-preview
+connections use `tiles`. Node settings and downstream connections are preserved.
+
 For FLUX.3, use `ReferenceMultiLatent` with **keep resolution** and its
 `empty_latent` output for sampling. Every reference and decoded tile must remain
 1024 × 1024. Merge detects incomplete lists or incorrect tile dimensions instead

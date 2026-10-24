@@ -15,6 +15,7 @@ except ModuleNotFoundError:
 
 import execution
 import nodes
+from comfy_extras.nodes_preview_any import PreviewAny
 
 from image_sizing_and_resizing.tiled_image import (
     RPTileMerge, RPTileSplit, TILE_COUNTS, merge_tiles, split_tiles, tile_layout,
@@ -161,6 +162,22 @@ class TiledImageTests(unittest.TestCase):
             torch.testing.assert_close(merge_data[0][0], 1 - split_data[2][0], rtol=0, atol=3e-7)
 
         asyncio.run(run())
+
+    def test_layout_connection_passes_real_prompt_validation_at_its_new_slot(self):
+        prompt = {
+            "source": {"class_type": "EmptyImage", "inputs": {"width": 64, "height": 64, "batch_size": 1, "color": 0}},
+            "2300": {"class_type": "RPTileSplit", "inputs": {"image": ["source", 0], "tile_count": "12", "upscale_method": "lanczos"}},
+            "2303": {"class_type": "PreviewAny", "inputs": {"source": ["2300", 4]}},
+        }
+        with patch.dict(nodes.NODE_CLASS_MAPPINGS, {"RPTileSplit": RPTileSplit, "PreviewAny": PreviewAny}):
+            with patch("execution.logging.error"):
+                stale = asyncio.run(execution.validate_prompt("rp-old-layout", prompt, None))
+            self.assertFalse(stale[0])
+            self.assertIn("list index out of range", str(stale))
+            prompt["2303"]["inputs"]["source"][1] = 3
+            repaired = asyncio.run(execution.validate_prompt("rp-new-layout", prompt, None))
+            self.assertTrue(repaired[0], repaired)
+            self.assertIn("2303", repaired[2])
 
 
 if __name__ == "__main__":
