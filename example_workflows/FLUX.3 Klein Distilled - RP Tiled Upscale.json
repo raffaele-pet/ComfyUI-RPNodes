@@ -1,0 +1,1447 @@
+{
+  "id": "0f2fae7d-82e3-4899-8a35-b75dd4542cbb",
+  "revision": 0,
+  "last_node_id": 2304,
+  "last_link_id": 4158,
+  "nodes": [
+    {
+      "id": 1199,
+      "type": "VAELoader",
+      "pos": [
+        900,
+        2630
+      ],
+      "size": [
+        300,
+        70
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "slot_index": 0,
+          "links": [
+            2412,
+            4138
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "flux2-vae.safetensors",
+            "url": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/main/vae/flux2-vae.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "flux2-vae.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "flux2-vae.safetensors"
+      },
+      "color": "#723f3f",
+      "bgcolor": "#5e2b2b",
+      "title": "FLUX.3 VAE (flux2-vae)"
+    },
+    {
+      "id": 1200,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1300,
+        2580
+      ],
+      "size": [
+        400,
+        110
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 4135
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            4137
+          ]
+        }
+      ],
+      "title": "FLUX.3 - Empty Negative Prompt",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": ""
+      },
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 1215,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1300,
+        2330
+      ],
+      "size": [
+        400,
+        170
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 2382
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 4147
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            4136
+          ]
+        }
+      ],
+      "title": "FLUX.3 - Encode Expanded Tile Prompt",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "CLIPTextEncode",
+        "widget_ue_connectable": {},
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        "Restore and enhance this image tile while preserving the original composition, perspective, lighting, colors, materials, depth of field and all objects. Remove compression artifacts, noise, unwanted softness and tile-edge inconsistencies while preserving natural focal blur and background/foreground defocus. Do not change the scene, do not add new objects, do not crop, do not stylize.\n"
+      ],
+      "widgets_values_named": {
+        "text": "Restore and enhance this image tile while preserving the original composition, perspective, lighting, colors, materials, depth of field and all objects. Remove compression artifacts, noise, unwanted softness and tile-edge inconsistencies while preserving natural focal blur and background/foreground defocus. Do not change the scene, do not add new objects, do not crop, do not stylize.\n"
+      },
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 1220,
+      "type": "KSampler",
+      "pos": [
+        2200,
+        2290
+      ],
+      "size": [
+        300,
+        270
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 2383
+        },
+        {
+          "label": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4140
+        },
+        {
+          "label": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 4141
+        },
+        {
+          "label": "latent_image",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 4142
+        },
+        {
+          "label": "seed",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "label": "steps",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "label": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "label": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "label": "scheduler",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "label": "denoise",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "label": "LATENT",
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            2411
+          ]
+        }
+      ],
+      "title": "FLUX.3 Klein Distilled - Tile Sampler",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "KSampler",
+        "widget_ue_connectable": {
+          "scheduler": true,
+          "denoise": true,
+          "seed": true,
+          "cfg": true,
+          "sampler_name": true,
+          "steps": true
+        }
+      },
+      "widgets_values": [
+        456136621699998,
+        "fixed",
+        16,
+        1,
+        "euler",
+        "simple",
+        1
+      ],
+      "widgets_values_named": {
+        "seed": 456136621699998,
+        "control_after_generate": "fixed",
+        "steps": 16,
+        "cfg": 1,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 1247,
+      "type": "CLIPLoader",
+      "pos": [
+        900,
+        2470
+      ],
+      "size": [
+        300,
+        110
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "slot_index": 0,
+          "links": [
+            2382,
+            4135
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen3vl_4b_int8_convrot.safetensors",
+            "url": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen3vl_4b_int8_convrot.safetensors",
+        "flux3",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+        "type": "flux3",
+        "device": "default"
+      },
+      "color": "#766c3b",
+      "bgcolor": "#625827",
+      "title": "FLUX.3 - Qwen3-VL Text Encoder"
+    },
+    {
+      "id": 1250,
+      "type": "PlaySound|pysssss",
+      "pos": [
+        2500,
+        2280
+      ],
+      "size": [
+        320,
+        110
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "any",
+          "name": "any",
+          "type": "*",
+          "link": 4158
+        }
+      ],
+      "outputs": [
+        {
+          "label": "*",
+          "name": "*",
+          "shape": 6,
+          "type": "*",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "9f7b3215e6af317603056a9a1666bf6e83e28835",
+        "Node name for S&R": "PlaySound|pysssss",
+        "aux_id": "pythongosssss/ComfyUI-Custom-Scripts",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "always",
+        1,
+        "notify.mp3"
+      ],
+      "widgets_values_named": {
+        "mode": "always",
+        "volume": 1,
+        "file": "notify.mp3"
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 1248,
+      "type": "UNETLoader",
+      "pos": [
+        900,
+        2330
+      ],
+      "size": [
+        300,
+        90
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            2383
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "flux3-image-klein-int8-convrot.safetensors",
+            "url": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/main/diffusion_models/flux3-image-klein-int8-convrot.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "flux3-image-klein-int8-convrot.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+        "weight_dtype": "default"
+      },
+      "color": "#5e566b",
+      "bgcolor": "#4a4257",
+      "title": "FLUX.3 Klein Distilled - Diffusion Model"
+    },
+    {
+      "id": 1238,
+      "type": "VAEDecode",
+      "pos": [
+        2500,
+        1430
+      ],
+      "size": [
+        350,
+        110
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 2411
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 2412
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            4152
+          ]
+        }
+      ],
+      "title": "Decode Restored Tile",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.8.2",
+        "Node name for S&R": "VAEDecode",
+        "widget_ue_connectable": {},
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "color": "#694769",
+      "bgcolor": "#553355"
+    },
+    {
+      "id": 1214,
+      "type": "LoadImage",
+      "pos": [
+        -500,
+        1430
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4149
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.26.0",
+        "Node name for S&R": "LoadImage",
+        "widget_ue_connectable": {
+          "image": true,
+          "upload": true
+        }
+      },
+      "widgets_values": [
+        "WhatsApp Image 2026-10-23 at 14.10.14.jpeg",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "WhatsApp Image 2026-10-23 at 14.10.14.jpeg",
+        "upload": "image"
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 2279,
+      "type": "RPImageComparer",
+      "pos": [
+        2900,
+        1430
+      ],
+      "size": [
+        1300,
+        1270
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_a",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 4154
+        },
+        {
+          "name": "image_b",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 4155
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "2ab4ef885d0f0021c15928d6a37cb40748a5f81b",
+        "Node name for S&R": "RPImageComparer",
+        "comparer_mode": "Slide"
+      },
+      "widgets_values": [
+        "FLUX.3-RP-Tiles",
+        "%display_name-date:yyyy-MM-dd_HHmmss%",
+        null,
+        {
+          "images": []
+        }
+      ],
+      "widgets_values_named": {
+        "display_name": "FLUX.3-RP-Tiles",
+        "save_name": "%display_name-date:yyyy-MM-dd_HHmmss%",
+        "Compare mode: Wipe": null,
+        "rp_image_comparer": {
+          "images": []
+        }
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 2280,
+      "type": "ReferenceMultiLatent",
+      "pos": [
+        1800,
+        2330
+      ],
+      "size": [
+        300,
+        220
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4136
+        },
+        {
+          "name": "negative",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 4137
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 4138
+        },
+        {
+          "name": "images.image0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 4151
+        },
+        {
+          "name": "images.image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            4140
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            4141
+          ]
+        },
+        {
+          "name": "empty_latent",
+          "type": "LATENT",
+          "links": [
+            4142
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "ReferenceMultiLatent"
+      },
+      "widgets_values": [
+        "keep resolution"
+      ],
+      "widgets_values_named": {
+        "resolution": "keep resolution"
+      },
+      "color": "#432",
+      "bgcolor": "#653",
+      "title": "FLUX.3 - Current Tile Reference"
+    },
+    {
+      "id": 2282,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        1300,
+        2900
+      ],
+      "size": [
+        400,
+        230
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            4146
+          ]
+        }
+      ],
+      "title": "Restore Request - Applied to Each Tile",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.42.0",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Restore and enhance this image tile while preserving the original composition, perspective, lighting, colors, materials, depth of field and all objects. Remove compression artifacts, noise, unwanted softness and tile-edge inconsistencies while preserving natural focal blur and background/foreground defocus. Do not change the scene, do not add new objects, do not crop, do not stylize."
+      ],
+      "widgets_values_named": {
+        "value": "Restore and enhance this image tile while preserving the original composition, perspective, lighting, colors, materials, depth of field and all objects. Remove compression artifacts, noise, unwanted softness and tile-edge inconsistencies while preserving natural focal blur and background/foreground defocus. Do not change the scene, do not add new objects, do not crop, do not stylize."
+      },
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 2281,
+      "type": "CLIPLoader",
+      "pos": [
+        800,
+        2900
+      ],
+      "size": [
+        450,
+        120
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "slot_index": 0,
+          "links": [
+            4143
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+            "url": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/main/text_encoders/qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+        "flux3",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+        "type": "flux3",
+        "device": "default"
+      },
+      "color": "#233",
+      "bgcolor": "#355",
+      "title": "FLUX.3 - Prompt Upsampler"
+    },
+    {
+      "id": 2283,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        800,
+        3100
+      ],
+      "size": [
+        450,
+        420
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            4145
+          ]
+        }
+      ],
+      "title": "System Prompt - Faithful Tile Restoration",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "You are the prompt upsampler for faithful image restoration with FLUX 3 Image Klein. The supplied image is one cropped tile from a larger image. Describe only what is actually visible inside this tile; never infer or complete objects, people, text, or scenery outside its borders. Write one self-contained English editing instruction of about 100 to 180 words. Include a grounded caption of the visible content, its exact framing, relative object positions, materials, colors, lighting, and depth of field, with the requested restoration folded in. Preserve all partial objects cut by the tile boundaries at exactly the same positions and scale. Keep existing composition, perspective, identity, expressions, geometry, lighting, shadows, colors, and readable text unchanged. Reduce compression artifacts, noise, and unwanted softness without inventing details or sharpening intentionally defocused regions. Keep naturally blurred foreground and background regions blurred. Do not reframe, crop, zoom, stylize, extend the image, add or remove objects, draw tile borders, or invent content. Output only the continuous editing instruction, without headings, commentary, Markdown, JSON, or angle-bracket tokens. The tile may contain extended edge pixels as padding; preserve those margins unchanged and do not interpret them as new scene content."
+      ],
+      "widgets_values_named": {
+        "value": "You are the prompt upsampler for faithful image restoration with FLUX 3 Image Klein. The supplied image is one cropped tile from a larger image. Describe only what is actually visible inside this tile; never infer or complete objects, people, text, or scenery outside its borders. Write one self-contained English editing instruction of about 100 to 180 words. Include a grounded caption of the visible content, its exact framing, relative object positions, materials, colors, lighting, and depth of field, with the requested restoration folded in. Preserve all partial objects cut by the tile boundaries at exactly the same positions and scale. Keep existing composition, perspective, identity, expressions, geometry, lighting, shadows, colors, and readable text unchanged. Reduce compression artifacts, noise, and unwanted softness without inventing details or sharpening intentionally defocused regions. Keep naturally blurred foreground and background regions blurred. Do not reframe, crop, zoom, stylize, extend the image, add or remove objects, draw tile borders, or invent content. Output only the continuous editing instruction, without headings, commentary, Markdown, JSON, or angle-bracket tokens. The tile may contain extended edge pixels as padding; preserve those margins unchanged and do not interpret them as new scene content."
+      },
+      "color": "#233",
+      "bgcolor": "#355"
+    },
+    {
+      "id": 2284,
+      "type": "TextGenerate",
+      "pos": [
+        1750,
+        2900
+      ],
+      "size": [
+        400,
+        470
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "showAdvanced": false,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 4143
+        },
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 4150
+        },
+        {
+          "name": "video",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "system_prompt",
+          "shape": 7,
+          "type": "STRING",
+          "link": 4145
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 4146
+        }
+      ],
+      "outputs": [
+        {
+          "name": "generated_text",
+          "type": "STRING",
+          "links": [
+            4147,
+            4148
+          ]
+        },
+        {
+          "name": "thinking",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "TextGenerate"
+      },
+      "widgets_values": [
+        "",
+        3584,
+        "on",
+        1,
+        1,
+        0.95,
+        0,
+        1.05,
+        0,
+        0,
+        false,
+        true,
+        "off"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "max_length": 3584,
+        "sampling_mode": "on",
+        "sampling_mode.temperature": 1,
+        "sampling_mode.top_k": 1,
+        "sampling_mode.top_p": 0.95,
+        "sampling_mode.min_p": 0,
+        "sampling_mode.repetition_penalty": 1.05,
+        "sampling_mode.seed": 0,
+        "sampling_mode.presence_penalty": 0,
+        "thinking": false,
+        "use_default_template": true,
+        "mtp": "off"
+      },
+      "color": "#233",
+      "bgcolor": "#355",
+      "title": "Expand Restore Prompt for Current Tile"
+    },
+    {
+      "id": 2285,
+      "type": "PreviewAny",
+      "pos": [
+        2250,
+        2900
+      ],
+      "size": [
+        500,
+        360
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 4148
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.41.0",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {},
+      "color": "#233",
+      "bgcolor": "#355",
+      "title": "Expanded Tile Prompt - Preview"
+    },
+    {
+      "id": 2300,
+      "type": "RPTileSplit",
+      "pos": [
+        0,
+        1430
+      ],
+      "size": [
+        350,
+        150
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 4149
+        }
+      ],
+      "outputs": [
+        {
+          "name": "tiles",
+          "type": "IMAGE",
+          "links": [
+            4150,
+            4151
+          ],
+          "shape": 6
+        },
+        {
+          "name": "tile_context",
+          "type": "RP_TILE_CONTEXT",
+          "links": [
+            4153
+          ]
+        },
+        {
+          "name": "scaled_image",
+          "type": "IMAGE",
+          "links": [
+            4155
+          ]
+        },
+        {
+          "name": "tile_preview",
+          "type": "IMAGE",
+          "links": [
+            4156
+          ]
+        },
+        {
+          "name": "layout",
+          "type": "STRING",
+          "links": [
+            4157
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPTileSplit",
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes"
+      },
+      "widgets_values": [
+        "12",
+        "lanczos"
+      ],
+      "widgets_values_named": {
+        "tile_count": "12",
+        "upscale_method": "lanczos"
+      }
+    },
+    {
+      "id": 2301,
+      "type": "RPTileMerge",
+      "pos": [
+        2500,
+        1730
+      ],
+      "size": [
+        350,
+        200
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "tiles",
+          "type": "IMAGE",
+          "link": 4152
+        },
+        {
+          "name": "tile_context",
+          "type": "RP_TILE_CONTEXT",
+          "link": 4153
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            4154,
+            4158
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPTileMerge",
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes"
+      },
+      "widgets_values": [
+        "reinhard_lab",
+        0.75,
+        0.25
+      ],
+      "widgets_values_named": {
+        "color_method": "reinhard_lab",
+        "tile_color_strength": 0.75,
+        "global_color_strength": 0.25
+      }
+    },
+    {
+      "id": 2302,
+      "type": "PreviewImage",
+      "pos": [
+        400,
+        1430
+      ],
+      "size": [
+        640,
+        450
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4156
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage",
+        "cnr_id": "comfy-core"
+      },
+      "title": "1024 x 1024 Tiles - Contact Sheet"
+    },
+    {
+      "id": 2303,
+      "type": "PreviewAny",
+      "pos": [
+        0,
+        1680
+      ],
+      "size": [
+        350,
+        180
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 4157
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny",
+        "cnr_id": "comfy-core"
+      },
+      "title": "Grid, Overlap and Padding"
+    },
+    {
+      "id": 2304,
+      "type": "Note",
+      "pos": [
+        0,
+        1970
+      ],
+      "size": [
+        650,
+        250
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Note",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "RP TILE PIPELINE\n\nChoose only the tile count in RP Tile Split. Each tile is exactly 1024 x 1024. The image is resized once, without cropping. Outer edges are padded.\n\nThe tiles list feeds BOTH the prompt expander and the FLUX.3 reference. Decoded tiles go directly to RP Tile Merge, which uses tile_context to remove padding and apply per-tile/global color matching.\n\nKeep resolution must stay selected in Current Tile Reference. Preserve the tile list order. Output dimensions are shown above; proportions are preserved to the nearest pixel."
+      ]
+    }
+  ],
+  "links": [
+    [
+      2382,
+      1247,
+      0,
+      1215,
+      0,
+      "CLIP"
+    ],
+    [
+      2383,
+      1248,
+      0,
+      1220,
+      0,
+      "MODEL"
+    ],
+    [
+      2411,
+      1220,
+      0,
+      1238,
+      0,
+      "LATENT"
+    ],
+    [
+      2412,
+      1199,
+      0,
+      1238,
+      1,
+      "VAE"
+    ],
+    [
+      4135,
+      1247,
+      0,
+      1200,
+      0,
+      "CLIP"
+    ],
+    [
+      4136,
+      1215,
+      0,
+      2280,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      4137,
+      1200,
+      0,
+      2280,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      4138,
+      1199,
+      0,
+      2280,
+      2,
+      "VAE"
+    ],
+    [
+      4140,
+      2280,
+      0,
+      1220,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      4141,
+      2280,
+      1,
+      1220,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      4142,
+      2280,
+      2,
+      1220,
+      3,
+      "LATENT"
+    ],
+    [
+      4143,
+      2281,
+      0,
+      2284,
+      0,
+      "CLIP"
+    ],
+    [
+      4145,
+      2283,
+      0,
+      2284,
+      4,
+      "STRING"
+    ],
+    [
+      4146,
+      2282,
+      0,
+      2284,
+      5,
+      "STRING"
+    ],
+    [
+      4147,
+      2284,
+      0,
+      1215,
+      1,
+      "STRING"
+    ],
+    [
+      4148,
+      2284,
+      0,
+      2285,
+      0,
+      "STRING"
+    ],
+    [
+      4149,
+      1214,
+      0,
+      2300,
+      0,
+      "IMAGE"
+    ],
+    [
+      4150,
+      2300,
+      0,
+      2284,
+      1,
+      "IMAGE"
+    ],
+    [
+      4151,
+      2300,
+      0,
+      2280,
+      3,
+      "IMAGE"
+    ],
+    [
+      4152,
+      1238,
+      0,
+      2301,
+      0,
+      "IMAGE"
+    ],
+    [
+      4153,
+      2300,
+      1,
+      2301,
+      1,
+      "RP_TILE_CONTEXT"
+    ],
+    [
+      4154,
+      2301,
+      0,
+      2279,
+      0,
+      "IMAGE"
+    ],
+    [
+      4155,
+      2300,
+      2,
+      2279,
+      1,
+      "IMAGE"
+    ],
+    [
+      4156,
+      2300,
+      3,
+      2302,
+      0,
+      "IMAGE"
+    ],
+    [
+      4157,
+      2300,
+      4,
+      2303,
+      0,
+      "STRING"
+    ],
+    [
+      4158,
+      2301,
+      0,
+      1250,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 24,
+      "title": "FLUX.3 Klein Distilled - RP 1024 x 1024 Tiled Upscale",
+      "bounding": [
+        -600,
+        1300,
+        4900,
+        2300
+      ],
+      "color": "#a1309b",
+      "flags": {}
+    },
+    {
+      "id": 25,
+      "title": "FLUX.3 - Per-tile Prompt Upsampling",
+      "bounding": [
+        750,
+        2800,
+        2050,
+        760
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.55,
+      "offset": [
+        650,
+        -1200
+      ]
+    },
+    "frontendVersion": "1.57.1",
+    "workflowRendererVersion": "Vue-corrected",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true,
+    "ue_links": [],
+    "links_added_by_ue": []
+  },
+  "version": 0.4,
+  "seed_widgets": {
+    "1220": 0
+  }
+}

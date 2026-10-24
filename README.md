@@ -73,6 +73,29 @@ set its longer-side size; `megapixels` can drive downstream reference sizing.
 Enlarges images whose longer side is below 1024 pixels while preserving their
 proportions. Images already at or above that size remain unchanged.
 
+### RP Tile Split & RP Tile Merge
+
+Model-independent image editing with exact **1024 × 1024** tiles. Choose a tile
+count (4, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, or 25); Split selects the grid
+closest to the source proportions, scales the whole image once, and extends
+edge pixels to pad the outer tiles. Overlap is automatic: 192–288 pixels,
+increasing with the tile count. No per-tile stretching or resolution presets.
+
+Connect Split's `tiles` **list** to the per-tile editing chain, decoded tiles to
+Merge's `tiles`, and `tile_context` directly between the two nodes. Preserve the
+list order. Merge applies normalized cosine feathering at the saved positions,
+removes padding, and integrates native ComfyUI color matching per tile and
+globally (default strengths 0.75 and 0.25). Padding is excluded from both color
+statistics and the output. `scaled_image`, `tile_preview`, and `layout` show
+the comparison reference, tile contact sheet, and computed dimensions.
+
+Tile count controls the output pixel budget; very large inputs can be reduced.
+Proportions are preserved to the nearest pixel, without cropping. Fixed tile
+geometry prevents sizing drift; an editing model can still move scene details.
+The nodes support IMAGE batches and require a current ComfyUI V3 API and its
+native ColorTransfer node. See [tile editing](./docs/tile-editing.md) for wiring
+and overlap calculations.
+
 ## Workflow utilities
 
 These nodes control the editor directly, without running the queue.

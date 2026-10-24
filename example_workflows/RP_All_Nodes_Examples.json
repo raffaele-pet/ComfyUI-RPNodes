@@ -1,8 +1,8 @@
 {
   "id": "cddd54c8-2732-44eb-b74e-3490f5748d3e",
   "revision": 2,
-  "last_node_id": 571,
-  "last_link_id": 600,
+  "last_node_id": 578,
+  "last_link_id": 606,
   "nodes": [
     {
       "id": 446,
@@ -3324,6 +3324,279 @@
       "widgets_values_named": {},
       "color": "#232",
       "bgcolor": "#353"
+    },
+    {
+      "id": 572,
+      "type": "Note",
+      "pos": [
+        6100,
+        7930
+      ],
+      "size": [
+        400,
+        320
+      ],
+      "flags": {},
+      "order": 76,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Note",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "ENGLISH\nChoose a tile count. RP Tile Split produces exact 1024 x 1024 tiles with automatic overlap and edge padding. Insert an editing model between tiles and RP Tile Merge; connect tile_context directly. This model-free example reconstructs the scaled source. The preview shows the tile contact sheet.\n\nITALIANO\nScegli il numero di tile. RP Tile Split crea tile esatti da 1024 x 1024 con overlap e padding automatici. Inserisci il modello di editing tra tiles e RP Tile Merge e collega direttamente tile_context. Questo esempio senza modello ricostruisce l'originale scalato. L'anteprima mostra tutti i tile."
+      ],
+      "title": "RP Tile Split & RP Tile Merge"
+    },
+    {
+      "id": 573,
+      "type": "LoadImage",
+      "pos": [
+        6600,
+        7930
+      ],
+      "size": [
+        300,
+        370
+      ],
+      "flags": {},
+      "order": 77,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            601
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 574,
+      "type": "RPTileSplit",
+      "pos": [
+        7000,
+        7930
+      ],
+      "size": [
+        350,
+        150
+      ],
+      "flags": {},
+      "order": 78,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 601
+        }
+      ],
+      "outputs": [
+        {
+          "name": "tiles",
+          "type": "IMAGE",
+          "links": [
+            602
+          ],
+          "shape": 6
+        },
+        {
+          "name": "tile_context",
+          "type": "RP_TILE_CONTEXT",
+          "links": [
+            603
+          ]
+        },
+        {
+          "name": "scaled_image",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "tile_preview",
+          "type": "IMAGE",
+          "links": [
+            605
+          ]
+        },
+        {
+          "name": "layout",
+          "type": "STRING",
+          "links": [
+            606
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPTileSplit",
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes"
+      },
+      "widgets_values": [
+        "12",
+        "lanczos"
+      ],
+      "widgets_values_named": {
+        "tile_count": "12",
+        "upscale_method": "lanczos"
+      }
+    },
+    {
+      "id": 575,
+      "type": "RPTileMerge",
+      "pos": [
+        7400,
+        7930
+      ],
+      "size": [
+        350,
+        200
+      ],
+      "flags": {},
+      "order": 79,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "tiles",
+          "type": "IMAGE",
+          "link": 602
+        },
+        {
+          "name": "tile_context",
+          "type": "RP_TILE_CONTEXT",
+          "link": 603
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            604
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPTileMerge",
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes"
+      },
+      "widgets_values": [
+        "reinhard_lab",
+        0.75,
+        0.25
+      ],
+      "widgets_values_named": {
+        "color_method": "reinhard_lab",
+        "tile_color_strength": 0.75,
+        "global_color_strength": 0.25
+      }
+    },
+    {
+      "id": 576,
+      "type": "PreviewImage",
+      "pos": [
+        7800,
+        7930
+      ],
+      "size": [
+        500,
+        370
+      ],
+      "flags": {},
+      "order": 82,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 604
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage",
+        "cnr_id": "comfy-core"
+      },
+      "title": "Reconstructed Image"
+    },
+    {
+      "id": 577,
+      "type": "PreviewImage",
+      "pos": [
+        8400,
+        7930
+      ],
+      "size": [
+        500,
+        370
+      ],
+      "flags": {},
+      "order": 80,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 605
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage",
+        "cnr_id": "comfy-core"
+      },
+      "title": "Tile Contact Sheet"
+    },
+    {
+      "id": 578,
+      "type": "PreviewAny",
+      "pos": [
+        7000,
+        8190
+      ],
+      "size": [
+        350,
+        150
+      ],
+      "flags": {},
+      "order": 81,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 606
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny",
+        "cnr_id": "comfy-core"
+      },
+      "title": "Tile Layout"
     }
   ],
   "links": [
@@ -3718,6 +3991,54 @@
       571,
       0,
       "MASK"
+    ],
+    [
+      601,
+      573,
+      0,
+      574,
+      0,
+      "IMAGE"
+    ],
+    [
+      602,
+      574,
+      0,
+      575,
+      0,
+      "IMAGE"
+    ],
+    [
+      603,
+      574,
+      1,
+      575,
+      1,
+      "RP_TILE_CONTEXT"
+    ],
+    [
+      604,
+      575,
+      0,
+      576,
+      0,
+      "IMAGE"
+    ],
+    [
+      605,
+      574,
+      3,
+      577,
+      0,
+      "IMAGE"
+    ],
+    [
+      606,
+      574,
+      4,
+      578,
+      0,
+      "STRING"
     ]
   ],
   "groups": [
@@ -3896,6 +4217,18 @@
         6000,
         5400,
         2900,
+        600
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 18,
+      "title": "RP Tile Split & RP Tile Merge",
+      "bounding": [
+        6000,
+        7800,
+        3000,
         600
       ],
       "color": "#3f789e",
