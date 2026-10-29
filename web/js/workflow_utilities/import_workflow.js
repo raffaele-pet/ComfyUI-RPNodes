@@ -4,6 +4,7 @@ import { appendWorkflows } from "./merge_workflow.js";
 import { beginWorkflowLoad, endWorkflowLoad, loadMergedWorkflow, prepareNodeForLoad } from "./load_workflow.js";
 
 const EMPTY = "(select a saved workflow)";
+const EMPTY_TAB = "(select an open tab)";
 let importing = false;
 
 function notify(message, severity = "error") {
@@ -29,6 +30,11 @@ function options(node) {
     return { placement: value("placement"), gap: value("gap"), groupImport: value("group_import") };
 }
 
+function getOpenWorkflows() {
+    const store = app.extensionManager.workflow;
+    return store.openWorkflows.filter((workflow) => workflow.path !== store.activeWorkflow?.path);
+}
+
 async function importIntoCanvas(node, readItems) {
     if (importing) return;
     const graph = app.rootGraph;
@@ -38,10 +44,12 @@ async function importIntoCanvas(node, readItems) {
     }
     importing = true;
     const graphId = graph.id;
+    const activeWorkflow = app.extensionManager.workflow.activeWorkflow;
     const importOptions = options(node);
     try {
         const items = await readItems();
-        if (graph.id !== graphId || node.graph !== graph || app.canvas.graph !== graph) {
+        if (app.extensionManager.workflow.activeWorkflow !== activeWorkflow
+            || graph.id !== graphId || node.graph !== graph || app.canvas.graph !== graph) {
             throw new Error("The active workflow changed. Start the import again.");
         }
         const before = JSON.parse(JSON.stringify(graph.serialize()));
@@ -92,6 +100,23 @@ app.registerExtension({
                     return [{ name: filename, data: await response.json() }];
                 });
             }, { serialize: false }).serialize = false;
+            const openTab = this.addWidget("combo", "open_tab", EMPTY_TAB, () => {}, {
+                get values() { return [EMPTY_TAB, ...getOpenWorkflows().map((workflow) => workflow.key)]; },
+                serialize: false,
+            });
+            openTab.serialize = false;
+            this.addWidget("button", "Import open tab", null, () => {
+                void importIntoCanvas(this, async () => {
+                    const workflow = getOpenWorkflows().find((workflow) => workflow.key === openTab.value);
+                    if (!workflow) throw new Error("Select an open workflow tab first.");
+                    await workflow.load();
+                    if (!getOpenWorkflows().includes(workflow)) {
+                        throw new Error("The selected workflow tab was closed. Select another tab.");
+                    }
+                    if (!workflow.activeState) throw new Error("Cannot read the selected workflow tab.");
+                    return [{ name: workflow.key, data: JSON.parse(JSON.stringify(workflow.activeState)) }];
+                });
+            }, { serialize: false }).serialize = false;
             this.addWidget("button", "Choose file to import", null, () => {
                 const input = document.createElement("input");
                 input.type = "file";
@@ -112,7 +137,11 @@ app.registerExtension({
         nodeType.prototype.onAdded = function () {
             const result = onAdded?.apply(this, arguments);
             // Wait until configure() has restored the saved combo value.
-            queueMicrotask(() => refreshWorkflows(this).catch((error) => notify(error.message)));
+            queueMicrotask(() => {
+                const size = this.computeSize();
+                this.setSize([Math.max(this.size[0], size[0]), Math.max(this.size[1], size[1])]);
+                refreshWorkflows(this).catch((error) => notify(error.message));
+            });
             return result;
         };
     },

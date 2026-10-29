@@ -126,10 +126,14 @@ overwriting its saved file.
 
 ### RP Import Workflow
 
-Adds one or more saved workflows to the current canvas while preserving
-existing nodes and valid connections. Use it to combine workflow branches
-without replacing the workflow already open. Imported nodes can be placed
+Adds saved workflows, external JSON files, or other open workflow tabs to the
+current canvas while preserving existing nodes and valid connections. Use it
+to combine workflow branches without replacing the workflow already open. Imported nodes can be placed
 beside or below the current content and wrapped in groups.
+
+Select a tab in **open_tab** and click **Import open tab** to copy its current
+contents, including unsaved changes. The list follows the other open tabs;
+the current tab is excluded. The source tab stays open and is not saved or modified.
 
 Supports saved workflow JSON v0.4 and v1. Source files are unchanged.
 Importing is adapted from

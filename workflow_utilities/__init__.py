@@ -16,7 +16,8 @@ class RPImportWorkflow:
     FUNCTION = "execute"
     CATEGORY = "RP/workflow_utilities"
     DESCRIPTION = (
-        "Import saved workflow JSON files into the current canvas, preserving "
+        "Import saved JSON files or open workflow tabs, including unsaved edits, "
+        "into the current canvas, preserving "
         "their internal connections. Use the buttons on the node; no queue is needed."
     )
 
