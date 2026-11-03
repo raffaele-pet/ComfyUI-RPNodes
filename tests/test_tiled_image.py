@@ -84,6 +84,36 @@ class TiledImageTests(unittest.TestCase):
         output = merge_tiles([torch.cat(tiles)], context, "reinhard_lab", 0, 0)
         torch.testing.assert_close(output, reference, rtol=0, atol=3e-7)
 
+    def test_merge_accepts_rgba_lists_batches_and_mixed_rgb_tiles(self):
+        source = torch.rand((2, 21, 35, 3))
+        tiles, context, reference, _ = split_tiles(source, 4, "bilinear")
+        rgba = [torch.cat((tile, torch.full_like(tile[..., :1], index / (len(tiles) - 1))), dim=-1)
+                for index, tile in enumerate(tiles)]
+        for name, decoded in [("list", rgba), ("batch", [torch.cat(rgba)]),
+                              ("mixed", [tile if index % 2 else rgba[index] for index, tile in enumerate(tiles)])]:
+            with self.subTest(format=name):
+                output = RPTileMerge.execute(decoded, [context], ["reinhard_lab"], [0], [0])[0]
+                torch.testing.assert_close(output, reference, rtol=0, atol=3e-7)
+
+    def test_rgba_color_matching_matches_rgb_for_every_method(self):
+        tiles, context, _, _ = split_tiles(torch.rand((1, 19, 43, 3)), 4, "bilinear")
+        shifted = [tile * 0.8 + 0.1 for tile in tiles]
+        rgba = [torch.cat((tile, torch.rand_like(tile[..., :1])), dim=-1) for tile in shifted]
+        with patch("comfy.model_management.get_torch_device", return_value=torch.device("cpu")):
+            for method in ["reinhard_lab", "mkl_lab", "histogram"]:
+                with self.subTest(method=method):
+                    expected = merge_tiles(shifted, context, method, 0.75, 0.25)
+                    output = merge_tiles(rgba, context, method, 0.75, 0.25)
+                    torch.testing.assert_close(output, expected, rtol=0, atol=0)
+
+    def test_merge_rejects_unsupported_channel_counts(self):
+        tiles, context, _, _ = split_tiles(torch.zeros((1, 13, 17, 3)), 4, "nearest-exact")
+        for channels in [1, 2, 5]:
+            with self.subTest(channels=channels):
+                invalid = [torch.zeros((1, 1024, 1024, channels)), *tiles[1:]]
+                with self.assertRaisesRegex(ValueError, "1024 x 1024 RGB or RGBA"):
+                    merge_tiles(invalid, context, "reinhard_lab", 0, 0)
+
     def test_default_lanczos_accepts_one_pixel_and_downsamples_large_inputs(self):
         for source in [torch.full((1, 1, 1, 3), 0.5), torch.rand((1, 50, 5000, 3))]:
             with self.subTest(size=tuple(source.shape)):

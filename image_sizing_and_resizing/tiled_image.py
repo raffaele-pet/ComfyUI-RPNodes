@@ -93,14 +93,14 @@ def merge_tiles(tiles, context, color_method, tile_color_strength, global_color_
         weights = torch.zeros((1, height, width, 1), dtype=torch.float32, device=device)
         for index, (x, y) in enumerate(context["positions"]):
             tile = tiles[batch_index * count + index]
-            if tuple(tile.shape[1:]) != (TILE_SIZE, TILE_SIZE, 3):
-                raise ValueError(f"RP Tile Merge: tile {batch_index * count + index + 1} must be 1024 x 1024 RGB; got {tuple(tile.shape)}.")
+            if tuple(tile.shape[1:]) not in ((TILE_SIZE, TILE_SIZE, 3), (TILE_SIZE, TILE_SIZE, 4)):
+                raise ValueError(f"RP Tile Merge: tile {batch_index * count + index + 1} must be 1024 x 1024 RGB or RGBA; got {tuple(tile.shape)}.")
             # Work only on real image pixels. Padding never enters color statistics or blending.
             x0, y0 = max(x, left), max(y, top)
             x1, y1 = min(x + TILE_SIZE, left + width), min(y + TILE_SIZE, top + height)
             if x0 >= x1 or y0 >= y1:
                 continue
-            target = tile[:, y0 - y:y1 - y, x0 - x:x1 - x, :].to(device=device, dtype=torch.float32)
+            target = tile[:, y0 - y:y1 - y, x0 - x:x1 - x, :3].to(device=device, dtype=torch.float32)
             ref = reference[batch_index:batch_index + 1, y0 - top:y1 - top, x0 - left:x1 - left, :]
             if tile_color_strength:
                 target = ColorTransfer.execute(target, ref, color_method, {"source_stats": "per_frame"}, tile_color_strength)[0].to(device=device, dtype=torch.float32)
@@ -145,7 +145,7 @@ class RPTileMerge(io.ComfyNode):
     def define_schema(cls):
         return io.Schema(
             node_id="RPTileMerge", display_name="RP Tile Merge", category="RP/image_sizing_and_resizing",
-            description="Reconstruct processed tiles in splitter order, remove padding, and match per-tile and global colors to the saved source.",
+            description="Reconstruct RGB or RGBA tiles in splitter order, discard alpha, remove padding, and match per-tile and global colors to the saved source.",
             is_input_list=True,
             inputs=[
                 io.Image.Input("tiles"),

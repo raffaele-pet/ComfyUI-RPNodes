@@ -1,7 +1,9 @@
 # RP Tile Split / RP Tile Merge
 
-Both nodes live in `RP/image_sizing_and_resizing`. They process RGB images;
-alpha is discarded before splitting. The splitter outputs a real ComfyUI image
+Both nodes live in `RP/image_sizing_and_resizing`. They accept RGB and RGBA images;
+alpha is discarded before splitting and merging, and the output is RGB.
+Qwen Image 2.1's RGBA decoded tiles can connect directly to Merge.
+The splitter outputs a real ComfyUI image
 list, not one image batch, so standard editing nodes execute once per tile.
 
 ```text
