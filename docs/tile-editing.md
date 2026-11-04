@@ -77,10 +77,6 @@ details inside overlaps.
 `FLUX.3 Klein Distilled - RP Tiled Upscale.json` includes the full per-tile
 prompting and FLUX.3 editing chain.
 
-For local geometric drift introduced by generation, [RP Dense Grid Align](./dense-grid-align.md)
-can compare the edited image with the scaled source using an elastic grid and
-fixed anchors. It can also align corresponding decoded tile lists before Merge.
-
-[RP Tile Merge Advanced](./tile-merge-advanced.md) integrates those grids before
+[RP Tile Merge Advanced](./tile-merge-advanced.md) integrates elastic grids and fixed anchors before
 compositing and selects structure-guided seams instead of averaging full
 overlaps, reducing double contours caused by independently generated tiles.

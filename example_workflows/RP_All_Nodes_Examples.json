@@ -3564,333 +3564,6 @@
       "title": "Tile Layout"
     },
     {
-      "id": 579,
-      "type": "Note",
-      "pos": [
-        6100,
-        8730
-      ],
-      "size": [
-        400,
-        350
-      ],
-      "flags": {},
-      "order": 579,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "Note",
-        "cnr_id": "comfy-core"
-      },
-      "widgets_values": [
-        "ENGLISH\nConnect the original to reference and the edit to image. The node estimates local motion on an elastic grid, freezes stable areas, and warps the edit while keeping its detail. White protect-mask pixels must stay unchanged. Green grid dots are anchors.\n\nITALIANO\nCollega l'originale a reference e l'editata a image. Il nodo misura gli spostamenti locali su una griglia elastica, ancora le zone stabili e deforma l'editata conservandone i dettagli. Le aree bianche di protect_mask restano ferme. I punti verdi della griglia sono ancoraggi."
-      ],
-      "title": "RP Dense Grid Align"
-    },
-    {
-      "id": 580,
-      "type": "LoadImage",
-      "pos": [
-        6600,
-        8730
-      ],
-      "size": [
-        300,
-        370
-      ],
-      "flags": {},
-      "order": 580,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            607
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": []
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage",
-        "cnr_id": "comfy-core"
-      },
-      "widgets_values": [
-        "reference.png",
-        "image"
-      ],
-      "title": "Original / Geometry Reference"
-    },
-    {
-      "id": 581,
-      "type": "LoadImage",
-      "pos": [
-        7000,
-        8730
-      ],
-      "size": [
-        300,
-        370
-      ],
-      "flags": {},
-      "order": 581,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            608,
-            610
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": []
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage",
-        "cnr_id": "comfy-core"
-      },
-      "widgets_values": [
-        "edited.png",
-        "image"
-      ],
-      "title": "Edited Image"
-    },
-    {
-      "id": 582,
-      "type": "RPDenseGridAlign",
-      "pos": [
-        7400,
-        8730
-      ],
-      "size": [
-        360,
-        400
-      ],
-      "flags": {},
-      "order": 582,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "reference",
-          "type": "IMAGE",
-          "link": 607
-        },
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 608
-        },
-        {
-          "name": "protect_mask",
-          "type": "MASK",
-          "link": null,
-          "shape": 7
-        }
-      ],
-      "outputs": [
-        {
-          "name": "aligned_image",
-          "type": "IMAGE",
-          "links": [
-            609
-          ]
-        },
-        {
-          "name": "deformation_grid",
-          "type": "IMAGE",
-          "links": [
-            611
-          ]
-        },
-        {
-          "name": "correction_mask",
-          "type": "MASK",
-          "links": [
-            612
-          ]
-        },
-        {
-          "name": "report",
-          "type": "STRING",
-          "links": [
-            613
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "RPDenseGridAlign",
-        "aux_id": "raffaele-pet/ComfyUI-RPNodes"
-      },
-      "widgets_values": [
-        1.0,
-        16,
-        96.0,
-        1.5,
-        0.5,
-        2048,
-        0.55
-      ],
-      "widgets_values_named": {
-        "strength": 1.0,
-        "grid_spacing": 16,
-        "max_shift": 96.0,
-        "anchor_tolerance": 1.5,
-        "rigidity": 0.5,
-        "analysis_max_side": 2048,
-        "minimum_match": 0.55
-      },
-      "showAdvanced": false
-    },
-    {
-      "id": 583,
-      "type": "RPImageComparer",
-      "pos": [
-        7850,
-        8730
-      ],
-      "size": [
-        500,
-        450
-      ],
-      "flags": {},
-      "order": 583,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image_a",
-          "type": "IMAGE",
-          "link": 609
-        },
-        {
-          "name": "image_b",
-          "type": "IMAGE",
-          "link": 610
-        }
-      ],
-      "outputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "links": []
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "RPImageComparer",
-        "aux_id": "raffaele-pet/ComfyUI-RPNodes"
-      },
-      "widgets_values": [
-        "RP-Dense-Align",
-        "%display_name-date:yyyy-MM-dd_HHmmss%",
-        null,
-        {
-          "images": []
-        }
-      ],
-      "title": "Aligned / Before Alignment"
-    },
-    {
-      "id": 584,
-      "type": "PreviewImage",
-      "pos": [
-        8450,
-        8730
-      ],
-      "size": [
-        600,
-        450
-      ],
-      "flags": {},
-      "order": 584,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 611
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "PreviewImage",
-        "cnr_id": "comfy-core"
-      },
-      "title": "Dense Deformation Grid"
-    },
-    {
-      "id": 585,
-      "type": "MaskPreview",
-      "pos": [
-        9150,
-        8730
-      ],
-      "size": [
-        300,
-        350
-      ],
-      "flags": {},
-      "order": 585,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "mask",
-          "type": "MASK",
-          "link": 612
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "MaskPreview",
-        "cnr_id": "comfy-core"
-      },
-      "title": "Applied Correction"
-    },
-    {
-      "id": 586,
-      "type": "PreviewAny",
-      "pos": [
-        7400,
-        9220
-      ],
-      "size": [
-        500,
-        130
-      ],
-      "flags": {},
-      "order": 586,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "source",
-          "type": "*",
-          "link": 613
-        }
-      ],
-      "outputs": [
-        {
-          "name": "STRING",
-          "type": "STRING",
-          "links": []
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "PreviewAny",
-        "cnr_id": "comfy-core"
-      },
-      "title": "Alignment Report"
-    },
-    {
       "id": 587,
       "type": "Note",
       "pos": [
@@ -3911,7 +3584,7 @@
         "cnr_id": "comfy-core"
       },
       "widgets_values": [
-        "ENGLISH\nInsert your editing chain between Split tiles and Advanced tiles. Connect tile_context directly. Advanced aligns each tile before mixing and selects structure-guided seams. Default feather 32 blends color broadly and fine detail narrowly. The example is a model-free round trip.\n\nITALIANO\nInserisci la catena di editing tra tiles di Split e tiles di Advanced. Collega tile_context direttamente. Advanced riallinea ogni tile prima della fusione e sceglie giunzioni guidate dalla struttura. Feather 32 sfuma ampiamente il colore e in modo stretto i dettagli fini. Esempio senza modello."
+        "ENGLISH\nInsert your editing chain between Split tiles and Advanced tiles. Connect tile_context directly. Advanced aligns each tile before mixing and selects structure-guided seams. Default feather 64 blends color broadly and fine detail narrowly. The example is a model-free round trip.\n\nITALIANO\nInserisci la catena di editing tra tiles di Split e tiles di Advanced. Collega tile_context direttamente. Advanced riallinea ogni tile prima della fusione e sceglie giunzioni guidate dalla struttura. Feather 64 sfuma ampiamente il colore e in modo stretto i dettagli fini. Esempio senza modello."
       ],
       "title": "RP Tile Merge Advanced"
     },
@@ -4093,7 +3766,7 @@
         16,
         96.0,
         1.0,
-        32,
+        64,
         0.5,
         0.55
       ],
@@ -4105,7 +3778,7 @@
         "grid_spacing": 16,
         "max_shift": 96.0,
         "anchor_tolerance": 1.0,
-        "seam_feather": 32,
+        "seam_feather": 64,
         "rigidity": 0.5,
         "minimum_match": 0.55
       },
@@ -4664,62 +4337,6 @@
       "STRING"
     ],
     [
-      607,
-      580,
-      0,
-      582,
-      0,
-      "IMAGE"
-    ],
-    [
-      608,
-      581,
-      0,
-      582,
-      1,
-      "IMAGE"
-    ],
-    [
-      609,
-      582,
-      0,
-      583,
-      0,
-      "IMAGE"
-    ],
-    [
-      610,
-      581,
-      0,
-      583,
-      1,
-      "IMAGE"
-    ],
-    [
-      611,
-      582,
-      1,
-      584,
-      0,
-      "IMAGE"
-    ],
-    [
-      612,
-      582,
-      2,
-      585,
-      0,
-      "MASK"
-    ],
-    [
-      613,
-      582,
-      3,
-      586,
-      0,
-      "STRING"
-    ],
-    [
       614,
       588,
       0,
@@ -4965,18 +4582,6 @@
         7800,
         3000,
         600
-      ],
-      "color": "#3f789e",
-      "flags": {}
-    },
-    {
-      "id": 19,
-      "title": "RP Dense Grid Align",
-      "bounding": [
-        6000,
-        8600,
-        3600,
-        800
       ],
       "color": "#3f789e",
       "flags": {}

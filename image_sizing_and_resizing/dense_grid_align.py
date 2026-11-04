@@ -84,7 +84,7 @@ def _interpolate_mesh(mesh, width, height):
 def estimate_deformation(reference, image, max_shift=96, grid_spacing=16, anchor_tolerance=1.5,
                          rigidity=0.5, analysis_max_side=2048, minimum_match=0.55, protect_mask=None):
     if cv2 is None:
-        raise RuntimeError("RP Dense Grid Align requires OpenCV. Install opencv-python in the ComfyUI Python environment.")
+        raise RuntimeError("RP tile grid alignment requires OpenCV. Install opencv-python in the ComfyUI Python environment.")
     height, width = image.shape[:2]
     if reference.shape[:2] != (height, width):
         reference = cv2.resize(reference, (width, height), interpolation=cv2.INTER_CUBIC)

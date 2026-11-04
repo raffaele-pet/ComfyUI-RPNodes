@@ -2,14 +2,14 @@
 
 Located in `RP/image_sizing_and_resizing`. Connect decoded tile lists to `tiles`
 and the original RP Tile Split `tile_context` directly to this node. It replaces
-RP Tile Merge in the editing chain; a separate alignment node after the merge
-is not required. RP Tile Split and the original Merge remain unchanged.
+RP Tile Merge in the editing chain. RP Tile Split and the original Merge remain
+unchanged.
 
 ## Alignment before compositing
 
 The node reconstructs each exact original 1024×1024 reference tile from the
-saved scaled image, padding and positions. It applies the same confidence-tested
-elastic grid used by RP Dense Grid Align **before any tile pixels are mixed**.
+saved scaled image, padding and positions. It applies a confidence-tested
+elastic grid **before any tile pixels are mixed**.
 Already aligned points stay anchored. Padding is protected from matching and
 excluded from color statistics and the final image.
 
@@ -27,7 +27,7 @@ cost considers disagreement between the two aligned tiles, strong edges, and
 structural similarity to the original reference. Paths in left/top overlaps
 are combined to handle four-tile intersections.
 
-The default `seam_feather = 32` applies Laplacian-pyramid multiband blending
+The default `seam_feather = 64` applies Laplacian-pyramid multiband blending
 around the chosen seam. Color, illumination and texture/focus differences use
 broad transitions. Where both tiles contain strong, conflicting contours, the
 finest-scale transition narrows to four pixels on each side. This softens
@@ -60,7 +60,7 @@ it but cannot ensure that every generated shape matches across every seam.
 | grid_spacing | 16 | Elastic grid spacing in tile pixels. |
 | max_shift | 96 | Maximum accepted displacement, in pixels. |
 | anchor_tolerance | 1 | Advanced: suppress insignificant motion and identify stable anchors. |
-| seam_feather | 32 | Multiband transition radius, 1–128 px; 0 keeps the hard cut. |
+| seam_feather | 64 | Multiband transition radius, 1–128 px; 0 keeps the hard cut. |
 | rigidity | 0.5 | Advanced: higher values smooth the elastic deformation more. |
 | minimum_match | 0.55 | Advanced: higher values reject more ambiguous correspondences. |
 

@@ -116,7 +116,7 @@ def seam_composite(existing, incoming, reference, covered, left_overlap, top_ove
 
 def merge_advanced(tiles, context, color_method='reinhard_lab', tile_color_strength=0.75,
                    global_color_strength=0.25, alignment_strength=1.0, grid_spacing=16,
-                   max_shift=96.0, anchor_tolerance=1.0, seam_feather=32,
+                   max_shift=96.0, anchor_tolerance=1.0, seam_feather=64,
                    rigidity=0.5, minimum_match=0.55):
     if cv2 is None:
         raise RuntimeError('RP Tile Merge Advanced requires OpenCV in the ComfyUI Python environment.')
@@ -225,7 +225,7 @@ class RPTileMergeAdvanced(io.ComfyNode):
                 io.Int.Input('grid_spacing', default=16, min=4, max=128, step=4),
                 io.Float.Input('max_shift', default=96, min=1.0, max=256.0, step=1),
                 io.Float.Input('anchor_tolerance', default=1.0, min=0.0, max=8.0, step=0.25, advanced=True),
-                io.Int.Input('seam_feather', default=32, min=0, max=128, step=1, tooltip='Multiband seam width in pixels: broad color/lighting transitions, narrow fine-detail transitions. Try 32-64. 0 keeps the hard cut. Saved workflows retain their current value.'),
+                io.Int.Input('seam_feather', default=64, min=0, max=128, step=1, tooltip='Multiband seam width in pixels: broad color/lighting transitions, narrow fine-detail transitions. 64 is the default. 0 keeps the hard cut. Saved workflows retain their current value.'),
                 io.Float.Input('rigidity', default=0.5, min=0.05, max=4.0, step=0.05, advanced=True),
                 io.Float.Input('minimum_match', default=0.55, min=0.1, max=0.95, step=0.05, advanced=True),
             ],
