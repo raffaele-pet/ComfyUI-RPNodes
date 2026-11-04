@@ -76,3 +76,7 @@ details inside overlaps.
 `RP_All_Nodes_Examples.json` includes a model-free Split → Merge round trip.
 `FLUX.3 Klein Distilled - RP Tiled Upscale.json` includes the full per-tile
 prompting and FLUX.3 editing chain.
+
+For local geometric drift introduced by generation, [RP Dense Grid Align](./dense-grid-align.md)
+can compare the edited image with the scaled source using an elastic grid and
+fixed anchors. It can also align corresponding decoded tile lists before Merge.
