@@ -80,3 +80,7 @@ prompting and FLUX.3 editing chain.
 For local geometric drift introduced by generation, [RP Dense Grid Align](./dense-grid-align.md)
 can compare the edited image with the scaled source using an elastic grid and
 fixed anchors. It can also align corresponding decoded tile lists before Merge.
+
+[RP Tile Merge Advanced](./tile-merge-advanced.md) integrates those grids before
+compositing and selects structure-guided seams instead of averaging full
+overlaps, reducing double contours caused by independently generated tiles.

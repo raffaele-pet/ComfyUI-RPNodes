@@ -1,0 +1,409 @@
+{
+  "id": "ae792bf1-2c29-41bb-bcf5-81a03e905fd8",
+  "revision": 0,
+  "nodes": [
+    {
+      "id": 587,
+      "type": "Note",
+      "pos": [
+        6100,
+        9730
+      ],
+      "size": [
+        400,
+        360
+      ],
+      "flags": {},
+      "order": 587,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Note",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "ENGLISH\nInsert your editing chain between Split tiles and Advanced tiles. Connect tile_context directly. Advanced aligns each tile before mixing and selects structure-guided seams. Default feather 0 selects one source per pixel. The example is a model-free round trip.\n\nITALIANO\nInserisci la catena di editing tra tiles di Split e tiles di Advanced. Collega tile_context direttamente. Advanced riallinea ogni tile prima della fusione e sceglie giunzioni guidate dalla struttura. Feather 0 usa una sola sorgente per pixel. Esempio senza modello."
+      ],
+      "title": "RP Tile Merge Advanced"
+    },
+    {
+      "id": 588,
+      "type": "LoadImage",
+      "pos": [
+        6600,
+        9730
+      ],
+      "size": [
+        300,
+        370
+      ],
+      "flags": {},
+      "order": 588,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 589,
+      "type": "RPTileSplit",
+      "pos": [
+        7000,
+        9730
+      ],
+      "size": [
+        350,
+        150
+      ],
+      "flags": {},
+      "order": 589,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "tiles",
+          "type": "IMAGE",
+          "links": [
+            2
+          ],
+          "shape": 6
+        },
+        {
+          "name": "tile_context",
+          "type": "RP_TILE_CONTEXT",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "scaled_image",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layout",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPTileSplit",
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes"
+      },
+      "widgets_values": [
+        "12",
+        "lanczos"
+      ],
+      "widgets_values_named": {
+        "tile_count": "12",
+        "upscale_method": "lanczos"
+      }
+    },
+    {
+      "id": 590,
+      "type": "RPTileMergeAdvanced",
+      "pos": [
+        7450,
+        9730
+      ],
+      "size": [
+        370,
+        470
+      ],
+      "flags": {},
+      "order": 590,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "tiles",
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "name": "tile_context",
+          "type": "RP_TILE_CONTEXT",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "aligned_tiles",
+          "type": "IMAGE",
+          "links": [],
+          "shape": 6
+        },
+        {
+          "name": "deformation_grids",
+          "type": "IMAGE",
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "correction_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "seam_mask",
+          "type": "MASK",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RPTileMergeAdvanced",
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes"
+      },
+      "widgets_values": [
+        "reinhard_lab",
+        0.75,
+        0.25,
+        1.0,
+        16,
+        96.0,
+        1.0,
+        0,
+        0.5,
+        0.55
+      ],
+      "widgets_values_named": {
+        "color_method": "reinhard_lab",
+        "tile_color_strength": 0.75,
+        "global_color_strength": 0.25,
+        "alignment_strength": 1.0,
+        "grid_spacing": 16,
+        "max_shift": 96.0,
+        "anchor_tolerance": 1.0,
+        "seam_feather": 0,
+        "rigidity": 0.5,
+        "minimum_match": 0.55
+      },
+      "showAdvanced": false
+    },
+    {
+      "id": 591,
+      "type": "PreviewImage",
+      "pos": [
+        7950,
+        9730
+      ],
+      "size": [
+        500,
+        430
+      ],
+      "flags": {},
+      "order": 591,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage",
+        "cnr_id": "comfy-core"
+      },
+      "title": "Advanced Reconstruction"
+    },
+    {
+      "id": 592,
+      "type": "PreviewImage",
+      "pos": [
+        8550,
+        9730
+      ],
+      "size": [
+        600,
+        430
+      ],
+      "flags": {},
+      "order": 592,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage",
+        "cnr_id": "comfy-core"
+      },
+      "title": "Per-tile Deformation Grids"
+    },
+    {
+      "id": 593,
+      "type": "MaskPreview",
+      "pos": [
+        9250,
+        9730
+      ],
+      "size": [
+        300,
+        350
+      ],
+      "flags": {},
+      "order": 593,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "MaskPreview",
+        "cnr_id": "comfy-core"
+      },
+      "title": "Selected Seams"
+    },
+    {
+      "id": 594,
+      "type": "PreviewAny",
+      "pos": [
+        7450,
+        10280
+      ],
+      "size": [
+        650,
+        140
+      ],
+      "flags": {},
+      "order": 594,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny",
+        "cnr_id": "comfy-core"
+      },
+      "title": "Advanced Merge Report"
+    }
+  ],
+  "links": [
+    [
+      1,
+      588,
+      0,
+      589,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      589,
+      0,
+      590,
+      0,
+      "IMAGE"
+    ],
+    [
+      3,
+      589,
+      1,
+      590,
+      1,
+      "RP_TILE_CONTEXT"
+    ],
+    [
+      4,
+      590,
+      0,
+      591,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      590,
+      2,
+      592,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      590,
+      4,
+      593,
+      0,
+      "MASK"
+    ],
+    [
+      7,
+      590,
+      5,
+      594,
+      0,
+      "STRING"
+    ]
+  ],
+  "last_link_id": 7,
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4,
+  "last_node_id": 594
+}
