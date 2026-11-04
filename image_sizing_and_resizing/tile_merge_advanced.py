@@ -49,6 +49,50 @@ def _cut_cost(boundary, old_error, new_error):
     return boundary + 0.35 * preference + 0.005 * center[None, :]
 
 
+def multiband_seam(existing, incoming, choose_new, covered, feather):
+    inside = cv2.distanceTransform(choose_new.astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    outside = cv2.distanceTransform((~choose_new).astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    distance = inside - outside
+    alpha = np.clip(0.5 + distance / (2 * feather), 0, 1)
+    alpha = alpha * alpha * (3 - 2 * alpha)
+    base = np.where(covered[..., None], existing, incoming)
+    difference = incoming - base
+    detail_alpha = np.clip(0.5 + distance / (2 * min(feather, 4)), 0, 1)
+    detail_alpha = detail_alpha * detail_alpha * (3 - 2 * detail_alpha)
+    gradients = []
+    for image in (base, incoming):
+        gray = cv2.GaussianBlur(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), (0, 0), 1.0)
+        gradients.append(np.stack([cv2.Sobel(gray, cv2.CV_32F, 1, 0),
+                                   cv2.Sobel(gray, cv2.CV_32F, 0, 1)], axis=-1))
+    old_edge, new_edge = [np.linalg.norm(gradient, axis=-1) for gradient in gradients]
+    neighborhood = np.ones((25, 25), np.uint8)
+    both_edges = np.minimum(cv2.dilate(old_edge, neighborhood), cv2.dilate(new_edge, neighborhood))
+    disagreement = np.linalg.norm(gradients[0] - gradients[1], axis=-1)
+    guard = np.clip((both_edges - 0.08) / 0.16, 0, 1) * np.clip(disagreement / 0.12, 0, 1)
+    guard = cv2.GaussianBlur(cv2.dilate(guard, np.ones((5, 5), np.uint8)), (0, 0), 1.0)
+    # Broaden texture/focus transitions; keep conflicting strong contours narrowly blended.
+    detail_alpha = alpha * (1 - guard) + detail_alpha * guard
+    differences, masks = [difference], [detail_alpha]
+    scale = 1
+    while scale < feather and min(differences[-1].shape[:2]) > 2:
+        differences.append(cv2.pyrDown(differences[-1]))
+        masks.append(cv2.pyrDown(masks[-1]))
+        scale *= 2
+    blended = differences[-1] * masks[-1][..., None]
+    for level in range(len(differences) - 2, -1, -1):
+        size = (differences[level].shape[1], differences[level].shape[0])
+        detail = differences[level] - cv2.pyrUp(differences[level + 1], dstsize=size)
+        blended = cv2.pyrUp(blended, dstsize=size) + detail * masks[level][..., None]
+    hard = difference * choose_new[..., None]
+    # Bound the pyramid's support so padding/uncovered pixels and distant detail stay exact.
+    support = np.clip((feather - np.abs(distance)) / max(1, feather * 0.25), 0, 1)
+    support = support * support * (3 - 2 * support)
+    result = np.where(choose_new[..., None], incoming, base) + (blended - hard) * support[..., None]
+    result[~covered] = incoming[~covered]
+    alpha[~covered] = 1
+    return result, alpha
+
+
 def seam_composite(existing, incoming, reference, covered, left_overlap, top_overlap, feather):
     height, width = incoming.shape[:2]
     choose_new = np.ones((height, width), bool)
@@ -65,17 +109,14 @@ def seam_composite(existing, incoming, reference, covered, left_overlap, top_ove
     choose_new[~covered] = True
     alpha = choose_new.astype(np.float32)
     if feather > 0 and choose_new.any() and not choose_new.all():
-        inside = cv2.distanceTransform(choose_new.astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-        outside = cv2.distanceTransform((~choose_new).astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-        alpha = np.clip(0.5 + (inside - outside) / (2 * feather), 0, 1)
-        alpha[~covered] = 1
+        return multiband_seam(existing, incoming, choose_new, covered, feather)
     result = existing * (1 - alpha[..., None]) + incoming * alpha[..., None]
     return result, alpha
 
 
 def merge_advanced(tiles, context, color_method='reinhard_lab', tile_color_strength=0.75,
                    global_color_strength=0.25, alignment_strength=1.0, grid_spacing=16,
-                   max_shift=96.0, anchor_tolerance=1.0, seam_feather=0,
+                   max_shift=96.0, anchor_tolerance=1.0, seam_feather=32,
                    rigidity=0.5, minimum_match=0.55):
     if cv2 is None:
         raise RuntimeError('RP Tile Merge Advanced requires OpenCV in the ComfyUI Python environment.')
@@ -160,7 +201,7 @@ def merge_advanced(tiles, context, color_method='reinhard_lab', tile_color_stren
         motion_masks.append(torch.from_numpy(np.clip(motion_mask, 0, 1)))
         reports.append(f'Image {batch + 1}: {columns} x {rows} tiles; {width} x {height}; '
                        f'{total_points} grid points; {anchors} fixed anchors; max correction {max(corrections):.2f} px; '
-                       f'structure-guided seams, feather {seam_feather}px; alignment strength {alignment_strength:.2f}.\n'
+                       f'structure-guided seams, multiband feather {seam_feather}px; alignment strength {alignment_strength:.2f}.\n'
                        'Tile corrections (px): ' + ', '.join(f'{v:.2f}' for v in corrections))
     return (torch.cat(images), aligned_tiles,
             torch.stack(previews).to(device=reference.device, dtype=reference.dtype),
@@ -184,7 +225,7 @@ class RPTileMergeAdvanced(io.ComfyNode):
                 io.Int.Input('grid_spacing', default=16, min=4, max=128, step=4),
                 io.Float.Input('max_shift', default=96, min=1.0, max=256.0, step=1),
                 io.Float.Input('anchor_tolerance', default=1.0, min=0.0, max=8.0, step=0.25, advanced=True),
-                io.Int.Input('seam_feather', default=0, min=0, max=16, step=1, tooltip='0 selects one tile per pixel to avoid averaging misaligned contours. Higher values soften only the chosen seam.'),
+                io.Int.Input('seam_feather', default=32, min=0, max=128, step=1, tooltip='Multiband seam width in pixels: broad color/lighting transitions, narrow fine-detail transitions. Try 32-64. 0 keeps the hard cut. Saved workflows retain their current value.'),
                 io.Float.Input('rigidity', default=0.5, min=0.05, max=4.0, step=0.05, advanced=True),
                 io.Float.Input('minimum_match', default=0.55, min=0.1, max=0.95, step=0.05, advanced=True),
             ],

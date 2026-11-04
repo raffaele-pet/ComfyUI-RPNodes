@@ -19,7 +19,7 @@ from comfy_extras.nodes_preview_any import PreviewAny
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from image_sizing_and_resizing.tile_merge_advanced import (
-    RPTileMergeAdvanced, merge_advanced, minimum_seam, seam_composite,
+    RPTileMergeAdvanced, merge_advanced, minimum_seam, multiband_seam, seam_composite,
 )
 from image_sizing_and_resizing.tiled_image import RPTileSplit, merge_tiles, split_tiles
 
@@ -68,6 +68,51 @@ class AdvancedMergeTests(unittest.TestCase):
         covered = np.ones((64, 256), bool)
         _, alpha = seam_composite(old, new, old, covered, 128, 0, 3)
         self.assertLess(np.mean((alpha > 0) & (alpha < 1)), 0.04)
+
+    def test_multiband_softens_brightness_step_without_blurring_distant_pixels(self):
+        old = np.full((127, 257, 3), 0.3, np.float32)
+        new = np.full_like(old, 0.5)
+        choose = np.indices(old.shape[:2])[1] >= 128
+        result, _ = multiband_seam(old, new, choose, np.ones_like(choose), 32)
+        self.assertLess(np.abs(np.diff(result[63, :, 0])).max(), 0.02)
+        np.testing.assert_array_equal(result[:, :96], old[:, :96])
+        np.testing.assert_array_equal(result[:, 160:], new[:, 160:])
+        rng = np.random.default_rng(81)
+        old, new = rng.random(old.shape, dtype=np.float32), rng.random(new.shape, dtype=np.float32)
+        result, _ = multiband_seam(old, new, choose, np.ones_like(choose), 32)
+        np.testing.assert_array_equal(result[:, :96], old[:, :96])
+        np.testing.assert_array_equal(result[:, 160:], new[:, 160:])
+
+    def test_multiband_keeps_uncovered_pixels_exact_and_does_not_import_black_canvas(self):
+        incoming = np.full((65, 131, 3), 0.6, np.float32)
+        existing = np.zeros_like(incoming)
+        covered = np.indices(incoming.shape[:2])[1] < 66
+        existing[covered] = 0.5
+        choose = np.indices(incoming.shape[:2])[1] >= 60
+        result, _ = multiband_seam(existing, incoming, choose, covered, 64)
+        np.testing.assert_array_equal(result[~covered], incoming[~covered])
+        self.assertGreater(result.min(), 0.49)
+
+    def test_multiband_does_not_spread_displaced_fine_details_over_wide_color_transition(self):
+        old = np.full((129, 257, 3), 0.35, np.float32)
+        new = np.full_like(old, 0.45)
+        old[60:62] += 0.4
+        new[70:72] += 0.4
+        choose = np.indices(old.shape[:2])[1] >= 128
+        result, _ = multiband_seam(old, new, choose, np.ones_like(choose), 64)
+        old_line = result[60:62, 148:156].mean() - result[57:59, 148:156].mean()
+        new_line = result[70:72, 100:108].mean() - result[67:69, 100:108].mean()
+        self.assertLess(abs(old_line), 0.035)
+        self.assertLess(abs(new_line), 0.035)
+
+    def test_texture_to_smooth_tile_transition_is_gradual(self):
+        yy, xx = np.indices((129, 257))
+        old = np.repeat((0.4 + 0.08 * (1 - 2 * (yy % 2)))[..., None], 3, axis=-1).astype(np.float32)
+        new = np.full_like(old, 0.4)
+        result, _ = multiband_seam(old, new, xx >= 128, np.ones_like(xx, bool), 32)
+        contrast = np.abs(result[40, :, 0] - result[41, :, 0])
+        self.assertLess(np.abs(np.diff(contrast)).max(), 0.01)
+        self.assertGreater(contrast[112], contrast[144] + 0.08)
 
     def test_identity_preserves_geometry_padding_and_batch_order(self):
         source = torch.cat([torch.full((1, 31, 43, 3), 0.2), torch.full((1, 31, 43, 3), 0.8)])

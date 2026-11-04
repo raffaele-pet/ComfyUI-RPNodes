@@ -3911,7 +3911,7 @@
         "cnr_id": "comfy-core"
       },
       "widgets_values": [
-        "ENGLISH\nInsert your editing chain between Split tiles and Advanced tiles. Connect tile_context directly. Advanced aligns each tile before mixing and selects structure-guided seams. Default feather 0 selects one source per pixel. The example is a model-free round trip.\n\nITALIANO\nInserisci la catena di editing tra tiles di Split e tiles di Advanced. Collega tile_context direttamente. Advanced riallinea ogni tile prima della fusione e sceglie giunzioni guidate dalla struttura. Feather 0 usa una sola sorgente per pixel. Esempio senza modello."
+        "ENGLISH\nInsert your editing chain between Split tiles and Advanced tiles. Connect tile_context directly. Advanced aligns each tile before mixing and selects structure-guided seams. Default feather 32 blends color broadly and fine detail narrowly. The example is a model-free round trip.\n\nITALIANO\nInserisci la catena di editing tra tiles di Split e tiles di Advanced. Collega tile_context direttamente. Advanced riallinea ogni tile prima della fusione e sceglie giunzioni guidate dalla struttura. Feather 32 sfuma ampiamente il colore e in modo stretto i dettagli fini. Esempio senza modello."
       ],
       "title": "RP Tile Merge Advanced"
     },
@@ -4093,7 +4093,7 @@
         16,
         96.0,
         1.0,
-        0,
+        32,
         0.5,
         0.55
       ],
@@ -4105,7 +4105,7 @@
         "grid_spacing": 16,
         "max_shift": 96.0,
         "anchor_tolerance": 1.0,
-        "seam_feather": 0,
+        "seam_feather": 32,
         "rigidity": 0.5,
         "minimum_match": 0.55
       },
