@@ -100,6 +100,15 @@ app.registerExtension({
     },
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData.name !== "RPImportWorkflow") return;
+        const computeSize = nodeType.prototype.computeSize;
+        nodeType.prototype.computeSize = function () {
+            const size = computeSize.apply(this, arguments);
+            if (!this.outputs.length && this.inputs.every((input) => input.widget)) {
+                // Native sizing reserves a connection row that this node does not draw.
+                size[1] -= LiteGraph.NODE_SLOT_HEIGHT * (0.7 + 0.5);
+            }
+            return size;
+        };
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
