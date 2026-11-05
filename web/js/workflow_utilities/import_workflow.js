@@ -11,6 +11,25 @@ function notify(message, severity = "error") {
     app.extensionManager.toast.add({ severity, summary: "RP Import Workflow", detail: message, life: 7000 });
 }
 
+function addSection(node, title) {
+    node.addCustomWidget({
+        type: "rp_import_section",
+        name: title,
+        serialize: false,
+        options: { serialize: false },
+        computeSize() { return [0, LiteGraph.NODE_WIDGET_HEIGHT]; },
+        draw(ctx, node, width, y, height) {
+            ctx.save();
+            ctx.fillStyle = LiteGraph.WIDGET_SECONDARY_TEXT_COLOR;
+            ctx.font = `bold ${LiteGraph.NODE_TEXT_SIZE}px Arial`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillText(title, 15, y + height / 2);
+            ctx.restore();
+        },
+    });
+}
+
 async function refreshWorkflows(node) {
     const response = await api.fetchApi("/userdata?dir=workflows&recurse=true&split=false");
     if (!response.ok && response.status !== 404) {
@@ -85,6 +104,11 @@ app.registerExtension({
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
             this.isVirtualNode = true;
+            const settings = this.widgets.filter((widget) => ["placement", "gap", "group_import"].includes(widget.name));
+            const workflow = this.widgets.find((widget) => widget.name === "workflow");
+            this.widgets = this.widgets.filter((widget) => widget !== workflow && !settings.includes(widget));
+            addSection(this, "Saved workflows / JSON files");
+            this.widgets.push(workflow);
             this.addWidget("button", "Refresh saved workflows", null, () => {
                 refreshWorkflows(this).catch((error) => notify(error.message));
             }, { serialize: false }).serialize = false;
@@ -100,6 +124,21 @@ app.registerExtension({
                     return [{ name: filename, data: await response.json() }];
                 });
             }, { serialize: false }).serialize = false;
+            this.addWidget("button", "Choose file to import", null, () => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".json,application/json";
+                input.multiple = true;
+                input.onchange = () => {
+                    const files = [...input.files];
+                    if (!files.length) return;
+                    void importIntoCanvas(this, () => Promise.all(files.map(async (file) => ({
+                        name: file.name, data: JSON.parse(await file.text()),
+                    }))));
+                };
+                input.click();
+            }, { serialize: false }).serialize = false;
+            addSection(this, "Open workflow tabs");
             const openTab = this.addWidget("combo", "open_tab", EMPTY_TAB, () => {}, {
                 get values() { return [EMPTY_TAB, ...getOpenWorkflows().map((workflow) => workflow.key)]; },
                 serialize: false,
@@ -117,20 +156,8 @@ app.registerExtension({
                     return [{ name: workflow.key, data: JSON.parse(JSON.stringify(workflow.activeState)) }];
                 });
             }, { serialize: false }).serialize = false;
-            this.addWidget("button", "Choose file to import", null, () => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".json,application/json";
-                input.multiple = true;
-                input.onchange = () => {
-                    const files = [...input.files];
-                    if (!files.length) return;
-                    void importIntoCanvas(this, () => Promise.all(files.map(async (file) => ({
-                        name: file.name, data: JSON.parse(await file.text()),
-                    }))));
-                };
-                input.click();
-            }, { serialize: false }).serialize = false;
+            addSection(this, "Import settings (all sources)");
+            this.widgets.push(...settings);
             return result;
         };
         const onAdded = nodeType.prototype.onAdded;
