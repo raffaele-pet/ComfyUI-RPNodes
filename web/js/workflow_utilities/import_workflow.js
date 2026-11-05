@@ -166,7 +166,7 @@ app.registerExtension({
             // Wait until configure() has restored the saved combo value.
             queueMicrotask(() => {
                 const size = this.computeSize();
-                this.setSize([Math.max(this.size[0], size[0]), Math.max(this.size[1], size[1])]);
+                this.setSize([Math.max(this.size[0], size[0]), size[1]]);
                 refreshWorkflows(this).catch((error) => notify(error.message));
             });
             return result;
