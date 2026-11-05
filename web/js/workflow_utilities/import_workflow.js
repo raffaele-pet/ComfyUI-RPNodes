@@ -156,7 +156,7 @@ app.registerExtension({
                     return [{ name: workflow.key, data: JSON.parse(JSON.stringify(workflow.activeState)) }];
                 });
             }, { serialize: false }).serialize = false;
-            addSection(this, "Import settings (all sources)");
+            addSection(this, "Import settings");
             this.widgets.push(...settings);
             return result;
         };

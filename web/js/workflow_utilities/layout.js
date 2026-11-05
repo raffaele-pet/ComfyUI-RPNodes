@@ -1,6 +1,6 @@
 import { app } from "/scripts/app.js";
 
-const NODES = new Set(["RPGroupsMuter", "RPBypasser", "RPImportWorkflow", "RPFixWorkflow"]);
+const NODES = new Set(["RPGroupsMuter", "RPBypasser", "RPFixWorkflow"]);
 
 app.registerExtension({
     name: "RPNodes.WorkflowUtilities.Layout",
