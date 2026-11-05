@@ -82,6 +82,7 @@ order, without dropping, duplicating, or changing their resolution. The node
 receives the whole list in one call and returns one reconstructed IMAGE batch.
 
 CPU OpenCV is sufficient. No alignment weights or model downloads are required.
-See `RP_Tile_Merge_Advanced.json` for a model-free wiring example.
+See the RP Tile Split & RP Tile Merge Advanced group in
+`RP_All_Nodes_Examples.json` for a model-free wiring example.
 The blending follows the Gaussian/Laplacian pyramid approach described in the
 [OpenCV image pyramids tutorial](https://docs.opencv.org/4.13.0/dc/dff/tutorial_py_pyramids.html).

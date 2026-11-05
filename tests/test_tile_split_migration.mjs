@@ -76,7 +76,7 @@ test("nested subgraphs and floating preview links are migrated", () => {
 });
 
 test("current workflow is an exact no-op and unrelated nodes are untouched", () => {
-    const workflow = JSON.parse(readFileSync(new URL("../example_workflows/FLUX.3 Klein Distilled - RP Tiled Upscale.json", import.meta.url), "utf8"));
+    const workflow = JSON.parse(readFileSync(new URL("../example_workflows/RP Tiled Upscale.json", import.meta.url), "utf8"));
     const original = JSON.stringify(workflow);
     assert.equal(context.migrateTileSplitOutputs(workflow), 0);
     assert.equal(JSON.stringify(workflow), original);

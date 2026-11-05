@@ -74,7 +74,7 @@ resizing, but cannot prevent the editing model from moving objects or inventing
 details inside overlaps.
 
 `RP_All_Nodes_Examples.json` includes a model-free Split → Merge round trip.
-`FLUX.3 Klein Distilled - RP Tiled Upscale.json` includes the full per-tile
+`RP Tiled Upscale.json` includes the full per-tile
 prompting and FLUX.3 editing chain.
 
 [RP Tile Merge Advanced](./tile-merge-advanced.md) integrates elastic grids and fixed anchors before
