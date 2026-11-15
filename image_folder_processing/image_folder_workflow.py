@@ -6,7 +6,11 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageSequence
+
+import comfy.model_management
+import node_helpers
+from comfy_api.latest import InputImpl
 
 
 try:
@@ -121,17 +125,34 @@ def _image_files(folder):
 
 
 def _load_image(path):
-    with Image.open(path) as opened:
-        image = ImageOps.exif_transpose(opened)
-        has_alpha = "A" in image.getbands()
-        rgb = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
-        tensor = torch.from_numpy(rgb).unsqueeze(0)
-        if has_alpha:
-            alpha = np.asarray(image.getchannel("A"), dtype=np.float32) / 255.0
-            mask = 1.0 - torch.from_numpy(alpha).unsqueeze(0)
-        else:
-            mask = torch.zeros((1, rgb.shape[0], rgb.shape[1]), dtype=torch.float32)
-    return tensor, mask
+    dtype = comfy.model_management.intermediate_dtype()
+    device = comfy.model_management.intermediate_device()
+    components = InputImpl.VideoFromFile(str(path)).get_components()
+    if components.images.shape[0] > 0:
+        image = components.images.to(device=device, dtype=dtype)
+        mask = ((1.0 - components.alpha[..., -1]).to(device=device, dtype=dtype)
+                if components.alpha is not None else
+                torch.zeros((image.shape[0], 64, 64), dtype=dtype, device=device))
+        return image, mask
+
+    # Match LoadImage's Pillow path for animated WebP unsupported by PyAV.
+    images, masks = [], []
+    size = None
+    with node_helpers.pillow(Image.open, str(path)) as opened:
+        for frame in ImageSequence.Iterator(opened):
+            frame = node_helpers.pillow(ImageOps.exif_transpose, frame)
+            if size is None:
+                size = frame.size
+            if frame.size != size:
+                continue
+            image = torch.from_numpy(np.array(frame.convert("RGB")).astype(np.float32) / 255.0)[None,]
+            if "A" in frame.getbands():
+                mask = 1.0 - torch.from_numpy(np.array(frame.getchannel("A")).astype(np.float32) / 255.0)
+            else:
+                mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")
+            images.append(image.to(dtype=dtype))
+            masks.append(mask.unsqueeze(0).to(dtype=dtype))
+    return torch.cat(images).to(device=device, dtype=dtype), torch.cat(masks).to(device=device, dtype=dtype)
 
 
 def _unlink_with_retry(path, attempts=20):

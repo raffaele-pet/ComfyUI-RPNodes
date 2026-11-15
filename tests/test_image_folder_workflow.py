@@ -1,11 +1,39 @@
 import tempfile
+import sys
+import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import numpy as np
 import torch
 from PIL import Image
 
-from image_folder_processing import image_folder_workflow as workflow
+
+class _NativeVideoFromFile:
+    def __init__(self, path):
+        self.path = path
+
+    def get_components(self):
+        with Image.open(self.path) as opened:
+            image = torch.from_numpy(np.asarray(opened.convert("RGB"), dtype=np.float32) / 255.0).unsqueeze(0)
+            if "A" in opened.getbands():
+                alpha = torch.from_numpy(np.asarray(opened.getchannel("A"), dtype=np.float32) / 255.0)[None, ..., None]
+            else:
+                alpha = None
+        return types.SimpleNamespace(images=image, alpha=alpha)
+
+
+model_management = types.SimpleNamespace(intermediate_dtype=lambda: torch.float32,
+                                        intermediate_device=lambda: torch.device("cpu"))
+with patch.dict(sys.modules, {
+    "comfy": types.SimpleNamespace(model_management=model_management),
+    "comfy.model_management": model_management,
+    "node_helpers": types.SimpleNamespace(pillow=lambda function, *args: function(*args)),
+    "comfy_api": types.SimpleNamespace(),
+    "comfy_api.latest": types.SimpleNamespace(InputImpl=types.SimpleNamespace(VideoFromFile=_NativeVideoFromFile)),
+}):
+    from image_folder_processing import image_folder_workflow as workflow
 
 
 class _FolderPaths:
@@ -113,6 +141,43 @@ class ImageFolderWorkflowTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "No supported images"):
             workflow.RPLoadImagesFromFolder().load("empty")
+
+    def test_loader_delegates_external_path_and_preserves_native_tensors(self):
+        source = self.root / "external source"
+        self._write_image(source / "photo.jpg", (1, 2, 3))
+        image = torch.full((1, 3, 4, 3), 0.25, dtype=torch.bfloat16)
+        mask = torch.zeros((1, 64, 64), dtype=torch.bfloat16)
+        with patch.object(workflow.InputImpl, "VideoFromFile") as native, \
+                patch.object(workflow.comfy.model_management, "intermediate_dtype", return_value=torch.bfloat16):
+            native.return_value.get_components.return_value = types.SimpleNamespace(images=image, alpha=None)
+            result = workflow.RPLoadImagesFromFolder().load(str(source))
+        native.assert_called_once_with(str((source / "photo.jpg").resolve()))
+        self.assertIs(result[1], image)
+        torch.testing.assert_close(result[2], mask, rtol=0, atol=0)
+        self.assertEqual(result[4]["source_directory"], str(source.resolve()))
+
+    def test_loader_matches_native_alpha_and_intermediate_dtype(self):
+        image = torch.full((1, 3, 4, 3), 0.25)
+        alpha = torch.full((1, 3, 4, 1), 0.75)
+        with patch.object(workflow.InputImpl, "VideoFromFile") as native, \
+                patch.object(workflow.comfy.model_management, "intermediate_dtype", return_value=torch.bfloat16):
+            native.return_value.get_components.return_value = types.SimpleNamespace(images=image, alpha=alpha)
+            actual, mask = workflow._load_image(self.root / "photo.png")
+        torch.testing.assert_close(actual, image.to(torch.bfloat16), rtol=0, atol=0)
+        torch.testing.assert_close(mask, (1.0 - alpha[..., -1]).to(torch.bfloat16), rtol=0, atol=0)
+
+    def test_loader_preserves_frames_in_native_animated_webp_fallback(self):
+        source = self.root / "animated.webp"
+        Image.new("RGBA", (4, 3), (10, 20, 30, 128)).save(
+            source, save_all=True, append_images=[Image.new("RGBA", (4, 3), (40, 50, 60, 128))],
+            duration=100, loop=0, lossless=True,
+        )
+        with patch.object(workflow.InputImpl, "VideoFromFile") as native:
+            native.return_value.get_components.return_value = types.SimpleNamespace(images=torch.empty((0,)))
+            image, mask = workflow._load_image(source)
+        self.assertEqual(image.shape, (2, 3, 4, 3))
+        self.assertEqual(mask.shape, (2, 3, 4))
+        self.assertAlmostEqual(float(mask[0, 0, 0]), 1.0 - 128 / 255.0)
 
     def test_prompt_loader_selects_block_using_image_context_index(self):
         prompt_file = self.root / "prompts.txt"
