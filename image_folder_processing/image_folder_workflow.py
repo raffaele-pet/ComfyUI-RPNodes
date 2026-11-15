@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import time
@@ -204,12 +205,10 @@ def _save_image(image, path, overwrite):
         temporary.unlink(missing_ok=True)
 
 
-def _save_context_image(
-    image,
+def _prepare_context_output(
     image_context,
     output_folder,
     clear_output_folder,
-    overwrite,
 ):
     context = dict(image_context)
     index = int(context["index"])
@@ -233,6 +232,13 @@ def _save_context_image(
     if not image_filename:
         raise ValueError("image_context does not contain a valid image filename.")
     output_path = output_directory / image_filename
+    return index, image_count, output_directory, output_path
+
+
+def _save_context_image(image, image_context, output_folder, clear_output_folder, overwrite):
+    index, image_count, output_directory, output_path = _prepare_context_output(
+        image_context, output_folder, clear_output_folder
+    )
     _save_image(image, output_path, bool(overwrite))
     return index, image_count, output_directory, output_path
 
@@ -401,11 +407,15 @@ class RPSaveImagesToFolder:
         return {
             "required": {
                 "flow": ("FLOW_CONTROL", {"rawLink": True}),
-                "processed_image": ("IMAGE",),
+                "processed_image": ("IMAGE", {"lazy": True}),
                 "image_context": ("RP_IMAGE_FOLDER_CONTEXT",),
                 "output_folder": ("STRING", {"default": "processed_images"}),
                 "clear_output_folder": ("BOOLEAN", {"default": False}),
                 "overwrite": ("BOOLEAN", {"default": False}),
+            },
+            "optional": {
+                "skip_reason": ("STRING", {"default": "", "forceInput": True}),
+                "on_error": (["stop", "skip_image"], {"default": "stop"}),
             },
             "hidden": {
                 "dynprompt": "DYNPROMPT",
@@ -415,7 +425,8 @@ class RPSaveImagesToFolder:
 
     RETURN_TYPES = ("STRING", "INT", "STRING")
     RETURN_NAMES = ("folder_path", "image_count", "last_image_path")
-    FUNCTION = "save"
+    FUNCTION = "save_list"
+    INPUT_IS_LIST = True
     CATEGORY = "image/RPNodes"
     OUTPUT_NODE = True
 
@@ -433,6 +444,32 @@ class RPSaveImagesToFolder:
                 upstream[parent_id] = []
                 self._explore_dependencies(parent_id, dynprompt, upstream)
             upstream[parent_id].append(node_id)
+
+    def save_list(self, **inputs):
+        controls = {name: values for name, values in inputs.items() if name != "processed_image"}
+        if any(len(values) != 1 for values in controls.values()):
+            raise ValueError("The integrated image loop expects one set of controls per source image.")
+        values = {name: items[0] for name, items in controls.items()}
+        images = inputs.get("processed_image", [])
+        if len(images) != 1 and not values.get("skip_reason"):
+            if values.get("on_error", "stop") == "skip_image":
+                values["skip_reason"] = f"Processing returned {len(images)} results; expected one result per source image."
+            else:
+                raise ValueError(
+                    "The integrated image loop expects one result per source image. "
+                    "A processing node returned a list (for example, multiple detected faces). "
+                    "Select one result before the folder savers to avoid overwriting images "
+                    "and starting duplicate loop iterations."
+                )
+        values["processed_image"] = images[0] if len(images) == 1 else None
+        return self.save(**values)
+
+    def check_lazy_status(self, processed_image=None, skip_reason=None, **_inputs):
+        if skip_reason and any(skip_reason):
+            return []
+        if processed_image is None or not processed_image or processed_image[0] is None:
+            return ["processed_image"]
+        return []
 
     def _collect_contained(self, node_id, upstream, contained):
         if node_id not in upstream:
@@ -519,20 +556,30 @@ class RPSaveImagesToFolder:
         overwrite,
         dynprompt=None,
         unique_id=None,
+        skip_reason="",
+        on_error="stop",
     ):
         self._validate_single_loop_controller(flow, dynprompt)
-        index, image_count, output_directory, output_path = _save_context_image(
-            processed_image,
+        index, image_count, output_directory, output_path = _prepare_context_output(
             image_context,
             output_folder,
             clear_output_folder,
-            overwrite,
         )
+        if not skip_reason:
+            try:
+                _save_image(processed_image, output_path, bool(overwrite))
+            except (ValueError, OSError) as error:
+                if on_error != "skip_image":
+                    raise
+                skip_reason = f"{type(error).__name__}: {error}"
+        if skip_reason:
+            logging.warning("[RP Folder Loop] Skipping %s (%s/%s): %s",
+                            image_context["image_filename"], index + 1, image_count, skip_reason)
 
         if index + 1 < image_count:
             return self._next_iteration(flow, index + 1, dynprompt, unique_id)
 
-        return (str(output_directory), image_count, str(output_path))
+        return (str(output_directory), image_count, "" if skip_reason else str(output_path))
 
 
 NODE_CLASS_MAPPINGS = {

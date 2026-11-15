@@ -90,7 +90,7 @@ class FacePipelineTests(unittest.TestCase):
     def test_default_workflow_settings_and_face_lists(self):
         image = torch.rand((2, 80, 100, 3))
         output = face_detection.RPFaceDetection().detect(image)
-        self.assertEqual(tuple(map(len, output)), (4,) * 8)
+        self.assertEqual(tuple(map(len, output)), (4,) * 9)
         self.assertEqual(self.calls[1], ("detect", 1, 0.5, 10, 1.5, 10, "all"))
         torch.testing.assert_close(output[0][0], image[:1])
         torch.testing.assert_close(output[0][2], image[1:2])
@@ -101,6 +101,50 @@ class FacePipelineTests(unittest.TestCase):
         output = face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)), square=True, scale=1.5)
         self.assertEqual(bounds(output[5][0])[2:], (30, 30))
         self.assertEqual(output[2][0][0], (18, 2, 45, 45))
+
+    def test_face_limit_selects_largest_mask_per_source_image(self):
+        small = rectangle(width=5, height=5)
+        large = rectangle(left=60, width=25, height=20)
+        self.mapping["ImpactSEGSToMaskList"] = lambda: types.SimpleNamespace(doit=lambda segs: ([small, large],))
+        image = torch.rand((2, 80, 100, 3))
+        output = face_detection.RPFaceDetection().detect(image, max_faces=1)
+        self.assertEqual(tuple(map(len, output)), (2,) * 9)
+        self.assertEqual(bounds(output[5][0]), bounds(large))
+        torch.testing.assert_close(output[0][0], image[:1])
+        torch.testing.assert_close(output[0][1], image[1:2])
+
+    def test_face_limit_zero_keeps_detector_order(self):
+        small = rectangle(width=5, height=5)
+        large = rectangle(left=60, width=25, height=20)
+        self.mapping["ImpactSEGSToMaskList"] = lambda: types.SimpleNamespace(doit=lambda segs: ([small, large],))
+        output = face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)))
+        self.assertEqual([bounds(mask) for mask in output[5]], [bounds(small), bounds(large)])
+
+    def test_single_or_skip_reports_empty_zero_or_multiple_masks_once(self):
+        image = torch.rand((1, 80, 100, 3))
+        for masks in ([], [torch.zeros((1, 80, 100))], [rectangle(), rectangle(left=60)]):
+            with self.subTest(masks=len(masks)):
+                self.mapping["ImpactSEGSToMaskList"] = lambda: types.SimpleNamespace(doit=lambda segs: (masks,))
+                result = face_detection.RPFaceDetection().detect(
+                    image, max_faces=1, face_count_policy="single_or_skip"
+                )
+                self.assertEqual(tuple(map(len, result)), (1,) * 9)
+                self.assertIn("expected exactly one face", result[8][0])
+                torch.testing.assert_close(result[0][0], image)
+
+    def test_single_or_skip_allows_exactly_one_face_and_keeps_padding(self):
+        self.mapping["ImpactSEGSToMaskList"] = lambda: types.SimpleNamespace(doit=lambda segs: ([rectangle(left=0)],))
+        result = face_detection.RPFaceDetection().detect(
+            torch.rand((1, 80, 100, 3)), face_count_policy="single_or_skip",
+            square=True, scale=4, pad_outside_image="pad_edge_pixel"
+        )
+        self.assertEqual(result[8], [""])
+        self.assertGreater(result[0][0].shape[2], 100)
+        self.assertEqual(result[6][0].shape, result[0][0].shape[:3])
+
+    def test_single_or_error_still_raises_on_multiple_faces(self):
+        with self.assertRaisesRegex(ValueError, "found 2"):
+            face_detection.RPFaceDetection().detect(torch.rand((1, 80, 100, 3)), face_count_policy="single_or_error")
 
     def test_tiny_masks_and_zero_smoothing_produce_valid_crops(self):
         image = torch.rand((1, 80, 100, 3))
@@ -140,7 +184,7 @@ class FacePipelineTests(unittest.TestCase):
         image = torch.rand((2, 80, 100, 3))
         node = face_detection.RPFaceDetection()
         output = node.detect(image, square=True, scale=4, pad_outside_image="pad")
-        self.assertEqual(tuple(map(len, output)), (4,) * 8)
+        self.assertEqual(tuple(map(len, output)), (4,) * 9)
         for face in range(4):
             original, crop, boxes, width, height, mask = (slot[face] for slot in output[:6])
             x, y, w, h = boxes[0]
@@ -191,7 +235,7 @@ class FacePipelineTests(unittest.TestCase):
         self.assertEqual(face_detection.RPFaceDetection.RETURN_NAMES[:6], (
             "original_images", "cropped_images", "bboxes", "width", "height", "bbox_masks",
         ))
-        self.assertEqual(face_detection.RPFaceDetection.RETURN_TYPES[6:], ("MASK", "MASK"))
+        self.assertEqual(face_detection.RPFaceDetection.RETURN_TYPES[6:], ("MASK", "MASK", "STRING"))
 
     def test_top_padding_is_a_black_strip_above_white_image_area(self):
         self.mapping["ImpactSEGSToMaskList"] = lambda: types.SimpleNamespace(doit=lambda segs: ([rectangle(top=0)],))

@@ -192,6 +192,78 @@ class ImageFolderWorkflowTests(unittest.TestCase):
         self.assertEqual(Path(saved_path).name, "photo.png")
         self.assertTrue(Path(saved_path).is_file())
 
+    def test_loop_saver_accepts_singleton_execution_lists(self):
+        source = self.input_directory / "source"
+        self._write_image(source / "photo.png", (20, 40, 60))
+        loaded = workflow.RPLoadImagesFromFolder().load("source")
+        result = workflow.RPSaveImagesToFolder().save_list(
+            flow=[["loader", 0]], processed_image=[loaded[1]],
+            image_context=[loaded[4]], output_folder=["results"],
+            clear_output_folder=[False], overwrite=[False],
+        )
+        self.assertEqual(result[1], 1)
+        self.assertTrue(Path(result[2]).is_file())
+
+    def test_loop_saver_rejects_multiple_face_results_before_saving(self):
+        source = self.input_directory / "source"
+        self._write_image(source / "photo.png", (20, 40, 60))
+        loaded = workflow.RPLoadImagesFromFolder().load("source")
+        with self.assertRaisesRegex(ValueError, "multiple detected faces"):
+            workflow.RPSaveImagesToFolder().save_list(
+                flow=[["loader", 0]], processed_image=[loaded[1], loaded[1]],
+                image_context=[loaded[4]], output_folder=["results"],
+                clear_output_folder=[False], overwrite=[True],
+            )
+        self.assertFalse((self.output_directory / "results").exists())
+
+    def test_lazy_saver_does_not_request_editing_for_skipped_images(self):
+        saver = workflow.RPSaveImagesToFolder()
+        self.assertEqual(saver.check_lazy_status(processed_image=[None], skip_reason=["No face"]), [])
+        self.assertEqual(saver.check_lazy_status(processed_image=[None], skip_reason=[""]), ["processed_image"])
+
+    def test_skipped_image_advances_once_without_writing_a_fallback(self):
+        source = self.input_directory / "source"
+        self._write_image(source / "first.png", (1, 2, 3))
+        self._write_image(source / "second.png", (4, 5, 6))
+        loaded = workflow.RPLoadImagesFromFolder().load("source")
+        saver = workflow.RPSaveImagesToFolder()
+        calls = []
+        saver._next_iteration = lambda *args: calls.append(args) or "continued"
+        result = saver.save_list(
+            flow=[["loader", 0]], processed_image=[None], image_context=[loaded[4]],
+            output_folder=["results"], clear_output_folder=[False], overwrite=[False],
+            skip_reason=["Expected one face, found zero"], on_error=["skip_image"],
+        )
+        self.assertEqual(result, "continued")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1], 1)
+        self.assertEqual(list((self.output_directory / "results").iterdir()), [])
+
+    def test_skip_mode_handles_zero_multiple_and_batched_results(self):
+        source = self.input_directory / "source"
+        self._write_image(source / "photo.png", (1, 2, 3))
+        loaded = workflow.RPLoadImagesFromFolder().load("source")
+        for images in ([], [loaded[1], loaded[1]], [loaded[1].repeat(2, 1, 1, 1)]):
+            with self.subTest(result_count=len(images)):
+                result = workflow.RPSaveImagesToFolder().save_list(
+                    flow=[["loader", 0]], processed_image=images, image_context=[loaded[4]],
+                    output_folder=["results"], clear_output_folder=[False], overwrite=[False], on_error=["skip_image"],
+                )
+                self.assertEqual(result[2], "")
+                self.assertFalse((self.output_directory / "results/photo.png").exists())
+
+    def test_skip_mode_continues_on_existing_output_without_overwriting(self):
+        source = self.input_directory / "source"
+        self._write_image(source / "photo.png", (1, 2, 3))
+        self._write_image(self.output_directory / "results/photo.png", (10, 20, 30))
+        loaded = workflow.RPLoadImagesFromFolder().load("source")
+        before = (self.output_directory / "results/photo.png").read_bytes()
+        result = workflow.RPSaveImagesToFolder().save(
+            ["loader", 0], loaded[1], loaded[4], "results", False, False, on_error="skip_image"
+        )
+        self.assertEqual(result[2], "")
+        self.assertEqual((self.output_directory / "results/photo.png").read_bytes(), before)
+
     def test_loop_saver_rejects_two_controllers_for_the_same_loader(self):
         source = self.input_directory / "source"
         self._write_image(source / "photo.png", (20, 40, 60))

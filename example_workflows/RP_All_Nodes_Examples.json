@@ -1420,6 +1420,12 @@
           "name": "image_context",
           "type": "RP_IMAGE_FOLDER_CONTEXT",
           "link": 522
+        },
+        {
+          "name": "skip_reason",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
         }
       ],
       "outputs": [
@@ -1451,12 +1457,14 @@
       "widgets_values": [
         "rp_examples/folder_batch",
         false,
-        true
+        true,
+        "stop"
       ],
       "widgets_values_named": {
         "output_folder": "rp_examples/folder_batch",
         "clear_output_folder": false,
-        "overwrite": true
+        "overwrite": true,
+        "on_error": "stop"
       },
       "color": "#2a363b",
       "bgcolor": "#3f5159"
@@ -1558,10 +1566,10 @@
       "title": "RP Load Images from Folder & RP Save Images to Folder",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nRP Load Images from Folder loads images from a folder one at a time. The processing chain runs between this node and RP Save Images to Folder, linked by flow and image_context. The saver writes each result with the source filename and advances to the next image.\n\nITALIANO\n\nRP Load Images from Folder carica una alla volta le immagini di una cartella. L'elaborazione avviene tra questo nodo e RP Save Images to Folder, collegati da flow e image_context. Il nodo di salvataggio conserva il nome originale e passa all'immagine successiva."
+        "ENGLISH\n\nLoads and saves one image at a time, linked by flow and image_context. Use one loop saver. Connect Face Detection's skip_reason to skip invalid face counts. on_error=skip_image skips invalid results and per-file save errors. Keep this saver as the only output after face detection.\n\nITALIANO\n\nCarica e salva un'immagine alla volta tramite flow e image_context. Usa un solo salvatore del loop. Collega skip_reason di Face Detection per saltare conteggi di volti non validi. on_error=skip_image salta risultati non validi ed errori di salvataggio del singolo file. Mantieni questo salvatore come unica uscita dopo il rilevamento."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nRP Load Images from Folder loads images from a folder one at a time. The processing chain runs between this node and RP Save Images to Folder, linked by flow and image_context. The saver writes each result with the source filename and advances to the next image.\n\nITALIANO\n\nRP Load Images from Folder carica una alla volta le immagini di una cartella. L'elaborazione avviene tra questo nodo e RP Save Images to Folder, collegati da flow e image_context. Il nodo di salvataggio conserva il nome originale e passa all'immagine successiva."
+        "text": "ENGLISH\n\nLoads and saves one image at a time, linked by flow and image_context. Use one loop saver. Connect Face Detection's skip_reason to skip invalid face counts. on_error=skip_image skips invalid results and per-file save errors. Keep this saver as the only output after face detection.\n\nITALIANO\n\nCarica e salva un'immagine alla volta tramite flow e image_context. Usa un solo salvatore del loop. Collega skip_reason di Face Detection per saltare conteggi di volti non validi. on_error=skip_image salta risultati non validi ed errori di salvataggio del singolo file. Mantieni questo salvatore come unica uscita dopo il rilevamento."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -2166,7 +2174,7 @@
       ],
       "size": [
         300,
-        260
+        298
       ],
       "flags": {},
       "order": 19,
@@ -2755,6 +2763,12 @@
           "shape": 6,
           "type": "MASK",
           "links": []
+        },
+        {
+          "name": "skip_reason",
+          "shape": 6,
+          "type": "STRING",
+          "links": []
         }
       ],
       "properties": {
@@ -2776,7 +2790,8 @@
         3,
         0.5,
         "none",
-        0
+        0,
+        "all"
       ],
       "widgets_values_named": {
         "model_name": "bbox/face_yolov8m.pt",
@@ -2792,7 +2807,8 @@
         "crop_size_mult": 3,
         "bbox_smooth_alpha": 0.5,
         "pad_outside_image": "none",
-        "max_faces": 0
+        "max_faces": 0,
+        "face_count_policy": "all"
       },
       "color": "#223",
       "bgcolor": "#335"
@@ -3055,10 +3071,10 @@
       "title": "RP Face Detection",
       "properties": {},
       "widgets_values": [
-        "ENGLISH\n\nDetects faces and returns aligned crops, bounding boxes and masks for processing each face separately. The box can be resized around its original center, made square or extended with padding. BatchUncrop can return the processed face to its position. image_area_mask and cropped_image_mask show photo pixels in white and padding in black.\n\nITALIANO\n\nRileva i volti e restituisce ritagli allineati, box e maschere per elaborare ogni volto separatamente. Il box si può ridimensionare dal centro originale, rendere quadrato o estendere con padding. BatchUncrop può reinserire il volto elaborato nella sua posizione. image_area_mask e cropped_image_mask mostrano in bianco la foto e in nero il padding."
+        "ENGLISH\n\nDetects faces, crops and masks with optional padding. Use image_area_mask to remove padding after full-image editing. max_faces limits results; 0 keeps all. With single_or_skip, connect skip_reason to the folder saver to skip zero or multiple faces before applying the limit.\n\nITALIANO\n\nRileva volti, ritagli e maschere con padding opzionale. Usa image_area_mask per rimuovere il padding dopo l'editing dell'immagine intera. max_faces limita i risultati; 0 li mantiene tutti. Con single_or_skip, collega skip_reason al salvatore della cartella per saltare zero o più volti prima del limite."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\n\nDetects faces and returns aligned crops, bounding boxes and masks for processing each face separately. The box can be resized around its original center, made square or extended with padding. BatchUncrop can return the processed face to its position. image_area_mask and cropped_image_mask show photo pixels in white and padding in black.\n\nITALIANO\n\nRileva i volti e restituisce ritagli allineati, box e maschere per elaborare ogni volto separatamente. Il box si può ridimensionare dal centro originale, rendere quadrato o estendere con padding. BatchUncrop può reinserire il volto elaborato nella sua posizione. image_area_mask e cropped_image_mask mostrano in bianco la foto e in nero il padding."
+        "text": "ENGLISH\n\nDetects faces, crops and masks with optional padding. Use image_area_mask to remove padding after full-image editing. max_faces limits results; 0 keeps all. With single_or_skip, connect skip_reason to the folder saver to skip zero or multiple faces before applying the limit.\n\nITALIANO\n\nRileva volti, ritagli e maschere con padding opzionale. Usa image_area_mask per rimuovere il padding dopo l'editing dell'immagine intera. max_faces limita i risultati; 0 li mantiene tutti. Con single_or_skip, collega skip_reason al salvatore della cartella per saltare zero o più volti prima del limite."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3615,10 +3631,10 @@
         "cnr_id": "comfy-core"
       },
       "widgets_values": [
-        "ENGLISH\nChoose a tile count: Split creates 1024 x 1024 tiles with automatic overlap and edge padding. Insert your editing chain between Split tiles and Advanced tiles; connect tile_context directly. Advanced aligns tiles to the original with elastic grids and fixed anchors before merging, applies per-tile/global color matching, and removes padding. seam_feather 64 softens seams with adaptive multiband blending. Keep decoded tiles in Split order at 1024 x 1024. This model-free example reconstructs the scaled source.\n\nITALIANO\nScegli il numero di tile: Split crea tile da 1024 x 1024 con overlap e padding automatici. Inserisci la catena di editing tra tiles di Split e tiles di Advanced; collega direttamente tile_context. Advanced riallinea i tile all'originale con griglie elastiche e punti ancorati prima della fusione, applica color match per tile/globale e rimuove il padding. seam_feather 64 ammorbidisce le giunzioni con fusione multibanda adattiva. Mantieni i tile decodificati nell'ordine di Split e a 1024 x 1024. Questo esempio senza modello ricostruisce l'originale scalato."
+        "ENGLISH\nChoose a tile count: Split creates 1024 x 1024 tiles with automatic overlap and edge padding. Insert your editing chain between Split tiles and Advanced tiles; connect tile_context directly. Advanced aligns tiles to the original with elastic grids and fixed anchors before merging, applies per-tile/global color matching, and removes padding. Keep decoded tiles in Split order at 1024 x 1024. This example, without an editing model, reconstructs the scaled source.\n\nITALIANO\nScegli il numero di tile: Split crea tile da 1024 x 1024 con overlap e padding automatici. Inserisci la catena di editing tra tiles di Split e tiles di Advanced; collega direttamente tile_context. Advanced riallinea i tile all'originale con griglie elastiche e punti ancorati prima della fusione, applica color match per tile/globale e rimuove il padding. Mantieni i tile decodificati nell'ordine di Split e a 1024 x 1024. Questo esempio senza modello di editing ricostruisce l'originale scalato."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\nChoose a tile count: Split creates 1024 x 1024 tiles with automatic overlap and edge padding. Insert your editing chain between Split tiles and Advanced tiles; connect tile_context directly. Advanced aligns tiles to the original with elastic grids and fixed anchors before merging, applies per-tile/global color matching, and removes padding. seam_feather 64 softens seams with adaptive multiband blending. Keep decoded tiles in Split order at 1024 x 1024. This model-free example reconstructs the scaled source.\n\nITALIANO\nScegli il numero di tile: Split crea tile da 1024 x 1024 con overlap e padding automatici. Inserisci la catena di editing tra tiles di Split e tiles di Advanced; collega direttamente tile_context. Advanced riallinea i tile all'originale con griglie elastiche e punti ancorati prima della fusione, applica color match per tile/globale e rimuove il padding. seam_feather 64 ammorbidisce le giunzioni con fusione multibanda adattiva. Mantieni i tile decodificati nell'ordine di Split e a 1024 x 1024. Questo esempio senza modello ricostruisce l'originale scalato."
+        "text": "ENGLISH\nChoose a tile count: Split creates 1024 x 1024 tiles with automatic overlap and edge padding. Insert your editing chain between Split tiles and Advanced tiles; connect tile_context directly. Advanced aligns tiles to the original with elastic grids and fixed anchors before merging, applies per-tile/global color matching, and removes padding. Keep decoded tiles in Split order at 1024 x 1024. This example, without an editing model, reconstructs the scaled source.\n\nITALIANO\nScegli il numero di tile: Split crea tile da 1024 x 1024 con overlap e padding automatici. Inserisci la catena di editing tra tiles di Split e tiles di Advanced; collega direttamente tile_context. Advanced riallinea i tile all'originale con griglie elastiche e punti ancorati prima della fusione, applica color match per tile/globale e rimuove il padding. Mantieni i tile decodificati nell'ordine di Split e a 1024 x 1024. Questo esempio senza modello di editing ricostruisce l'originale scalato."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3807,8 +3823,6 @@
         "ver": "0.43.0",
         "Node name for S&R": "PreviewImage"
       },
-      "widgets_values": [],
-      "widgets_values_named": {},
       "color": "#375570",
       "bgcolor": "#23415c"
     },
@@ -4324,22 +4338,6 @@
       "STRING"
     ],
     [
-      595,
-      545,
-      0,
-      547,
-      0,
-      "IMAGE"
-    ],
-    [
-      596,
-      543,
-      0,
-      547,
-      1,
-      "IMAGE"
-    ],
-    [
       607,
       580,
       0,
@@ -4377,6 +4375,22 @@
       0,
       584,
       0,
+      "IMAGE"
+    ],
+    [
+      595,
+      545,
+      0,
+      547,
+      0,
+      "IMAGE"
+    ],
+    [
+      596,
+      543,
+      0,
+      547,
+      1,
       "IMAGE"
     ]
   ],
@@ -4589,13 +4603,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.12100000000000186,
+      "scale": 0.11000000000000001,
       "offset": [
-        -2417.118469460574,
-        -1650.9552769296051
+        628.2192341959344,
+        -757.9958770513485
       ]
     },
-    "frontendVersion": "1.58.5",
+    "frontendVersion": "1.59.1",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

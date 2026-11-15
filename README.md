@@ -164,6 +164,11 @@ Outputs are lists with one item per detected face. Requires **ComfyUI Impact
 Pack**, **Impact Subpack**, and an installed detector model; the preferred model
 is `bbox/face_yolov8m.pt`.
 
+`max_faces` selects the largest masks; `0` keeps all in detector order.
+`face_count_policy` defaults to `all`. `single_or_error` requires one face;
+`single_or_skip` emits `skip_reason` for zero or multiple faces, before applying
+the limit. Connect it to the folder saver to skip the edit and continue.
+
 ## Image folder processing
 
 Processes folder contents one image at a time. The processing chain runs between
@@ -182,6 +187,13 @@ BMP, JPEG, PNG, TIFF, and WebP.
 Saves each processed result with its original filename and format, then advances
 the loop to the next image. Place it at the end of the processing chain; one run
 processes the folder. Use one loop saver per loader.
+
+Requires one result per source image. Connect `skip_reason` to skip without
+saving; keep this saver as the only output after face detection.
+`on_error=skip_image` skips invalid results and per-file save errors, logging
+the filename and reason; the default is `stop`. Other processing errors still
+stop execution. `image_count` includes skips; `last_image_path` is empty if the
+last source was skipped.
 
 `overwrite` controls replacement of existing files. `clear_output_folder`
 removes supported image files from the destination at the start of a run.

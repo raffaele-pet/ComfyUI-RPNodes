@@ -143,12 +143,16 @@ class RPFaceDetection:
             "optional": {
                 "pad_outside_image": (PADDING_MODES, {"default": "none",
                     "tooltip": "none: clip at image borders. pad: black fill. pad_edge: mean color of each edge. pad_edge_pixel: extend edge pixels. Area masks remain black on all padding."}),
+                "max_faces": ("INT", {"default": 0, "min": 0, "max": 16384,
+                    "tooltip": "Maximum faces per image. 0 keeps all faces in detector order; positive values select the largest masks first. Use 1 for a single subject in a folder loop."}),
+                "face_count_policy": (["all", "single_or_error", "single_or_skip"], {"default": "all",
+                    "tooltip": "single_or_skip: process exactly one detected face; connect skip_reason to the folder loop saver to skip images with zero or multiple faces."}),
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "IMAGE", "BBOX", "INT", "INT", "MASK", "MASK", "MASK")
-    RETURN_NAMES = ("original_images", "cropped_images", "bboxes", "width", "height", "bbox_masks", "image_area_mask", "cropped_image_mask")
-    OUTPUT_IS_LIST = (True, True, True, True, True, True, True, True)
+    RETURN_TYPES = ("IMAGE", "IMAGE", "BBOX", "INT", "INT", "MASK", "MASK", "MASK", "STRING")
+    RETURN_NAMES = ("original_images", "cropped_images", "bboxes", "width", "height", "bbox_masks", "image_area_mask", "cropped_image_mask", "skip_reason")
+    OUTPUT_IS_LIST = (True, True, True, True, True, True, True, True, True)
     FUNCTION = "detect"
     CATEGORY = "RP/face_detection"
     DESCRIPTION = "Face detection, mask resizing and cropping in one node. BBOX coordinates connect to BatchUncrop; bbox_masks connects to MaskPreview."
@@ -162,7 +166,9 @@ class RPFaceDetection:
     def detect(self, image, model_name=DEFAULT_MODEL, width=0, height=0, scale=1.0,
                square=False, show_advanced=False, threshold=0.5, dilation=10,
                crop_factor=1.5, drop_size=10, crop_size_mult=3.0, bbox_smooth_alpha=0.5,
-               pad_outside_image="none"):
+               pad_outside_image="none", max_faces=0, face_count_policy="all"):
+        if face_count_policy not in {"all", "single_or_error", "single_or_skip"}:
+            raise ValueError("Unknown face_count_policy.")
         if isinstance(pad_outside_image, bool):
             pad_outside_image = "pad" if pad_outside_image else "none"
         for name, package in DEPENDENCIES.items():
@@ -178,6 +184,23 @@ class RPFaceDetection:
             frame = image[frame_index:frame_index + 1]
             segs, = detector_node.doit(detector, frame, threshold, dilation, crop_factor, drop_size, labels="all")
             masks, = mask_node.doit(segs)
+            if face_count_policy != "all":
+                masks = [mask for mask in masks if torch.any(mask > 0)]
+                if len(masks) != 1:
+                    reason = f"RP Face Detection: expected exactly one face in image {frame_index + 1}, found {len(masks)}."
+                    if face_count_policy == "single_or_error":
+                        raise ValueError(reason)
+                    height_pixels, width_pixels = frame.shape[1:3]
+                    area = frame.new_ones(frame.shape[:3], dtype=torch.float32)
+                    # Valid placeholders keep list alignment. The lazy folder saver
+                    # reads skip_reason without requesting the editing branch.
+                    values = (frame, frame, [(0, 0, width_pixels, height_pixels)],
+                              width_pixels, height_pixels, torch.zeros_like(area), area, area, reason)
+                    for output, value in zip(outputs, values):
+                        output.append(value)
+                    continue
+            if max_faces > 0:
+                masks = sorted(masks, key=lambda mask: torch.count_nonzero(mask).item(), reverse=True)[:max_faces]
             for mask in masks:
                 if not torch.any(mask > 0):
                     raise ValueError(f"RP Face Detection: no face detected in image {frame_index + 1}. Try a lower threshold or another detector model.")
@@ -189,7 +212,7 @@ class RPFaceDetection:
                     image_area_mask = torch.nn.functional.pad(image_area_mask, padding)
                 x, y, crop_width, crop_height = cropped[2][0]
                 cropped_image_mask = image_area_mask[:, y:y + crop_height, x:x + crop_width].clone()
-                for output, value in zip(outputs, (*cropped, mask, image_area_mask, cropped_image_mask)):
+                for output, value in zip(outputs, (*cropped, mask, image_area_mask, cropped_image_mask, "")):
                     output.append(value)
         return outputs
 
