@@ -25,6 +25,7 @@ from comfy_api.latest import InputImpl, io
 from server import PromptServer
 
 from ..video_frame_processing.video_frames_workflow import VIDEO_EXTENSIONS, _available_videos
+from .video_preview import cached_preview, preview_pixels
 
 
 CATEGORY = "RP/Video Conditioning"
@@ -101,17 +102,6 @@ def preview_frame(source, index):
         if image is None:
             raise ValueError("Could not decode the selected frame.")
         return preview_pixels(image)
-
-
-def preview_pixels(image):
-    scale = min(1, 1008 / max(image.width, image.height))
-    rgb = image.reformat(
-        width=max(1, round(image.width * scale)),
-        height=max(1, round(image.height * scale)),
-        format="rgb24",
-    ).to_ndarray()
-    rotation = round(image.rotation / 90) % 4
-    return np.ascontiguousarray(np.rot90(rgb, rotation))
 
 
 def parse_groups(data, filename, frame_count):
@@ -526,7 +516,7 @@ def check_saved_prompts(source, frame, prompts):
 
 def preview_inference_busy():
     return (PromptServer.instance.prompt_queue.get_tasks_remaining() or INFERENCE_LOCK.locked()
-            or any(not job["done"] for job in PREVIEW_JOBS.values()))
+            or any(job["inference"] and not job["done"] for job in PREVIEW_JOBS.values()))
 
 
 def encode_mask(mask):
@@ -588,26 +578,14 @@ def check_guided_group(source, group, frame, ticket, group_index, check):
     return {"detection": {"mask": encode_mask(union) if union.any() else None, "results": results}}
 
 
-def playback_masks(tracks, first, count):
-    groups = []
-    end = first + count
-    for start, packed in tracks:
-        left, right = max(first, start), min(end, start + len(packed))
-        if left >= right:
-            groups.append(None)
-            continue
-        mask_slice = packed[left - start:right - start].numpy()
-        _, height, stride = mask_slice.shape
-        if max(height, stride * 8) > 640 and stride % 2 == 0:
-            # The player draws at up to 640 pixels. Halve larger masks before transferring them.
-            mask = np.unpackbits(mask_slice[:, ::2], axis=-1, bitorder="little")
-            mask_slice = np.packbits(mask[..., ::2], axis=-1, bitorder="little")
-            _, height, stride = mask_slice.shape
-        groups.append({
-            "start": left, "count": len(mask_slice), "height": height, "stride": stride,
-            "bits": base64.b64encode(mask_slice.tobytes()).decode("ascii"),
-        })
-    return groups
+def native_video_preview(ticket, source, tracks, groups, active_group, frame, check):
+    _, timestamps, (width, _) = video_timeline(source)
+    styles = tuple(
+        (group["color"], group["expand"], group["fill_holes"], index == active_group)
+        for index, group in enumerate(groups)
+    )
+    filename = cached_preview(ticket, source[0], tracks, styles, width, check)
+    return {"video": {"filename": filename, "type": "temp", "time": timestamps[frame]}}
 
 
 def tracking_preview(source, groups, check):
@@ -619,9 +597,12 @@ def preview_work(job, operation, args):
     def check():
         if job["cancel"].is_set() or monotonic() - job["last_seen"] > 30:
             raise InterruptedError("The preview was cancelled.")
-        if PromptServer.instance.prompt_queue.get_tasks_remaining():
+        if job["inference"] and PromptServer.instance.prompt_queue.get_tasks_remaining():
             raise InterruptedError("The preview stopped when a workflow was queued.")
 
+    if not job["inference"]:
+        check()
+        return operation(*args, check=check)
     with INFERENCE_LOCK, torch.inference_mode():
         check()
         return operation(*args, check=check)
@@ -639,12 +620,13 @@ async def run_preview_job(job, operation, args):
         job["done"] = True
 
 
-def start_preview_job(operation, *args):
+def start_preview_job(operation, *args, inference=True):
     job_id = uuid4().hex
-    job = {"done": False, "error": None, "cancel": Event(), "last_seen": monotonic()}
+    job = {"done": False, "error": None, "cancel": Event(), "last_seen": monotonic(), "inference": inference}
     PREVIEW_JOBS[job_id] = job
-    while len(PREVIEW_JOBS) > 4:
-        PREVIEW_JOBS.popitem(last=False)
+    completed = [key for key, entry in PREVIEW_JOBS.items() if entry["done"]]
+    for key in completed[:-4]:
+        del PREVIEW_JOBS[key]
     job["task"] = asyncio.create_task(run_preview_job(job, operation, args))
     return web.json_response({"job": job_id}, status=202)
 
@@ -760,7 +742,7 @@ if getattr(PromptServer, "instance", None) is not None:
         if job is None:
             return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
         job["last_seen"] = monotonic()
-        return web.json_response({key: job[key] for key in ("done", "ticket", "detection", "error") if key in job})
+        return web.json_response({key: job[key] for key in ("done", "ticket", "detection", "video", "error") if key in job})
 
     @routes.delete("/rp/selective-video/track")
     async def selective_video_track_cancel(request):
@@ -789,31 +771,35 @@ if getattr(PromptServer, "instance", None) is not None:
         except (OSError, ValueError, av.error.FFmpegError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
 
-
-    @routes.get("/rp/selective-video/track-block")
-    async def selective_video_track_block(request):
-        ticket = request.query.get("ticket", "")
-        with TRACK_CACHE_LOCK:
-            cached = TRACK_CACHE.get(ticket)
-            if cached is not None:
-                TRACK_CACHE.move_to_end(ticket)
-        if cached is None:
-            return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
+    @routes.post("/rp/selective-video/preview-video")
+    async def selective_video_preview_video(request):
         try:
-            start = int(request.query.get("start", "-1"))
-            frames, _, _ = await asyncio.to_thread(video_timeline, cached[0][0])
-            if not 0 <= start < len(frames):
-                raise ValueError("Frame is outside the video.")
-            count = min(24, len(frames) - start)
-            def payload():
-                return json.dumps({"groups": playback_masks(cached[2], start, count)}, separators=(",", ":"))
+            data = await request.json()
+            if not isinstance(data, dict) or not isinstance(data.get("video"), str):
+                raise ValueError("Choose an input video first.")
+            ticket = data.get("ticket")
+            if not isinstance(ticket, str):
+                raise ValueError("Run Track & preview before preparing a preview video.")
+            source = input_video(data["video"])
+            with TRACK_CACHE_LOCK:
+                cached = TRACK_CACHE.get(ticket)
+                if cached is not None and cached[0][0] == source:
+                    TRACK_CACHE.move_to_end(ticket)
+            if cached is None or cached[0][0] != source:
+                return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
 
-            response = web.Response(
-                text=await asyncio.to_thread(payload),
-                content_type="application/json",
-                zlib_executor_size=128 * 1024,
+            frames, _, _ = await asyncio.to_thread(video_timeline, source)
+            groups = parse_groups(data, data["video"], len(frames))
+            if [group["parts"] for group in groups] != json.loads(cached[0][1]):
+                raise ValueError("The selections changed. Run Track & preview again.")
+            frame = data.get("frame", 0)
+            active_group = data.get("activeGroup", -1)
+            if type(frame) is not int or not 0 <= frame < len(frames):
+                raise ValueError("Frame is outside the video.")
+            if type(active_group) is not int or not -1 <= active_group < len(groups):
+                raise ValueError("The active group is not in the tracking preview.")
+            return start_preview_job(
+                native_video_preview, ticket, source, cached[2], groups, active_group, frame, inference=False,
             )
-            response.enable_compression()
-            return response
         except (OSError, ValueError, av.error.FFmpegError) as exc:
             return web.json_response({"error": str(exc)}, status=400)

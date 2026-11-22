@@ -1,7 +1,7 @@
 import { app } from "/scripts/app.js";
 import {
-    addNodePreview, colors, createPainter, decodeMask, defaultExpansion, loadGroupOverlays,
-    loadPhoto, loadTrackedMasks, releaseOverlays, request,
+    attachNativePreview, colors, createPainter, decodeMask, defaultExpansion, loadGroupOverlays,
+    loadPhoto, loadTrackedMasks, post, previewJob, releaseOverlays, request,
 } from "./selective_video_preview.js";
 const maps = { segmentation: "Segmentation", depth: "Depth", canny: "Canny", openpose: "OpenPose" };
 
@@ -43,38 +43,6 @@ function swatch(hex) {
     const dot = element("span", "", "rp-dot");
     dot.style.backgroundColor = hex;
     return dot;
-}
-
-async function post(path, payload, signal) {
-    const response = await request(path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal,
-    });
-    return response.json();
-}
-
-async function previewJob(path, payload, signal) {
-    let query;
-    try {
-        const started = await post(path, payload, signal);
-        query = new URLSearchParams({ job: started.job });
-        while (!signal.aborted) {
-            const response = await request(`/track-status?${query}`, { signal, cache: "no-store" });
-            const result = await response.json();
-            if (result.done) {
-                if (result.error) throw new Error(result.error);
-                return result;
-            }
-            await new Promise((resolve) => setTimeout(resolve, 450));
-        }
-        signal.throwIfAborted();
-    } finally {
-        if (signal.aborted && query) {
-            request(`/track?${query}`, { method: "DELETE", keepalive: true }).catch(() => {});
-        }
-    }
 }
 
 function readConfig(widget, video) {
@@ -153,7 +121,7 @@ const editorStyle = `
     .rp-selective-editor .rp-group-card { display:grid; gap:10px; min-width:0; padding:9px;
         border:1px solid var(--rp-group-color); border-radius:9px; }
     .rp-selective-editor .rp-group-content { display:grid; gap:8px; min-width:0; }
-    .rp-selective-editor .rp-group-guide { opacity:.83; font-size:13px; }
+    .rp-selective-editor .rp-group-guide { opacity:.83; font-size:13px; margin-bottom:8px; }
     .rp-selective-editor .rp-check-result { line-height:1.35; font-size:13px; overflow-wrap:anywhere; }
     .rp-selective-editor .rp-check-result:empty,.rp-selective-editor .rp-status:empty { display:none; }
     .rp-selective-editor .rp-part-actions { gap:5px; }
@@ -164,7 +132,10 @@ const editorStyle = `
     .rp-selective-editor .rp-anchors { display:flex; align-items:center; gap:7px; min-height:37px; overflow:auto; padding:4px 3px; }
     .rp-selective-editor .rp-anchor { display:inline-flex; position:relative; flex:0 0 auto; }
     .rp-selective-editor .rp-anchor .rp-anchor-remove { position:absolute; right:-4px; top:-5px; width:16px;
-        height:16px; padding:0; border-radius:50%; font:12px/12px system-ui,sans-serif; text-align:center; }
+        height:16px; padding:0; border-radius:50%; display:grid; place-items:center; }
+    .rp-selective-editor .rp-anchor-remove::before,.rp-selective-editor .rp-anchor-remove::after {
+        content:""; grid-area:1/1; width:7px; height:1px; background:currentColor; transform:rotate(45deg); }
+    .rp-selective-editor .rp-anchor-remove::after { transform:rotate(-45deg); }
     .rp-selective-editor .rp-anchors button { padding:3px 8px; }
     .rp-selective-editor input[type=color] { width:42px; height:34px; }
     .rp-selective-editor .rp-small-number { width:70px; }
@@ -199,6 +170,7 @@ function openEditor(video, groups, session, onSave) {
     name.maxLength = 120;
     name.placeholder = "Group name";
     name.className = "rp-flex";
+    name.hidden = true;
     const mode = element("select", "", "rp-flex");
     mode.setAttribute("aria-label", "Group preprocessor");
     for (const [value, title] of Object.entries(maps)) mode.append(new Option(title, value));
@@ -232,7 +204,6 @@ function openEditor(video, groups, session, onSave) {
     const candidateList = element("div", "", "rp-list");
     const anchors = element("div", "", "rp-anchors");
     const groupSettings = element("section", "", "rp-group-content");
-    const groupContent = element("div", "", "rp-group-content");
     const checkSummary = element("p", "", "rp-check-result");
     checkSummary.setAttribute("role", "status");
     const groupHeaders = new Map();
@@ -241,6 +212,7 @@ function openEditor(video, groups, session, onSave) {
     const restoreFailed = new WeakSet();
 
     let activeGroup = groups[0] ?? null;
+    let addingGroup = !activeGroup;
     let editingPart = null;
     let timestamps = [];
     let sourceWidth = 1;
@@ -260,15 +232,6 @@ function openEditor(video, groups, session, onSave) {
     let drawVersion = 0;
     let scheduledSeek;
     let ticket = session.signature === signature(groups) ? session.ticket : null;
-
-    function newGroup(groupName = "") {
-        const group = {
-            name: groupName, preprocessor: "segmentation", color: colors[groups.length % colors.length],
-            expand: defaultExpansion, fill_holes: true, parts: [],
-        };
-        groups.push(group);
-        return group;
-    }
 
     function getName(group) {
         return group.name.trim() || `Group ${groups.indexOf(group) + 1}`;
@@ -607,11 +570,18 @@ function openEditor(video, groups, session, onSave) {
         };
         if (start) part.start = start;
         if (end !== null) part.end = end;
-        if (!activeGroup) activeGroup = newGroup(part.text);
-        if (!activeGroup.name.trim() && !activeGroup.parts.length) activeGroup.name = part.text;
-        const index = activeGroup.parts.indexOf(editingPart);
-        if (index < 0) activeGroup.parts.push(part);
-        else activeGroup.parts[index] = part;
+        if (addingGroup) {
+            activeGroup = {
+                name: part.text, preprocessor: "segmentation", color: colors[groups.length % colors.length],
+                expand: defaultExpansion, fill_holes: true, parts: [part],
+            };
+            groups.push(activeGroup);
+            addingGroup = false;
+        } else {
+            const index = activeGroup.parts.indexOf(editingPart);
+            if (index < 0) activeGroup.parts.push(part);
+            else activeGroup.parts[index] = part;
+        }
         resetDraft();
         invalidateTracking();
         renderSettings();
@@ -685,7 +655,7 @@ function openEditor(video, groups, session, onSave) {
             jump.setAttribute("aria-label", `Go to anchor frame ${frame + 1}`);
             jump.setAttribute("aria-pressed", String(frame === currentFrame));
             jump.disabled = !timestamps.length;
-            const remove = button("×", () => {
+            const remove = button("", () => {
                 for (const group of groups) group.parts = group.parts.filter((part) => part.frame !== frame);
                 resetDraft();
                 invalidateTracking();
@@ -718,6 +688,8 @@ function openEditor(video, groups, session, onSave) {
             const open = button("", () => {
                 resetDraft();
                 activeGroup = active ? null : group;
+                addingGroup = false;
+                name.hidden = true;
                 renderSettings();
                 renderGroups();
                 draw();
@@ -728,17 +700,20 @@ function openEditor(video, groups, session, onSave) {
                 groups.splice(index, 1);
                 if (group === activeGroup) {
                     activeGroup = groups[Math.min(index, groups.length - 1)] ?? null;
+                    addingGroup = !activeGroup;
+                    name.hidden = true;
                     resetDraft();
                 }
                 if (group.parts.length) invalidateTracking();
                 renderSettings();
                 renderGroups();
             });
-            card.append(row(open, remove));
+            const heading = active ? row(open, renameButton, remove) : row(open, remove);
+            card.append(heading);
             groupHeaders.set(group, { card, open, remove });
             syncGroupCard(group);
             if (active) {
-                card.append(groupContent);
+                card.append(groupSettings, draft);
                 if (group.parts.length) {
                     const check = button("Check group", () => checkSaved(group, group.parts, true));
                     check.dataset.rpCheck = "";
@@ -750,6 +725,10 @@ function openEditor(video, groups, session, onSave) {
             }
             groupList.append(card);
         }
+        if (addingGroup) newGroupForm.append(draft);
+        newGroupForm.hidden = !addingGroup;
+        newButton.hidden = addingGroup;
+        cancelGroup.hidden = !addingGroup || !groups.length;
         renderAnchors();
         updateButtons();
     }
@@ -781,9 +760,21 @@ function openEditor(video, groups, session, onSave) {
             if (!detect.disabled) detect.click();
         }
     });
-    name.addEventListener("input", () => {
-        activeGroup.name = name.value;
+    name.addEventListener("change", () => {
+        if (!activeGroup || !name.value.trim()) return;
+        activeGroup.name = name.value.trim();
         syncGroupCard(activeGroup);
+    });
+    name.addEventListener("blur", () => { name.hidden = true; });
+    name.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            event.stopPropagation();
+            name.value = activeGroup.name;
+            name.blur();
+        } else if (event.key === "Enter") {
+            event.preventDefault();
+            name.blur();
+        }
     });
     mode.addEventListener("change", () => {
         activeGroup.preprocessor = mode.value;
@@ -817,22 +808,40 @@ function openEditor(video, groups, session, onSave) {
     const settings = element("details");
     settings.append(element("summary", "Detection confidence and tracking range"),
         row(label("Confidence", threshold)), row(label("From", from), label("To", to)));
-    groupSettings.append(row(name, color), row(mode, label("Expand (px)", expansion)), label("Fill holes", fillHoles));
+    groupSettings.append(name, row(mode, color), row(label("Expand (px)", expansion), label("Fill holes", fillHoles)));
     const draft = element("section", "", "rp-group-content");
     draft.append(row(prompt, detect), status, candidateList, row(add, reset), settings);
-    groupContent.append(groupSettings, draft);
+    const renameButton = button("✎", () => {
+        name.hidden = false;
+        name.value = activeGroup.name;
+        name.focus();
+        name.select();
+    });
+    renameButton.title = "Rename group";
+    renameButton.setAttribute("aria-label", "Rename group");
     const newButton = button("New group", () => {
-        activeGroup = newGroup();
+        activeGroup = null;
+        addingGroup = true;
         resetDraft();
         renderSettings();
         renderGroups();
         prompt.focus();
     });
-    const groupHeader = row(element("h3", "Selection groups"), newButton);
+    const cancelGroup = button("Cancel", () => {
+        activeGroup = groups[0] ?? null;
+        addingGroup = !activeGroup;
+        resetDraft();
+        renderSettings();
+        renderGroups();
+    });
+    cancelGroup.setAttribute("aria-label", "Cancel new group");
+    const groupHeader = row(element("h3", "Selection groups"), newButton, cancelGroup);
     groupHeader.classList.add("rp-between");
+    const newGroupForm = element("section");
+    const guide = element("p", "Describe the first subject, then add its mask to create and name the group.", "rp-group-guide");
+    newGroupForm.append(guide);
     const side = element("aside");
-    const guide = element("p", "Create a group. Describe what you want to select, then detect it and add the matching masks.", "rp-group-guide");
-    side.append(groupHeader, guide, groupList);
+    side.append(groupHeader, newGroupForm, groupList);
     const layout = element("div", "", "rp-layout");
     layout.append(view, side);
 
@@ -901,7 +910,7 @@ app.registerExtension({
 
         let modal;
         let session = {};
-        let inline;
+        let previewStatus = "";
         const editor = node.addWidget("button", "Edit video selections", null, () => {
             if (modal?.open || !video.value) return;
             const filename = video.value;
@@ -922,12 +931,21 @@ app.registerExtension({
                 app.graph?.afterChange?.();
             });
         }, { serialize: false });
+        const updateLabel = () => {
+            const { groups } = readConfig(selections, video.value);
+            const title = groups.length ? `Edit video selections (${groups.length})` : "Edit video selections";
+            editor.label = previewStatus === "Preparing preview…" ? previewStatus : title;
+            editor.tooltip = previewStatus || undefined;
+            node.setDirtyCanvas(true, true);
+        };
+        const player = attachNativePreview(node, (status) => {
+            previewStatus = status;
+            updateLabel();
+        });
         const refresh = () => {
             const { groups, trackingPreview } = readConfig(selections, video.value);
-            editor.label = groups.length ? `Edit video selections (${groups.length})` : "Edit video selections";
-            if (trackingPreview?.ticket && !inline) inline = addNodePreview(node);
-            inline?.update(video.value, groups, trackingPreview);
-            node.setDirtyCanvas(true, true);
+            updateLabel();
+            player.update(video.value, withoutPreviews(groups), trackingPreview);
         };
         const onConfigure = node.onConfigure;
         node.onConfigure = function (...args) {
@@ -938,7 +956,7 @@ app.registerExtension({
         const onRemoved = node.onRemoved;
         node.onRemoved = function (...args) {
             modal?.close();
-            inline?.disconnect();
+            player.disconnect();
             return onRemoved?.apply(this, args);
         };
         const callback = video.callback;

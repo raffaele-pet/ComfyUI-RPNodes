@@ -244,7 +244,8 @@ one still image; images can be fitted by centered cropping or stretching.
 ### RP Selective Video Input
 
 Choose or upload a video and open **Edit video selections**. Scrub to a frame,
-enter a description, click **Detect**, and add the matching masks to a group.
+enter a description, click **Detect**, and add the matching masks. The first
+selection creates and names its group. Use **New group** to start another one.
 For example, detect an armored person and two sword hilts separately and add
 both selections to the same group. Each group has one preprocessor (Depth,
 Canny, OpenPose or Segmentation), color and mask expansion. Segmentation uses
@@ -259,7 +260,8 @@ current frame.
 
 Run **Track & preview** to inspect the propagated masks across the clip. After
 **Apply selections**, play, pause, or scrub the tracked preview directly on the
-node while the server has it cached. The workflow saves the groups and their
+node in ComfyUI's standard player. It shows the source video until the tracked
+preview is ready. The workflow saves the groups and their
 anchor masks. A selection can have its own tracking range,
 which lets you anchor it separately across hard cuts. Lower
 groups in the list take precedence where their expanded masks overlap.
