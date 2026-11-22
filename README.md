@@ -248,17 +248,20 @@ enter a description, click **Detect**, and add the matching masks to a group.
 For example, detect an armored person and two sword hilts separately and add
 both selections to the same group. Each group has one preprocessor (Depth,
 Canny, OpenPose or Segmentation), color and mask expansion. Segmentation uses
-the group color. Expansion defaults to **10 source pixels**.
+the group color. **Fill holes** is enabled by default and closes enclosed gaps
+before mask expansion, which defaults to **10 source pixels**.
 
-Saved masks stay visible on their anchor frames. Use **Check** beside a saved
-selection or **Check group** to run detection on the current frame. These
-checks show matching masks without changing the saved selections or tracking.
+Saved masks stay visible on their anchor frames. Use the × on an anchor marker
+to remove the selections made on that frame. **Check** runs detection on the
+current frame. **Check group** uses the approved masks to guide that detection
+through the existing tracking preview or the path from each anchor to the
+current frame.
 
 Run **Track & preview** to inspect the propagated masks across the clip. After
-**Apply selections**, scrub the tracked preview directly on the node while the
-server still has it cached. The workflow saves the groups and their anchor
-masks. A selection can have its own
-tracking range, which lets you anchor it separately across hard cuts. Lower
+**Apply selections**, play, pause, or scrub the tracked preview directly on the
+node while the server has it cached. The workflow saves the groups and their
+anchor masks. A selection can have its own tracking range,
+which lets you anchor it separately across hard cuts. Lower
 groups in the list take precedence where their expanded masks overlap.
 
 SAM 3.1 tracks each selection in both directions from its anchor. The node

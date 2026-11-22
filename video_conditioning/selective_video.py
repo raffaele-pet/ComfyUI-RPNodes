@@ -16,7 +16,7 @@ import torch
 import torch.nn.functional as F
 from aiohttp import web
 from PIL import Image
-from scipy.ndimage import maximum_filter
+from scipy.ndimage import binary_fill_holes, maximum_filter
 
 import comfy.model_management as model_management
 import comfy.utils
@@ -146,8 +146,14 @@ def parse_groups(data, filename, frame_count):
         expand = group.get("expand", DEFAULT_EXPANSION)
         if type(expand) is not int or not 0 <= expand <= MAX_EXPANSION:
             raise ValueError(f"Mask expansion must be between 0 and {MAX_EXPANSION} pixels.")
+        fill_holes = group.get("fill_holes", True)
+        if type(fill_holes) is not bool:
+            raise ValueError("Fill holes must be enabled or disabled.")
         parts = [parse_part(part, frame_count) for part in group["parts"]]
-        normalized.append({"name": name, "preprocessor": kind, "color": color, "expand": expand, "parts": parts})
+        normalized.append({
+            "name": name, "preprocessor": kind, "color": color, "expand": expand,
+            "fill_holes": fill_holes, "parts": parts,
+        })
     return normalized
 
 
@@ -386,13 +392,16 @@ def prepare_preprocessors(kinds):
     return processors
 
 
-def expanded_masks(packed, height, width, radius):
+def expanded_masks(packed, height, width, radius, fill_holes=True):
     from comfy.ldm.sam3.tracker import unpack_masks
 
     mask = unpack_masks(packed).unsqueeze(1).float()
     mask = F.interpolate(mask, (height, width), mode="bilinear", align_corners=False).squeeze(1) > 0.5
+    pixels = mask.numpy()
+    if fill_holes:
+        for frame in pixels:
+            binary_fill_holes(frame, output=frame)
     if radius:
-        pixels = mask.numpy()
         diameter = 2 * radius + 1
         maximum_filter(pixels, size=(1, diameter, diameter), mode="constant", output=pixels)
     return mask
@@ -427,7 +436,7 @@ def apply_preprocessors(images, groups, tracks):
             maps[name] = resize_frames(mapped, height, width)
 
         for group, section, packed in active:
-            mask = expanded_masks(packed, height, width, group["expand"])
+            mask = expanded_masks(packed, height, width, group["expand"], group["fill_holes"])
             kind = group["preprocessor"]
             if kind == "segmentation":
                 value = group["color"]
@@ -535,29 +544,109 @@ def preview_group_frame(tracks, frame):
     ]
 
 
-def preview_tracking(source, groups, job):
+def tracked_group_at(source, group, ticket, group_index, frame):
+    if not isinstance(ticket, str) or type(group_index) is not int:
+        return None
+    with TRACK_CACHE_LOCK:
+        cached = TRACK_CACHE.get(ticket)
+    if cached is None or cached[0][0] != source or not 0 <= group_index < len(cached[2]):
+        return None
+    if json.loads(cached[0][1])[group_index] != group["parts"]:
+        return None
+    if any(not part["start"] <= frame <= part["end"] for part in group["parts"]):
+        return None
+    start, packed = cached[2][group_index]
+    return packed[frame - start]
+
+
+def check_guided_group(source, group, frame, ticket, group_index, check):
+    packed = tracked_group_at(source, group, ticket, group_index, frame)
+    if packed is None:
+        paths = [
+            {**part, "start": min(part["frame"], frame), "end": max(part["frame"], frame)}
+            for part in group["parts"]
+        ]
+        first, masks = union_tracks(track_parts(source, paths, check))
+        packed = masks[frame - first]
+
+    # A current-frame match has to cover pixels belonging to an approved track.
+    # Intersect accepted masks with that track so a fused detection cannot add a nearby subject.
+    pixels = preview_frame(source, frame)
+    guide = expanded_masks(packed.unsqueeze(0), *pixels.shape[:2], radius=0, fill_holes=False)[0]
+    union = torch.zeros_like(guide)
+    results = []
+    prompts = dict.fromkeys((part["text"], part["threshold"]) for part in group["parts"])
+    for prompt, threshold in prompts:
+        check()
+        _, masks, _ = detect_objects(pixels, prompt, threshold)
+        overlaps = masks & guide
+        area = masks.sum(dim=(-2, -1)).clamp_min(1)
+        matched = overlaps.sum(dim=(-2, -1)) >= area * 0.2
+        if matched.any():
+            union |= overlaps[matched].any(dim=0)
+        results.append({"text": prompt, "matches": int(matched.sum())})
+    return {"detection": {"mask": encode_mask(union) if union.any() else None, "results": results}}
+
+
+def playback_masks(tracks, first, count):
+    groups = []
+    end = first + count
+    for start, packed in tracks:
+        left, right = max(first, start), min(end, start + len(packed))
+        if left >= right:
+            groups.append(None)
+            continue
+        mask_slice = packed[left - start:right - start].numpy()
+        _, height, stride = mask_slice.shape
+        if max(height, stride * 8) > 640 and stride % 2 == 0:
+            # The player draws at up to 640 pixels. Halve larger masks before transferring them.
+            mask = np.unpackbits(mask_slice[:, ::2], axis=-1, bitorder="little")
+            mask_slice = np.packbits(mask[..., ::2], axis=-1, bitorder="little")
+            _, height, stride = mask_slice.shape
+        groups.append({
+            "start": left, "count": len(mask_slice), "height": height, "stride": stride,
+            "bits": base64.b64encode(mask_slice.tobytes()).decode("ascii"),
+        })
+    return groups
+
+
+def tracking_preview(source, groups, check):
+    ticket, _ = track_groups(source, groups, check)
+    return {"ticket": ticket}
+
+
+def preview_work(job, operation, args):
     def check():
         if job["cancel"].is_set() or monotonic() - job["last_seen"] > 30:
-            raise InterruptedError("Tracking preview was cancelled.")
+            raise InterruptedError("The preview was cancelled.")
         if PromptServer.instance.prompt_queue.get_tasks_remaining():
-            raise InterruptedError("Tracking stopped when a workflow was queued.")
+            raise InterruptedError("The preview stopped when a workflow was queued.")
 
     with INFERENCE_LOCK, torch.inference_mode():
         check()
-        ticket, _ = track_groups(source, groups, check)
-    return ticket
+        return operation(*args, check=check)
 
 
-async def run_preview_job(source, groups, job):
+async def run_preview_job(job, operation, args):
     try:
-        job["ticket"] = await asyncio.to_thread(preview_tracking, source, groups, job)
+        job.update(await asyncio.to_thread(preview_work, job, operation, args))
     except InterruptedError as exc:
         job["error"] = str(exc)
     except Exception as exc:
-        log.exception("Selective video tracking preview failed")
+        log.exception("Selective video preview failed")
         job["error"] = str(exc)
     finally:
         job["done"] = True
+
+
+def start_preview_job(operation, *args):
+    job_id = uuid4().hex
+    job = {"done": False, "error": None, "cancel": Event(), "last_seen": monotonic()}
+    PREVIEW_JOBS[job_id] = job
+    while len(PREVIEW_JOBS) > 4:
+        PREVIEW_JOBS.popitem(last=False)
+    job["task"] = asyncio.create_task(run_preview_job(job, operation, args))
+    return web.json_response({"job": job_id}, status=202)
 
 
 if getattr(PromptServer, "instance", None) is not None:
@@ -629,6 +718,25 @@ if getattr(PromptServer, "instance", None) is not None:
             return web.json_response({"error": str(exc)}, status=500)
 
 
+    @routes.post("/rp/selective-video/check-group")
+    async def selective_video_check_group(request):
+        try:
+            data = await request.json()
+            if not isinstance(data, dict) or not isinstance(data.get("video"), str):
+                raise ValueError("Choose an input video first.")
+            source = input_video(data["video"])
+            frames, _, _ = await asyncio.to_thread(video_timeline, source)
+            group, = parse_groups({"video": data["video"], "groups": [data.get("group")]},
+                                  data["video"], len(frames))
+            frame = data.get("frame")
+            if type(frame) is not int or not 0 <= frame < len(frames):
+                raise ValueError("Frame is outside the video.")
+            if preview_inference_busy():
+                return web.json_response({"error": "ComfyUI is busy. Try checking when the queue is idle."}, status=409)
+            return start_preview_job(check_guided_group, source, group, frame, data.get("ticket"), data.get("group_index"))
+        except (OSError, ValueError, av.error.FFmpegError) as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
     @routes.post("/rp/selective-video/track")
     async def selective_video_track(request):
         try:
@@ -642,13 +750,7 @@ if getattr(PromptServer, "instance", None) is not None:
                 raise ValueError("Add at least one selection to preview tracking.")
             if preview_inference_busy():
                 return web.json_response({"error": "ComfyUI is busy. Try tracking when the queue is idle."}, status=409)
-            job_id = uuid4().hex
-            job = {"done": False, "ticket": None, "error": None, "cancel": Event(), "last_seen": monotonic()}
-            PREVIEW_JOBS[job_id] = job
-            while len(PREVIEW_JOBS) > 4:
-                PREVIEW_JOBS.popitem(last=False)
-            job["task"] = asyncio.create_task(run_preview_job(source, groups, job))
-            return web.json_response({"job": job_id}, status=202)
+            return start_preview_job(tracking_preview, source, groups)
         except (OSError, ValueError, av.error.FFmpegError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
 
@@ -658,7 +760,7 @@ if getattr(PromptServer, "instance", None) is not None:
         if job is None:
             return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
         job["last_seen"] = monotonic()
-        return web.json_response({key: job[key] for key in ("done", "ticket", "error")})
+        return web.json_response({key: job[key] for key in ("done", "ticket", "detection", "error") if key in job})
 
     @routes.delete("/rp/selective-video/track")
     async def selective_video_track_cancel(request):
@@ -684,5 +786,34 @@ if getattr(PromptServer, "instance", None) is not None:
                 raise ValueError("Frame is outside the video.")
             masks = await asyncio.to_thread(preview_group_frame, cached[2], frame)
             return web.json_response({"masks": masks})
+        except (OSError, ValueError, av.error.FFmpegError) as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
+
+    @routes.get("/rp/selective-video/track-block")
+    async def selective_video_track_block(request):
+        ticket = request.query.get("ticket", "")
+        with TRACK_CACHE_LOCK:
+            cached = TRACK_CACHE.get(ticket)
+            if cached is not None:
+                TRACK_CACHE.move_to_end(ticket)
+        if cached is None:
+            return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
+        try:
+            start = int(request.query.get("start", "-1"))
+            frames, _, _ = await asyncio.to_thread(video_timeline, cached[0][0])
+            if not 0 <= start < len(frames):
+                raise ValueError("Frame is outside the video.")
+            count = min(24, len(frames) - start)
+            def payload():
+                return json.dumps({"groups": playback_masks(cached[2], start, count)}, separators=(",", ":"))
+
+            response = web.Response(
+                text=await asyncio.to_thread(payload),
+                content_type="application/json",
+                zlib_executor_size=128 * 1024,
+            )
+            response.enable_compression()
+            return response
         except (OSError, ValueError, av.error.FFmpegError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
