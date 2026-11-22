@@ -494,8 +494,11 @@ def target_size(width, height, custom_width, custom_height, format):
     alignment = LOAD_FORMATS[format][0]
     target_width = custom_width or (width * custom_height / height if custom_height else width)
     target_height = custom_height or (height * custom_width / width if custom_width else height)
-    return tuple(max(alignment, int(value / alignment + 0.5) * alignment)
-                 for value in (target_width, target_height))
+    # Keep an automatically derived axis encodable in 4:2:0 even without a model preset.
+    width_step = max(2, alignment) if custom_height and not custom_width else alignment
+    height_step = max(2, alignment) if custom_width and not custom_height else alignment
+    return tuple(max(step, int(value / step + 0.5) * step)
+                 for value, step in ((target_width, width_step), (target_height, height_step)))
 
 
 def resize_selection_batch(batch, width, height, method):

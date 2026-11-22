@@ -4,6 +4,24 @@ import {
     loadPhoto, loadTrackedMasks, post, previewJob, releaseOverlays, request,
 } from "./selective_video_preview.js";
 const maps = { segmentation: "Segmentation", depth: "Depth", canny: "Canny", openpose: "OpenPose" };
+const loadOptionDefaults = {
+    force_rate: 0,
+    custom_width: 0,
+    custom_height: 0,
+    frame_load_cap: 0,
+    skip_first_frames: 0,
+    select_every_nth: 1,
+    format: "None",
+};
+
+function loadOptionValue(value, fallback) {
+    if (typeof value === "string") {
+        value = value.trim();
+        if (value && typeof fallback === "number") value = Number(value);
+    }
+    if (typeof fallback === "number") return Number.isFinite(value) ? value : fallback;
+    return typeof value === "string" && value ? value : fallback;
+}
 
 function element(tag, text, className) {
     const node = document.createElement(tag);
@@ -963,8 +981,16 @@ app.registerExtension({
         if (node.comfyClass !== "RPSelectiveVideoInput") return;
         const video = node.widgets.find((widget) => widget.name === "video");
         const selections = node.widgets.find((widget) => widget.name === "selections");
-        const forceRate = node.widgets.find((widget) => widget.name === "force_rate");
         if (!video || !selections) return;
+        const loadOptions = node.widgets.filter((widget) => Object.hasOwn(loadOptionDefaults, widget.name));
+        for (const widget of loadOptions) {
+            const serializeValue = widget.serializeValue;
+            const fallback = loadOptionDefaults[widget.name];
+            widget.serializeValue = async function (...args) {
+                const value = serializeValue ? await serializeValue.apply(this, args) : this.value;
+                return loadOptionValue(value, fallback);
+            };
+        }
         selections.type = "converted-widget";
         selections.hidden = true;
         selections.computeSize = () => [0, -4];
@@ -1012,8 +1038,9 @@ app.registerExtension({
         const onConfigure = node.onConfigure;
         node.onConfigure = function (...args) {
             const result = onConfigure?.apply(this, args);
-            // Legacy workflows stored the upload button value in this position.
-            if (forceRate?.value === "image") forceRate.value = 0;
+            for (const widget of loadOptions) {
+                widget.value = loadOptionValue(widget.value, loadOptionDefaults[widget.name]);
+            }
             refresh();
             return result;
         };
