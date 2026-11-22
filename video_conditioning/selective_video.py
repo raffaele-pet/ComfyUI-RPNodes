@@ -121,8 +121,10 @@ def parse_groups(data, filename, frame_count):
 
     normalized = []
     for group in groups:
-        if not isinstance(group, dict) or not isinstance(group.get("parts"), list) or not group["parts"]:
-            raise ValueError("Every group must contain at least one selection.")
+        if not isinstance(group, dict) or not isinstance(group.get("parts"), list):
+            raise ValueError("Invalid selection group.")
+        if not group["parts"]:
+            continue
         name = group.get("name")
         if not isinstance(name, str) or not 0 < len(name.strip()) <= 120:
             raise ValueError("Enter a group name of up to 120 characters.")
@@ -708,14 +710,16 @@ if getattr(PromptServer, "instance", None) is not None:
                 raise ValueError("Choose an input video first.")
             source = input_video(data["video"])
             frames, _, _ = await asyncio.to_thread(video_timeline, source)
-            group, = parse_groups({"video": data["video"], "groups": [data.get("group")]},
+            groups = parse_groups({"video": data["video"], "groups": [data.get("group")]},
                                   data["video"], len(frames))
+            if not groups:
+                raise ValueError("Add a selection to this group before checking it.")
             frame = data.get("frame")
             if type(frame) is not int or not 0 <= frame < len(frames):
                 raise ValueError("Frame is outside the video.")
             if preview_inference_busy():
                 return web.json_response({"error": "ComfyUI is busy. Try checking when the queue is idle."}, status=409)
-            return start_preview_job(check_guided_group, source, group, frame, data.get("ticket"), data.get("group_index"))
+            return start_preview_job(check_guided_group, source, groups[0], frame, data.get("ticket"), data.get("group_index"))
         except (OSError, ValueError, av.error.FFmpegError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
 

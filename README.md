@@ -243,9 +243,10 @@ one still image; images can be fitted by centered cropping or stretching.
 
 ### RP Selective Video Input
 
-Choose or upload a video and open **Edit video selections**. Scrub to a frame,
+Choose or upload a video, open **Edit video selections**, and click **New
+group**. The group opens with its settings ready to edit. Scrub to a frame,
 enter a description, click **Detect**, and add the matching masks. The first
-selection creates and names its group. Use **New group** to start another one.
+search supplies the group name, and the first saved selection keeps it.
 For example, detect an armored person and two sword hilts separately and add
 both selections to the same group. Each group has one preprocessor (Depth,
 Canny, OpenPose or Segmentation), color and mask expansion. Segmentation uses

@@ -121,7 +121,6 @@ const editorStyle = `
     .rp-selective-editor .rp-group-card { display:grid; gap:10px; min-width:0; padding:9px;
         border:1px solid var(--rp-group-color); border-radius:9px; }
     .rp-selective-editor .rp-group-content { display:grid; gap:8px; min-width:0; }
-    .rp-selective-editor .rp-group-guide { opacity:.83; font-size:13px; margin-bottom:8px; }
     .rp-selective-editor .rp-check-result { line-height:1.35; font-size:13px; overflow-wrap:anywhere; }
     .rp-selective-editor .rp-check-result:empty,.rp-selective-editor .rp-status:empty { display:none; }
     .rp-selective-editor .rp-part-actions { gap:5px; }
@@ -207,12 +206,12 @@ function openEditor(video, groups, session, onSave) {
     const checkSummary = element("p", "", "rp-check-result");
     checkSummary.setAttribute("role", "status");
     const groupHeaders = new Map();
+    const firstSearches = new WeakMap();
     const anchorBitmaps = new Map();
     const frameMasks = new Map();
     const restoreFailed = new WeakSet();
 
     let activeGroup = groups[0] ?? null;
-    let addingGroup = !activeGroup;
     let editingPart = null;
     let timestamps = [];
     let sourceWidth = 1;
@@ -234,7 +233,7 @@ function openEditor(video, groups, session, onSave) {
     let ticket = session.signature === signature(groups) ? session.ticket : null;
 
     function getName(group) {
-        return group.name.trim() || `Group ${groups.indexOf(group) + 1}`;
+        return group.name.trim() || group.parts[0]?.text || firstSearches.get(group) || "New selection group";
     }
 
     async function getCandidates(part) {
@@ -293,8 +292,8 @@ function openEditor(video, groups, session, onSave) {
     function updateButtons() {
         const ready = shownFrame === currentFrame && shownFrame >= 0;
         const busy = detecting || restoring || tracking || Boolean(checkRun);
-        detect.disabled = busy || !ready || !prompt.value.trim();
-        add.disabled = busy || !ready || !checked.length;
+        detect.disabled = busy || !ready || !activeGroup || !prompt.value.trim();
+        add.disabled = busy || !ready || !activeGroup || !checked.length;
         track.disabled = !tracking && (!groups.some(({ parts }) => parts.length) || !ready || busy);
         for (const control of groupList.querySelectorAll("[data-rp-check]")) {
             control.disabled = busy || !ready;
@@ -517,6 +516,13 @@ function openEditor(video, groups, session, onSave) {
     }, "rp-primary");
 
     const detect = button("Detect", async () => {
+        const group = activeGroup;
+        const text = prompt.value.trim();
+        if (!group || !text) return;
+        if (!group.name.trim() && !group.parts.length) {
+            firstSearches.set(group, text);
+            syncGroupCard(group);
+        }
         clearCheck();
         const previousChoices = checked.length ? [...checked] : null;
         clearDetection();
@@ -525,7 +531,7 @@ function openEditor(video, groups, session, onSave) {
         updateButtons();
         status.textContent = "Detecting with SAM 3.1…";
         try {
-            const items = await getCandidates({ frame: currentFrame, text: prompt.value.trim(), threshold: threshold.valueAsNumber });
+            const items = await getCandidates({ frame: currentFrame, text, threshold: threshold.valueAsNumber });
             if (life.signal.aborted || version !== draftVersion) {
                 items.forEach(({ mask }) => mask.close());
                 return;
@@ -556,6 +562,7 @@ function openEditor(video, groups, session, onSave) {
     });
 
     const add = button("Add selection", () => {
+        if (!activeGroup) return;
         const start = from.value === "" ? 0 : from.valueAsNumber - 1;
         const end = to.value === "" ? null : to.valueAsNumber - 1;
         if (!Number.isInteger(start) || start < 0 || start > currentFrame ||
@@ -570,18 +577,10 @@ function openEditor(video, groups, session, onSave) {
         };
         if (start) part.start = start;
         if (end !== null) part.end = end;
-        if (addingGroup) {
-            activeGroup = {
-                name: part.text, preprocessor: "segmentation", color: colors[groups.length % colors.length],
-                expand: defaultExpansion, fill_holes: true, parts: [part],
-            };
-            groups.push(activeGroup);
-            addingGroup = false;
-        } else {
-            const index = activeGroup.parts.indexOf(editingPart);
-            if (index < 0) activeGroup.parts.push(part);
-            else activeGroup.parts[index] = part;
-        }
+        if (!activeGroup.name.trim()) activeGroup.name = part.text;
+        const index = activeGroup.parts.indexOf(editingPart);
+        if (index < 0) activeGroup.parts.push(part);
+        else activeGroup.parts[index] = part;
         resetDraft();
         invalidateTracking();
         renderSettings();
@@ -675,7 +674,9 @@ function openEditor(video, groups, session, onSave) {
         const header = groupHeaders.get(group);
         if (!header) return;
         header.card.style.setProperty("--rp-group-color", group.color ?? colors[0]);
-        header.open.textContent = `${getName(group)} · ${maps[group.preprocessor ?? "segmentation"]} · ${group.parts.length}`;
+        const title = getName(group);
+        header.open.textContent = group.parts.length
+            ? `${title} · ${maps[group.preprocessor ?? "segmentation"]} · ${group.parts.length}` : title;
         header.remove.setAttribute("aria-label", `Remove group ${getName(group)}`);
     }
 
@@ -688,7 +689,6 @@ function openEditor(video, groups, session, onSave) {
             const open = button("", () => {
                 resetDraft();
                 activeGroup = active ? null : group;
-                addingGroup = false;
                 name.hidden = true;
                 renderSettings();
                 renderGroups();
@@ -700,7 +700,6 @@ function openEditor(video, groups, session, onSave) {
                 groups.splice(index, 1);
                 if (group === activeGroup) {
                     activeGroup = groups[Math.min(index, groups.length - 1)] ?? null;
-                    addingGroup = !activeGroup;
                     name.hidden = true;
                     resetDraft();
                 }
@@ -725,10 +724,6 @@ function openEditor(video, groups, session, onSave) {
             }
             groupList.append(card);
         }
-        if (addingGroup) newGroupForm.append(draft);
-        newGroupForm.hidden = !addingGroup;
-        newButton.hidden = addingGroup;
-        cancelGroup.hidden = !addingGroup || !groups.length;
         renderAnchors();
         updateButtons();
     }
@@ -820,28 +815,21 @@ function openEditor(video, groups, session, onSave) {
     renameButton.title = "Rename group";
     renameButton.setAttribute("aria-label", "Rename group");
     const newButton = button("New group", () => {
-        activeGroup = null;
-        addingGroup = true;
+        activeGroup = {
+            name: "", preprocessor: "segmentation", color: colors[groups.length % colors.length],
+            expand: defaultExpansion, fill_holes: true, parts: [],
+        };
+        groups.push(activeGroup);
+        name.hidden = true;
         resetDraft();
         renderSettings();
         renderGroups();
         prompt.focus();
     });
-    const cancelGroup = button("Cancel", () => {
-        activeGroup = groups[0] ?? null;
-        addingGroup = !activeGroup;
-        resetDraft();
-        renderSettings();
-        renderGroups();
-    });
-    cancelGroup.setAttribute("aria-label", "Cancel new group");
-    const groupHeader = row(element("h3", "Selection groups"), newButton, cancelGroup);
+    const groupHeader = row(element("h3", "Selection groups"), newButton);
     groupHeader.classList.add("rp-between");
-    const newGroupForm = element("section");
-    const guide = element("p", "Describe the first subject, then add its mask to create and name the group.", "rp-group-guide");
-    newGroupForm.append(guide);
     const side = element("aside");
-    side.append(groupHeader, newGroupForm, groupList);
+    side.append(groupHeader, groupList);
     const layout = element("div", "", "rp-layout");
     layout.append(view, side);
 
@@ -852,8 +840,8 @@ function openEditor(video, groups, session, onSave) {
     const footer = element("footer");
     footer.append(element("span", video, "rp-truncate"), row(button("Cancel", () => modal.close()),
         button("Apply selections", () => {
-            const saved = groups.filter(({ parts }) => parts.length).map((group) => ({
-                ...group, name: getName(group),
+            const saved = groups.map((group) => ({
+                ...group, name: group.parts.length ? getName(group) : group.name,
             }));
             const preview = ticket ? {
                 ticket, frame: currentFrame,
