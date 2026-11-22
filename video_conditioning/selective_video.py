@@ -165,7 +165,7 @@ def parse_part(part, frame_count):
         or any(type(index) is not int or not 0 <= index < MAX_INSTANCES for index in instances)
         or len(set(instances)) != len(instances)
     ):
-        raise ValueError("Choose at least one detected instance in the editor.")
+        raise ValueError("Choose at least one matching mask in the editor.")
     return {
         "text": part["text"].strip(), "threshold": part["threshold"], "frame": anchor,
         "start": start, "end": end, "instances": instances,
@@ -291,7 +291,7 @@ def track_parts(source, parts, check=None):
             model, masks, _ = detect_objects(frame, part["text"], part["threshold"])
             chosen = part["instances"]
             if not len(masks) or (chosen is not None and max(chosen) >= len(masks)):
-                raise ValueError(f'Could not find the selected instances for "{part["text"]}" on frame {anchor + 1}. Recheck the selection in the editor.')
+                raise ValueError(f'Could not find the selected masks for "{part["text"]}" on frame {anchor + 1}. Recheck the selection in the editor.')
             seeds.append(masks if chosen is None else masks[chosen])
 
         offset = 0
@@ -501,6 +501,25 @@ def detect_preview(source, frame, prompt, threshold):
     return {"candidates": [{"score": score, "mask": encode_mask(mask)} for mask, score in zip(masks, scores)]}
 
 
+def check_saved_prompts(source, frame, prompts):
+    counts = []
+    union = None
+    with INFERENCE_LOCK, torch.inference_mode():
+        pixels = preview_frame(source, frame)
+        for prompt, threshold in prompts:
+            _, masks, _ = detect_objects(pixels, prompt, threshold)
+            counts.append({"text": prompt, "matches": len(masks)})
+            if len(masks):
+                combined = masks.any(dim=0)
+                union = combined if union is None else union | combined
+    return {"mask": encode_mask(union) if union is not None else None, "results": counts}
+
+
+def preview_inference_busy():
+    return (PromptServer.instance.prompt_queue.get_tasks_remaining() or INFERENCE_LOCK.locked()
+            or any(not job["done"] for job in PREVIEW_JOBS.values()))
+
+
 def encode_mask(mask):
     return base64.b64encode(encoded_image(mask_overlay(mask), "PNG")).decode("ascii")
 
@@ -572,8 +591,7 @@ if getattr(PromptServer, "instance", None) is not None:
             source = input_video(body["video"])
             frame, prompt, threshold = body.get("frame"), body.get("text"), body.get("threshold")
             validate_prompt(prompt, threshold)
-            if (PromptServer.instance.prompt_queue.get_tasks_remaining() or INFERENCE_LOCK.locked()
-                    or any(not job["done"] for job in PREVIEW_JOBS.values())):
+            if preview_inference_busy():
                 return web.json_response({"error": "ComfyUI is busy. Try detection when the queue is idle."}, status=409)
             result = await asyncio.to_thread(detect_preview, source, frame, prompt, threshold)
             return web.json_response(result)
@@ -581,6 +599,33 @@ if getattr(PromptServer, "instance", None) is not None:
             return web.json_response({"error": str(exc)}, status=400)
         except Exception as exc:
             log.exception("Selective video detection failed")
+            return web.json_response({"error": str(exc)}, status=500)
+
+    @routes.post("/rp/selective-video/check")
+    async def selective_video_check(request):
+        try:
+            body = await request.json()
+            if not isinstance(body, dict) or not isinstance(body.get("video"), str):
+                raise ValueError("Choose an input video first.")
+            parts = body.get("prompts")
+            if not isinstance(parts, list) or not parts:
+                raise ValueError("Choose a saved selection or group first.")
+            prompts = {}
+            for part in parts:
+                if not isinstance(part, dict):
+                    raise ValueError("Invalid saved selection.")
+                prompt, threshold = part.get("text"), part.get("threshold")
+                validate_prompt(prompt, threshold)
+                prompts[prompt.strip(), threshold] = None
+            source = input_video(body["video"])
+            if preview_inference_busy():
+                return web.json_response({"error": "ComfyUI is busy. Try detection when the queue is idle."}, status=409)
+            result = await asyncio.to_thread(check_saved_prompts, source, body.get("frame"), prompts)
+            return web.json_response(result)
+        except (OSError, ValueError, av.error.FFmpegError) as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except Exception as exc:
+            log.exception("Selective video check failed")
             return web.json_response({"error": str(exc)}, status=500)
 
 
@@ -595,8 +640,7 @@ if getattr(PromptServer, "instance", None) is not None:
             groups = parse_groups(data, data["video"], len(frames))
             if not groups:
                 raise ValueError("Add at least one selection to preview tracking.")
-            if (PromptServer.instance.prompt_queue.get_tasks_remaining() or INFERENCE_LOCK.locked()
-                    or any(not job["done"] for job in PREVIEW_JOBS.values())):
+            if preview_inference_busy():
                 return web.json_response({"error": "ComfyUI is busy. Try tracking when the queue is idle."}, status=409)
             job_id = uuid4().hex
             job = {"done": False, "ticket": None, "error": None, "cancel": Event(), "last_seen": monotonic()}

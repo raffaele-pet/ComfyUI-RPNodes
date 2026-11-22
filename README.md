@@ -244,16 +244,20 @@ one still image; images can be fitted by centered cropping or stretching.
 ### RP Selective Video Input
 
 Choose or upload a video and open **Edit video selections**. Scrub to a frame,
-enter a description, click **Detect**, and add the checked instances to a group.
+enter a description, click **Detect**, and add the matching masks to a group.
 For example, detect an armored person and two sword hilts separately and add
 both selections to the same group. Each group has one preprocessor (Depth,
 Canny, OpenPose or Segmentation), color and mask expansion. Segmentation uses
 the group color. Expansion defaults to **10 source pixels**.
 
-Saved masks stay visible on their anchor frames. Click an anchor marker to
-jump to it, or run **Track & preview** to inspect the propagated group masks
-anywhere in the clip before queueing. Use **Apply selections** to save the
-groups and their anchor masks in the workflow. A selection can have its own
+Saved masks stay visible on their anchor frames. Use **Check** beside a saved
+selection or **Check group** to run detection on the current frame. These
+checks show matching masks without changing the saved selections or tracking.
+
+Run **Track & preview** to inspect the propagated masks across the clip. After
+**Apply selections**, scrub the tracked preview directly on the node while the
+server still has it cached. The workflow saves the groups and their anchor
+masks. A selection can have its own
 tracking range, which lets you anchor it separately across hard cuts. Lower
 groups in the list take precedence where their expanded masks overlap.
 

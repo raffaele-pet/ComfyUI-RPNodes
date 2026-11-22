@@ -1,10 +1,9 @@
 import { app } from "/scripts/app.js";
-import { api } from "/scripts/api.js";
-
-const route = "/rp/selective-video";
-const colors = ["#1678ff", "#ff6d32", "#58d58c", "#ec56ad", "#ffd650", "#9c83ff"];
+import {
+    addNodePreview, colors, createPainter, decodeMask, defaultExpansion, loadGroupOverlays,
+    loadPhoto, loadTrackedMasks, releaseOverlays, request,
+} from "./selective_video_preview.js";
 const maps = { segmentation: "Segmentation", depth: "Depth", canny: "Canny", openpose: "OpenPose" };
-const defaultExpansion = 10;
 
 function element(tag, text, className) {
     const node = document.createElement(tag);
@@ -46,17 +45,6 @@ function swatch(hex) {
     return dot;
 }
 
-async function request(path, options) {
-    const response = await api.fetchApi(route + path, options);
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        const failure = new Error(error.error || `ComfyUI returned HTTP ${response.status}.`);
-        failure.status = response.status;
-        throw failure;
-    }
-    return response;
-}
-
 async function post(path, payload, signal) {
     const response = await request(path, {
         method: "POST",
@@ -67,16 +55,17 @@ async function post(path, payload, signal) {
     return response.json();
 }
 
-function readGroups(widget, video) {
+function readConfig(widget, video) {
     try {
         const data = JSON.parse(widget.value);
-        if (data.video !== video) return [];
-        if (Array.isArray(data.groups)) return data.groups;
-        return (data.layers ?? []).map(({ text, preprocessor, color, ...selection }) => ({
+        if (data.video !== video) return { groups: [] };
+        if (Array.isArray(data.groups)) return data;
+        const groups = (data.layers ?? []).map(({ text, preprocessor, color, ...selection }) => ({
             name: text, preprocessor, color, expand: defaultExpansion, parts: [{ text, ...selection }],
         }));
+        return { groups };
     } catch {
-        return [];
+        return { groups: [] };
     }
 }
 
@@ -90,11 +79,6 @@ function signature(groups) {
     return JSON.stringify(withoutPreviews(groups).map((group) => group.parts));
 }
 
-function decodeMask(encoded) {
-    const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0));
-    return createImageBitmap(new Blob([bytes], { type: "image/png" }));
-}
-
 function mergedPreview(items, selected) {
     const masks = items.filter((_, index) => selected == null || selected.includes(index)).map(({ mask }) => mask);
     if (!masks.length) return null;
@@ -106,18 +90,6 @@ function mergedPreview(items, selected) {
     const context = canvas.getContext("2d");
     for (const mask of masks) context.drawImage(mask, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png").split(",")[1];
-}
-
-function spreadMask(context, radius, horizontal) {
-    const canvas = context.canvas;
-    for (let step = 1; radius > 0; step *= 2) {
-        const offset = Math.min(radius, step);
-        const x = horizontal ? offset : 0;
-        const y = horizontal ? 0 : offset;
-        context.drawImage(canvas, -x, -y);
-        context.drawImage(canvas, x, y);
-        radius -= offset;
-    }
 }
 
 const editorStyle = `
@@ -154,11 +126,16 @@ const editorStyle = `
     .rp-selective-editor button[aria-pressed=true] { border-color:#83a8ff; }
     .rp-selective-editor button:focus-visible,.rp-selective-editor input:focus-visible,.rp-selective-editor select:focus-visible {
         outline:2px solid #83a8ff; outline-offset:1px; }
-    .rp-selective-editor .rp-card { display:grid; gap:8px; padding:10px;
-        border:1px solid var(--border-color,#494b53); border-radius:8px; }
-    .rp-selective-editor .rp-card[hidden] { display:none; }
     .rp-selective-editor .rp-list { display:grid; gap:4px; }
-    .rp-selective-editor .rp-group-list { max-height:180px; overflow:auto; }
+    .rp-selective-editor .rp-group-list { gap:9px; }
+    .rp-selective-editor .rp-group-card { display:grid; gap:10px; min-width:0; padding:9px;
+        border:1px solid var(--rp-group-color); border-radius:9px; }
+    .rp-selective-editor .rp-group-content { display:grid; gap:8px; min-width:0; }
+    .rp-selective-editor .rp-group-guide { opacity:.83; font-size:13px; }
+    .rp-selective-editor .rp-check-result { line-height:1.35; font-size:13px; overflow-wrap:anywhere; }
+    .rp-selective-editor .rp-check-result:empty,.rp-selective-editor .rp-status:empty { display:none; }
+    .rp-selective-editor .rp-part-actions { gap:5px; }
+    .rp-selective-editor .rp-part-actions button { padding-inline:7px; }
     .rp-selective-editor .rp-truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; min-width:0; }
     .rp-selective-editor .rp-status { min-height:20px; opacity:.86; }
     .rp-selective-editor .rp-dot { display:inline-block; height:10px; width:10px; flex:0 0 10px; border-radius:50%; }
@@ -181,9 +158,7 @@ function openEditor(video, groups, session, onSave) {
     modal.setAttribute("aria-label", "Selective Video · Selection editor");
     const life = new AbortController();
     const canvas = element("canvas");
-    const context = canvas.getContext("2d");
-    const tintCanvas = element("canvas");
-    const tint = tintCanvas.getContext("2d");
+    const paint = createPainter(canvas);
     const slider = input("range", 0, "Video frame timeline");
     slider.min = slider.max = 0;
     const frameInput = input("number", 1, "Frame number");
@@ -229,7 +204,11 @@ function openEditor(video, groups, session, onSave) {
     const partList = element("div", "", "rp-list");
     const candidateList = element("div", "", "rp-list");
     const anchors = element("div", "", "rp-anchors");
-    const groupSettings = element("section", "", "rp-card");
+    const groupSettings = element("section", "", "rp-group-content");
+    const groupContent = element("div", "", "rp-group-content");
+    const checkSummary = element("p", "", "rp-check-result");
+    checkSummary.setAttribute("role", "status");
+    const groupHeaders = new Map();
     const anchorBitmaps = new Map();
     const frameMasks = new Map();
     const restoreFailed = new WeakSet();
@@ -244,6 +223,8 @@ function openEditor(video, groups, session, onSave) {
     let candidates = [];
     let checked = [];
     let detecting = false;
+    let checkRun;
+    let checkResult;
     let restoring = false;
     let tracking = false;
     let frameFetch;
@@ -280,74 +261,55 @@ function openEditor(video, groups, session, onSave) {
         return anchorBitmaps.get(encoded);
     }
 
-    function tintMask(bitmaps, hex, opacity, radius = 0) {
-        const { width, height } = canvas;
-        if (tintCanvas.width !== width || tintCanvas.height !== height) {
-            tintCanvas.width = width;
-            tintCanvas.height = height;
-        }
-        tint.clearRect(0, 0, width, height);
-        for (const bitmap of bitmaps) tint.drawImage(bitmap, 0, 0, width, height);
-        spreadMask(tint, radius, true);
-        spreadMask(tint, radius, false);
-        tint.globalCompositeOperation = "source-in";
-        tint.fillStyle = hex;
-        tint.fillRect(0, 0, width, height);
-        tint.globalCompositeOperation = "source-over";
-        context.globalAlpha = opacity;
-        context.drawImage(tintCanvas, 0, 0);
-        context.globalAlpha = 1;
-    }
-
     async function draw() {
         if (!photo || shownFrame !== currentFrame || life.signal.aborted) return;
         const frame = shownFrame;
         const version = ++drawVersion;
+        const scale = photo.width / sourceWidth;
+        if (checkResult?.frame === frame) {
+            const { group, bitmap } = checkResult;
+            paint(photo, bitmap ? [{
+                bitmaps: [bitmap], color: group.color, opacity: 0.57,
+                radius: Math.round((group.expand ?? defaultExpansion) * scale),
+            }] : []);
+            return;
+        }
+
         const visibleGroups = groups.filter(({ parts }) => parts.length);
         const tracked = frameMasks.get(frame) ?? [];
-        const overlays = await Promise.all(visibleGroups.map(async (group, index) => {
-            const bitmaps = await Promise.all(group.parts
-                .filter((part) => part.frame === frame && part.preview)
-                .map((part) => storedBitmap(part.preview)));
-            const propagated = tracked[index] && await decodeMask(tracked[index]).catch(() => null);
-            if (propagated) bitmaps.push(propagated);
-            return { group, bitmaps: bitmaps.filter(Boolean), propagated };
-        }));
+        const overlays = await loadGroupOverlays(visibleGroups, frame, tracked,
+            visibleGroups.indexOf(activeGroup), scale, storedBitmap);
         try {
             if (life.signal.aborted || version !== drawVersion || shownFrame !== frame || currentFrame !== frame) return;
-            if (canvas.width !== photo.width || canvas.height !== photo.height) {
-                canvas.width = photo.width;
-                canvas.height = photo.height;
-            }
-            context.drawImage(photo, 0, 0);
-            for (const { group, bitmaps } of overlays) {
-                if (bitmaps.length) {
-                    const radius = Math.round((group.expand ?? defaultExpansion) * photo.width / sourceWidth);
-                    tintMask(bitmaps, group.color ?? colors[0], group === activeGroup ? 0.55 : 0.38, radius);
-                }
-            }
-            candidates.forEach(({ mask }, index) => {
-                tintMask([mask], colors[index % colors.length], checked.includes(index) ? 0.58 : 0.16);
-            });
+            const draft = candidates.map(({ mask }, index) => ({
+                bitmaps: [mask], color: colors[index % colors.length],
+                opacity: checked.includes(index) ? 0.58 : 0.16,
+            }));
+            paint(photo, [...overlays, ...draft]);
         } finally {
-            overlays.forEach(({ propagated }) => propagated?.close());
+            releaseOverlays(overlays);
         }
     }
-
 
     function setFrameStatus() {
         if (tracking) viewStatus.textContent = "Tracking groups with SAM 3.1…";
         else if (shownFrame >= 0) {
-            const state = ticket ? "Tracked masks" : "Saved masks on anchor frames";
+            const state = checkResult ? "Detection check"
+                : ticket ? "Tracked masks" : "Saved masks on anchor frames";
             viewStatus.textContent = `Frame ${shownFrame + 1} of ${timestamps.length} · ${state}`;
         }
     }
 
     function updateButtons() {
         const ready = shownFrame === currentFrame && shownFrame >= 0;
-        detect.disabled = detecting || restoring || tracking || !ready || !prompt.value.trim();
-        add.disabled = detecting || !ready || !checked.length;
-        track.disabled = !tracking && (!groups.some(({ parts }) => parts.length) || !ready || detecting || restoring);
+        const busy = detecting || restoring || tracking || Boolean(checkRun);
+        detect.disabled = busy || !ready || !prompt.value.trim();
+        add.disabled = busy || !ready || !checked.length;
+        track.disabled = !tracking && (!groups.some(({ parts }) => parts.length) || !ready || busy);
+        for (const control of groupList.querySelectorAll("[data-rp-check]")) {
+            control.disabled = busy || !ready;
+        }
+        clearCheckButton.hidden = !checkResult && !checkRun;
         track.textContent = tracking ? "Cancel tracking" : "Track & preview";
         slider.disabled = frameInput.disabled = !timestamps.length;
         previous.disabled = !timestamps.length || !currentFrame;
@@ -364,7 +326,50 @@ function openEditor(video, groups, session, onSave) {
         draw();
     }
 
+    function clearCheck() {
+        checkRun?.abort();
+        checkResult?.bitmap?.close();
+        checkResult = null;
+        checkSummary.textContent = "";
+        setFrameStatus();
+        updateButtons();
+        draw();
+    }
+
+    async function checkSaved(group, parts) {
+        const frame = shownFrame;
+        clearCheck();
+        const controller = new AbortController();
+        checkRun = controller;
+        updateButtons();
+        checkSummary.textContent = `Checking frame ${frame + 1}…`;
+        try {
+            const { mask, results } = await post("/check", {
+                video, frame, prompts: parts.map(({ text, threshold }) => ({ text, threshold })),
+            }, controller.signal);
+            const bitmap = mask ? await decodeMask(mask) : null;
+            if (controller.signal.aborted || frame !== shownFrame) {
+                bitmap?.close();
+                return;
+            }
+            checkResult = { bitmap, group, frame };
+            const summary = results.map(({ text, matches }) => `${text} (${matches} ${matches === 1 ? "match" : "matches"})`);
+            checkSummary.textContent = `Frame ${frame + 1} · ${summary.join(" · ")}`;
+            setFrameStatus();
+            draw();
+        } catch (error) {
+            if (!controller.signal.aborted) checkSummary.textContent = error.message;
+        } finally {
+            if (checkRun === controller) checkRun = null;
+            updateButtons();
+            restoreAnchors(shownFrame);
+        }
+    }
+
+    const clearCheckButton = button("Clear check", clearCheck);
+
     function resetDraft() {
+        clearCheck();
         editingPart = null;
         add.textContent = "Add selection";
         reset.hidden = true;
@@ -376,7 +381,7 @@ function openEditor(video, groups, session, onSave) {
     }
 
     async function restoreAnchors(index) {
-        if (restoring || detecting || tracking || index !== shownFrame || index < 0) return;
+        if (restoring || detecting || tracking || checkRun || index !== shownFrame || index < 0) return;
         const missing = groups.flatMap(({ parts }) => parts).filter((part) => (
             part.frame === index && !part.preview && !restoreFailed.has(part)
         ));
@@ -409,9 +414,7 @@ function openEditor(video, groups, session, onSave) {
         if (!ticket || frameMasks.has(index)) return;
         const selectedTicket = ticket;
         try {
-            const query = new URLSearchParams({ ticket, frame: index });
-            const response = await request(`/track-frame?${query}`, { signal });
-            const { masks } = await response.json();
+            const masks = await loadTrackedMasks(ticket, index, signal);
             if (ticket !== selectedTicket || signal.aborted) return;
             frameMasks.set(index, masks);
             if (frameMasks.size > 48) frameMasks.delete(frameMasks.keys().next().value);
@@ -439,6 +442,7 @@ function openEditor(video, groups, session, onSave) {
             return;
         }
         if (target !== currentFrame) {
+            clearCheck();
             clearDetection();
             drawVersion += 1;
             status.textContent = "";
@@ -453,9 +457,7 @@ function openEditor(video, groups, session, onSave) {
         updateButtons();
         if (!tracking) viewStatus.textContent = "Loading frame…";
         try {
-            const query = new URLSearchParams({ video, frame: target });
-            const response = await request(`/frame?${query}`, { signal: controller.signal });
-            const image = await createImageBitmap(await response.blob());
+            const image = await loadPhoto(video, target, controller.signal);
             if (controller.signal.aborted) {
                 image.close();
                 return;
@@ -488,6 +490,7 @@ function openEditor(video, groups, session, onSave) {
             trackFetch.abort();
             return;
         }
+        clearCheck();
         const requestSignature = signature(groups);
         const controller = new AbortController();
         const { signal } = controller;
@@ -527,6 +530,7 @@ function openEditor(video, groups, session, onSave) {
     }, "rp-primary");
 
     const detect = button("Detect", async () => {
+        clearCheck();
         const previousChoices = checked.length ? [...checked] : null;
         clearDetection();
         const version = draftVersion;
@@ -542,7 +546,7 @@ function openEditor(video, groups, session, onSave) {
             candidates = items;
             checked = previousChoices?.filter((i) => i < candidates.length) ?? candidates.map((_, i) => i);
             candidates.forEach(({ score }, index) => {
-                const checkbox = input("checkbox", index, `Instance ${index + 1}`);
+                const checkbox = input("checkbox", index, `Mask ${index + 1}`);
                 checkbox.checked = checked.includes(index);
                 checkbox.addEventListener("change", () => {
                     checked = checkbox.checked ? [...checked, index] : checked.filter((i) => i !== index);
@@ -550,11 +554,11 @@ function openEditor(video, groups, session, onSave) {
                     draw();
                 });
                 const entry = label("", checkbox);
-                entry.append(swatch(colors[index % colors.length]), `Instance ${index + 1} · ${Math.round(score * 100)}%`);
+                entry.append(swatch(colors[index % colors.length]), `Mask ${index + 1} · ${Math.round(score * 100)}%`);
                 candidateList.append(entry);
             });
             draw();
-            status.textContent = candidates.length ? "Check the instances to add." : "No match. Try another description, frame or confidence.";
+            status.textContent = candidates.length ? "Choose the masks to add." : "No match. Try another description, frame or confidence.";
         } catch (error) {
             if (!life.signal.aborted && version === draftVersion) status.textContent = error.message;
         } finally {
@@ -628,6 +632,10 @@ function openEditor(video, groups, session, onSave) {
             edit.setAttribute("aria-label", `Edit selection ${part.text} on frame ${part.frame + 1}`);
             edit.disabled = !timestamps.length;
             open.disabled = !timestamps.length;
+            const check = button("Check", () => checkSaved(activeGroup, [part]));
+            check.dataset.rpCheck = "";
+            check.setAttribute("aria-label", `Check ${part.text} on the current frame`);
+            check.title = "Detect this selection on the current frame";
             const remove = button("×", () => {
                 activeGroup.parts.splice(activeGroup.parts.indexOf(part), 1);
                 resetDraft();
@@ -636,7 +644,9 @@ function openEditor(video, groups, session, onSave) {
                 renderGroups();
             });
             remove.setAttribute("aria-label", `Remove selection ${part.text} on frame ${part.frame + 1}`);
-            partList.append(row(open, edit, remove));
+            const actions = row(open, check, edit, remove);
+            actions.classList.add("rp-part-actions");
+            partList.append(actions);
         }
     }
 
@@ -654,18 +664,28 @@ function openEditor(video, groups, session, onSave) {
         }
     }
 
+    function syncGroupCard(group) {
+        const header = groupHeaders.get(group);
+        if (!header) return;
+        header.card.style.setProperty("--rp-group-color", group.color ?? colors[0]);
+        header.open.textContent = `${getName(group)} · ${maps[group.preprocessor ?? "segmentation"]} · ${group.parts.length}`;
+        header.remove.setAttribute("aria-label", `Remove group ${getName(group)}`);
+    }
+
     function renderGroups() {
         groupList.replaceChildren();
+        groupHeaders.clear();
         for (const group of groups) {
-            const count = group.parts.length;
-            const open = button(`${getName(group)} · ${maps[group.preprocessor ?? "segmentation"]} · ${count}`, () => {
-                if (activeGroup !== group) resetDraft();
-                activeGroup = group;
+            const active = group === activeGroup;
+            const card = element("section", "", "rp-group-card");
+            const open = button("", () => {
+                resetDraft();
+                activeGroup = active ? null : group;
                 renderSettings();
                 renderGroups();
                 draw();
             }, "rp-flex rp-truncate");
-            open.setAttribute("aria-pressed", String(group === activeGroup));
+            open.setAttribute("aria-expanded", String(active));
             const remove = button("×", () => {
                 const index = groups.indexOf(group);
                 groups.splice(index, 1);
@@ -673,17 +693,29 @@ function openEditor(video, groups, session, onSave) {
                     activeGroup = groups[Math.min(index, groups.length - 1)] ?? null;
                     resetDraft();
                 }
-                if (count) invalidateTracking();
+                if (group.parts.length) invalidateTracking();
                 renderSettings();
                 renderGroups();
             });
-            remove.setAttribute("aria-label", `Remove group ${getName(group)}`);
-            groupList.append(row(swatch(group.color ?? colors[0]), open, remove));
+            card.append(row(open, remove));
+            groupHeaders.set(group, { card, open, remove });
+            syncGroupCard(group);
+            if (active) {
+                card.append(groupContent);
+                if (group.parts.length) {
+                    const check = button("Check group", () => checkSaved(group, group.parts));
+                    check.dataset.rpCheck = "";
+                    check.title = "Detect every saved selection in this group on the current frame";
+                    const savedHeader = row(element("h3", "Saved selections"), check);
+                    savedHeader.classList.add("rp-between");
+                    card.append(savedHeader, partList, checkSummary);
+                }
+            }
+            groupList.append(card);
         }
         renderAnchors();
         updateButtons();
     }
-
 
     const previous = button("‹", () => seek(currentFrame - 1));
     const next = button("›", () => seek(currentFrame + 1));
@@ -714,15 +746,15 @@ function openEditor(video, groups, session, onSave) {
     });
     name.addEventListener("input", () => {
         activeGroup.name = name.value;
-        renderGroups();
+        syncGroupCard(activeGroup);
     });
     mode.addEventListener("change", () => {
         activeGroup.preprocessor = mode.value;
-        renderGroups();
+        syncGroupCard(activeGroup);
     });
     color.addEventListener("input", () => {
         activeGroup.color = color.value;
-        renderGroups();
+        syncGroupCard(activeGroup);
         draw();
     });
     expansion.addEventListener("input", () => {
@@ -739,14 +771,15 @@ function openEditor(video, groups, session, onSave) {
     const timeline = row(previous, slider, next, frameInput, time);
     timeline.classList.add("rp-timeline");
     const view = element("section", "", "rp-view");
-    view.append(stage, timeline, anchors, row(track, viewStatus));
+    view.append(stage, timeline, anchors, row(track, clearCheckButton, viewStatus));
 
     const settings = element("details");
     settings.append(element("summary", "Detection confidence and tracking range"),
         row(label("Confidence", threshold)), row(label("From", from), label("To", to)));
     groupSettings.append(row(name, color), row(mode, label("Expand (px)", expansion)));
-    const draft = element("section", "", "rp-card");
+    const draft = element("section", "", "rp-group-content");
     draft.append(row(prompt, detect), status, candidateList, row(add, reset), settings);
+    groupContent.append(groupSettings, draft);
     const newButton = button("New group", () => {
         activeGroup = newGroup();
         resetDraft();
@@ -757,7 +790,8 @@ function openEditor(video, groups, session, onSave) {
     const groupHeader = row(element("h3", "Selection groups"), newButton);
     groupHeader.classList.add("rp-between");
     const side = element("aside");
-    side.append(groupHeader, groupList, groupSettings, draft, partList);
+    const guide = element("p", "Create a group. Describe what you want to select, then detect it and add the matching masks.", "rp-group-guide");
+    side.append(groupHeader, guide, groupList);
     const layout = element("div", "", "rp-layout");
     layout.append(view, side);
 
@@ -771,7 +805,11 @@ function openEditor(video, groups, session, onSave) {
             const saved = groups.filter(({ parts }) => parts.length).map((group) => ({
                 ...group, name: getName(group),
             }));
-            onSave(saved);
+            const preview = ticket ? {
+                ticket, frame: currentFrame,
+                activeGroup: groups.filter(({ parts }) => parts.length).indexOf(activeGroup),
+            } : null;
+            onSave(saved, preview);
             modal.close();
         }, "rp-primary")));
     modal.append(element("style", editorStyle), header, layout, footer);
@@ -779,6 +817,8 @@ function openEditor(video, groups, session, onSave) {
         life.abort();
         frameFetch?.abort();
         trackFetch?.abort();
+        checkRun?.abort();
+        checkResult?.bitmap?.close();
         clearTimeout(scheduledSeek);
         photo?.close();
         candidates.forEach(({ mask }) => mask.close());
@@ -820,21 +860,32 @@ app.registerExtension({
 
         let modal;
         let session = {};
+        let inline;
         const editor = node.addWidget("button", "Edit video selections", null, () => {
             if (modal?.open || !video.value) return;
             const filename = video.value;
-            if (session.video !== filename) session = { video: filename };
-            modal = openEditor(filename, readGroups(selections, filename), session, (groups) => {
+            const { groups, trackingPreview } = readConfig(selections, filename);
+            if (session.video !== filename) {
+                session = {
+                    video: filename, ticket: trackingPreview?.ticket, frame: trackingPreview?.frame,
+                    signature: signature(groups),
+                };
+            }
+            modal = openEditor(filename, groups, session, (savedGroups, preview) => {
                 app.graph?.beforeChange?.();
-                selections.value = JSON.stringify({ version: 2, video: filename, groups });
+                const data = { version: 2, video: filename, groups: savedGroups };
+                if (preview) data.trackingPreview = preview;
+                selections.value = JSON.stringify(data);
                 selections.callback?.(selections.value);
                 refresh();
                 app.graph?.afterChange?.();
             });
         }, { serialize: false });
         const refresh = () => {
-            const count = readGroups(selections, video.value).length;
-            editor.label = count ? `Edit video selections (${count})` : "Edit video selections";
+            const { groups, trackingPreview } = readConfig(selections, video.value);
+            editor.label = groups.length ? `Edit video selections (${groups.length})` : "Edit video selections";
+            if (trackingPreview?.ticket && !inline) inline = addNodePreview(node);
+            inline?.update(video.value, groups, trackingPreview);
             node.setDirtyCanvas(true, true);
         };
         const onConfigure = node.onConfigure;
@@ -846,6 +897,7 @@ app.registerExtension({
         const onRemoved = node.onRemoved;
         node.onRemoved = function (...args) {
             modal?.close();
+            inline?.disconnect();
             return onRemoved?.apply(this, args);
         };
         const callback = video.callback;
