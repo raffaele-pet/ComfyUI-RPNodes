@@ -269,6 +269,22 @@ anchor masks. A selection can have its own tracking range,
 which lets you anchor it separately across hard cuts. Lower
 groups in the list take precedence where their expanded masks overlap.
 
+The loading controls work on the outputs. `force_rate` changes the sampling
+rate before `skip_first_frames` and `select_every_nth`. `frame_load_cap` limits
+the resulting frame count. A zero rate or frame cap keeps the original rate
+or loads all remaining frames. Set one custom dimension to scale
+proportionally, or set both to resize with a center crop. `format` aligns the
+dimensions and frame count to a model's grid. The default, **None**, keeps the
+source dimensions and count when the other controls are left at their
+defaults. The selection editor continues to use source frame numbers.
+
+`frame_count` reports the loaded frame count. `audio` follows the loaded
+clip and is empty for silent sources. `video_info` connects to VHS Video Info
+nodes. `video_mask` is a silent **VIDEO** with the same output size, frame rate
+and count as the processed clip. It shows the union of the selected regions
+in white over black, including **Expand** and **Fill holes**. Connect it to
+**Save Video** to export the mask.
+
 SAM 3.1 tracks each selection in both directions from its anchor. The node
 joins the masks within a group and expands the union before applying its map.
 Every requested map is computed at most once per source frame. The `frames`

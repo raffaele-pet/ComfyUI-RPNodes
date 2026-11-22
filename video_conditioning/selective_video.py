@@ -3,7 +3,10 @@ import base64
 import io as buffer_io
 import json
 import logging
+from bisect import bisect_left
 from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
+from fractions import Fraction
 from functools import lru_cache
 from pathlib import Path
 from threading import Event, Lock
@@ -21,7 +24,8 @@ from scipy.ndimage import binary_fill_holes, maximum_filter
 import comfy.model_management as model_management
 import comfy.utils
 import folder_paths
-from comfy_api.latest import InputImpl, io
+from comfy_api.latest import InputImpl, VideoComponents, io
+from nodes import MAX_RESOLUTION
 from server import PromptServer
 
 from ..video_frame_processing.video_frames_workflow import VIDEO_EXTENSIONS, _available_videos
@@ -35,6 +39,18 @@ MAX_INSTANCES = 12
 MAX_TRACK_OBJECTS = 64
 DEFAULT_EXPANSION = 10
 MAX_EXPANSION = 256
+# Spatial alignment and frame-count grid for the VHS loading presets.
+LOAD_FORMATS = {
+    "None": (1, 1, 0),
+    "AnimateDiff": (8, 1, 0),
+    "Mochi": (16, 6, 1),
+    "LTXV": (32, 8, 1),
+    "Hunyuan": (16, 4, 1),
+    "Cosmos": (16, 8, 1),
+    "Wan": (8, 4, 1),
+    "H3": (32, 17, 5),
+}
+VideoInfo = io.Custom("VHS_VIDEOINFO")
 TRACK_CACHE = OrderedDict()
 TRACK_CACHE_LOCK = Lock()
 PREVIEW_JOBS = OrderedDict()
@@ -53,6 +69,16 @@ def input_video(filename):
     return path, stat.st_mtime_ns, stat.st_size
 
 
+@dataclass(frozen=True)
+class VideoTimeline:
+    frames: list[tuple[int, int | None]]
+    timestamps: list[float]
+    size: tuple[int, int]
+    time_base: Fraction
+    rate: Fraction
+    duration: float
+
+
 @lru_cache(maxsize=4)
 def video_timeline(source):
     with av.open(str(source[0])) as container:
@@ -63,6 +89,7 @@ def video_timeline(source):
         frames = []
         seek_point = None
         size = None
+        last_duration = None
         for frame in container.decode(stream):
             if frame.pts is None or frame.pts < 0:
                 continue
@@ -71,16 +98,21 @@ def video_timeline(source):
             if frame.key_frame:
                 seek_point = frame.pts
             frames.append((frame.pts, seek_point))
+            last_duration = frame.duration
         if not frames:
             raise ValueError("The video has no decodable frames.")
-        time_base = float(stream.time_base)
+        time_base = Fraction(stream.time_base)
+        rate = Fraction(stream.average_rate or 1)
         pts0 = frames[0][0]
-        timestamps = [(pts - pts0) * time_base for pts, _ in frames]
-        return frames, timestamps, size
+        seconds_per_tick = float(time_base)
+        timestamps = [(pts - pts0) * seconds_per_tick for pts, _ in frames]
+        last_span = last_duration * time_base if last_duration else 1 / rate
+        duration = float((frames[-1][0] - pts0) * time_base + last_span)
+        return VideoTimeline(frames, timestamps, size, time_base, rate, duration)
 
 
 def preview_frame(source, index):
-    frames, _, _ = video_timeline(source)
+    frames = video_timeline(source).frames
     if type(index) is not int or not 0 <= index < len(frames):
         raise ValueError("Frame is outside the video.")
     pts, keyframe = frames[index]
@@ -399,20 +431,111 @@ def expanded_masks(packed, height, width, radius, fill_holes=True):
     return mask
 
 
-def apply_preprocessors(images, groups, tracks):
+def select_frames(timeline, force_rate, skip, stride, cap, format):
+    rate = Fraction(str(force_rate)).limit_denominator(100_000) if force_rate else timeline.rate
+    _, period, remainder = LOAD_FORMATS[format]
+    available = len(timeline.frames)
+    if force_rate:
+        available = max(1, int(np.ceil(timeline.duration * float(rate) - 1e-8)))
+    slots = range(skip, available, stride)
+    if cap:
+        slots = slots[:cap]
+    count = len(slots)
+    if not count:
+        raise ValueError("No frames remain after applying the video loading settings.")
+    count -= (count - remainder) % period
+    if count < 1:
+        raise ValueError(f"{format} needs at least {remainder} loaded frames.")
+    slots = slots[:count]
+    if not force_rate:
+        return slots, rate / stride, timeline.timestamps[skip]
+    times = np.arange(slots.start, slots.stop, slots.step, dtype=np.float64) / float(rate)
+    indices = np.searchsorted(timeline.timestamps, times + 1e-9, side="right") - 1
+    return indices, rate / stride, skip / float(rate)
+
+
+def load_selected_components(original, timeline, indices, rate, start):
+    if isinstance(indices, range) and indices.step == 1 and indices == range(len(timeline.frames)):
+        return original.get_components()
+
+    time_base = float(timeline.time_base)
+    pts = timeline.frames
+    audio_start = pts[0][0] * time_base + start
+    audio_end = min(pts[0][0] * time_base + timeline.duration, audio_start + len(indices) / float(rate))
+    first = int(indices[0])
+    last = int(indices[-1])
+    # Decode a bounded window straddling the selected PTS and the audio span.
+    # Use whole source ticks for frame boundaries, including duplicate timestamps.
+    first_tick = max(0, min(pts[first][0], int(audio_start / time_base)) - 1)
+    stop_tick = max(pts[last][0] + 1, int(np.ceil(audio_end / time_base)))
+    decode_start = (first_tick + 0.25) * time_base if first_tick else 0
+    decode_end = (stop_tick + 0.25) * time_base
+    first_index = bisect_left(pts, first_tick, key=lambda item: item[0])
+    stop_index = bisect_left(pts, stop_tick, key=lambda item: item[0])
+    components = original.as_trimmed(decode_start, decode_end - decode_start, strict_duration=False).get_components()
+    if len(components.images) != stop_index - first_index:
+        raise ValueError("Decoded frames do not match the source timeline.")
+    if not (isinstance(indices, range) and indices == range(first_index, stop_index)):
+        local_indices = torch.as_tensor(indices, dtype=torch.long) - first_index
+        components.images = components.images.index_select(0, local_indices)
+        if components.alpha is not None:
+            components.alpha = components.alpha.index_select(0, local_indices)
+    components.frame_rate = rate
+    if components.audio is not None:
+        sample_rate = components.audio["sample_rate"]
+        offset = max(0, round((audio_start - decode_start) * sample_rate))
+        sample_count = round((audio_end - audio_start) * sample_rate)
+        samples = components.audio["waveform"][..., offset:offset + sample_count]
+        components.audio = {"sample_rate": sample_rate, "waveform": samples} if samples.shape[-1] else None
+    return components
+
+
+def target_size(width, height, custom_width, custom_height, format):
+    alignment = LOAD_FORMATS[format][0]
+    target_width = custom_width or (width * custom_height / height if custom_height else width)
+    target_height = custom_height or (height * custom_width / width if custom_width else height)
+    return tuple(max(alignment, int(value / alignment + 0.5) * alignment)
+                 for value in (target_width, target_height))
+
+
+def resize_selection_batch(batch, width, height, method):
+    source_height, source_width = batch.shape[1:3]
+    x = min((source_width - 1) // 2, max(0, round((source_width - source_height * width / height) / 2)))
+    y = min((source_height - 1) // 2, max(0, round((source_height - source_width * height / width) / 2)))
+    cropped = batch[:, y:source_height - y, x:source_width - x]
+    return comfy.utils.common_upscale(cropped.movedim(-1, 1), width, height, method, "disabled").movedim(1, -1)
+
+
+def resize_components(components, width, height):
+    images = components.images
+    resized = images.new_empty((len(images), height, width, images.shape[-1]))
+    for start in range(0, len(images), 4):
+        model_management.throw_exception_if_processing_interrupted()
+        resized[start:start + 4] = resize_selection_batch(images[start:start + 4], width, height, "bilinear")
+    components.images = resized
+    if components.alpha is not None:
+        alpha = components.alpha.reshape(len(images), *images.shape[1:3], 1)
+        components.alpha = resize_selection_batch(alpha, width, height, "bilinear")
+
+
+def apply_preprocessors(images, groups, tracks, indices, source_size):
     kinds = {group["preprocessor"] for group in groups} - {"segmentation"}
     processors = prepare_preprocessors(kinds) if kinds else {}
     progress = comfy.utils.ProgressBar(len(images))
     height, width = images.shape[1:3]
+    source_width, source_height = source_size
+    mask_frames = torch.zeros((len(images), height, width), dtype=torch.float32)
     for start in range(0, len(images), 4):
         model_management.throw_exception_if_processing_interrupted()
         chunk = images[start:start + 4]
+        frame_indices = indices[start:start + len(chunk)]
         active = []
         for group, (first, packed) in zip(groups, tracks):
-            left = max(start, first)
-            right = min(start + len(chunk), first + len(packed))
+            left = bisect_left(frame_indices, first)
+            right = bisect_left(frame_indices, first + len(packed))
             if left < right:
-                active.append((group, slice(left - start, right - start), packed[left - first:right - first]))
+                offsets = torch.as_tensor(frame_indices[left:right], dtype=torch.long) - first
+                active.append((group, slice(left, right), packed.index_select(0, offsets)))
 
         needed = {group["preprocessor"] for group, _, _ in active} & processors.keys()
         maps = {}
@@ -427,8 +550,12 @@ def apply_preprocessors(images, groups, tracks):
                 mapped = torch.from_numpy(np.stack([processor(frame) for frame in rgb])).to(chunk).div_(255)
             maps[name] = resize_frames(mapped, height, width)
 
+        union = mask_frames[start:start + len(chunk)]
         for group, section, packed in active:
-            mask = expanded_masks(packed, height, width, group["expand"], group["fill_holes"])
+            mask = expanded_masks(packed, source_height, source_width, group["expand"], group["fill_holes"])
+            if (width, height) != source_size:
+                mask = resize_selection_batch(mask[..., None].float(), width, height, "nearest-exact")[..., 0].bool()
+            union[section][mask] = 1
             kind = group["preprocessor"]
             if kind == "segmentation":
                 value = group["color"]
@@ -437,6 +564,7 @@ def apply_preprocessors(images, groups, tracks):
             else:
                 chunk[section][mask] = maps[kind][section][mask]
         progress.update(len(chunk))
+    return mask_frames
 
 
 class RPSelectiveVideoInput(io.ComfyNode):
@@ -451,12 +579,32 @@ class RPSelectiveVideoInput(io.ComfyNode):
             inputs=[
                 io.Combo.Input("video", options=_available_videos(), upload=io.UploadType.video),
                 io.String.Input("selections", default='{"groups":[]}'),
+                io.Float.Input("force_rate", default=0, min=0, max=60, step=1, optional=True,
+                               tooltip="Resample to this FPS before skipping or selecting frames. 0 keeps the source rate."),
+                io.Int.Input("custom_width", default=0, min=0, max=MAX_RESOLUTION, optional=True,
+                             tooltip="Output width. 0 uses the source aspect ratio."),
+                io.Int.Input("custom_height", default=0, min=0, max=MAX_RESOLUTION, optional=True,
+                             tooltip="Output height. 0 uses the source aspect ratio."),
+                io.Int.Input("frame_load_cap", default=0, min=0, optional=True,
+                             tooltip="Maximum output frames after skipping and sampling. 0 means no limit."),
+                io.Int.Input("skip_first_frames", default=0, min=0, optional=True,
+                             tooltip="Skip this many frames after applying force_rate."),
+                io.Int.Input("select_every_nth", default=1, min=1, optional=True),
+                io.Combo.Input("format", options=list(LOAD_FORMATS), default="None", optional=True,
+                               tooltip="Align dimensions and frame count to a model's grid."),
             ],
-            outputs=[io.Video.Output(display_name="video"), io.Image.Output(display_name="frames")],
+            outputs=[
+                io.Video.Output(display_name="video"),
+                io.Image.Output(display_name="frames"),
+                io.Int.Output(display_name="frame_count"),
+                io.Audio.Output(display_name="audio"),
+                VideoInfo.Output(display_name="video_info"),
+                io.Video.Output(display_name="video_mask", tooltip="White selected regions on black, without audio."),
+            ],
         )
 
     @classmethod
-    def fingerprint_inputs(cls, video, selections):
+    def fingerprint_inputs(cls, video, **kwargs):
         return input_video(video)[1:]
 
     @classmethod
@@ -468,20 +616,51 @@ class RPSelectiveVideoInput(io.ComfyNode):
         return True
 
     @classmethod
-    def execute(cls, video, selections):
+    def execute(cls, video, selections, force_rate=0, custom_width=0, custom_height=0,
+                frame_load_cap=0, skip_first_frames=0, select_every_nth=1, format="None"):
         source = input_video(video)
         original = InputImpl.VideoFromFile(str(source[0]))
-        components = original.get_components()
-        groups = parse_groups(json.loads(selections), video, len(components.images))
-        if not groups:
-            return io.NodeOutput(original, components.images)
-        with INFERENCE_LOCK:
-            _, tracks = track_groups(source, groups)
-            apply_preprocessors(components.images, groups, tracks)
-        output = InputImpl.VideoFromComponents(
-            components, original.get_bit_depth(), original.get_color_space(), original.get_chroma_subsampling(),
+        timeline = video_timeline(source)
+        indices, rate, start = select_frames(
+            timeline, force_rate, skip_first_frames, select_every_nth, frame_load_cap, format,
         )
-        return io.NodeOutput(output, components.images)
+        components = load_selected_components(original, timeline, indices, rate, start)
+        count = len(components.images)
+        if count != len(indices):
+            raise ValueError("Decoded frames do not match the source timeline.")
+        width, height = target_size(*timeline.size, custom_width, custom_height, format)
+        resized = (width, height) != timeline.size
+        if resized:
+            resize_components(components, width, height)
+        groups = parse_groups(json.loads(selections), video, len(timeline.frames))
+        if groups:
+            with INFERENCE_LOCK:
+                _, tracks = track_groups(source, groups)
+                masks = apply_preprocessors(components.images, groups, tracks, indices, timeline.size)
+        else:
+            masks = torch.zeros(1, 1, 1).expand(count, height, width)
+        output = original
+        if groups or resized or force_rate or count != len(timeline.frames) or rate != timeline.rate:
+            output = InputImpl.VideoFromComponents(
+                components, original.get_bit_depth(), original.get_color_space(), original.get_chroma_subsampling(),
+            )
+        source_width, source_height = timeline.size
+        info = {
+            "source_fps": float(timeline.rate),
+            "source_frame_count": len(timeline.frames),
+            "source_duration": timeline.duration,
+            "source_width": source_width,
+            "source_height": source_height,
+            "loaded_fps": float(components.frame_rate),
+            "loaded_frame_count": count,
+            "loaded_duration": count / float(components.frame_rate),
+            "loaded_width": width,
+            "loaded_height": height,
+        }
+        mask_video = InputImpl.VideoFromComponents(
+            VideoComponents(images=masks[..., None].expand(-1, -1, -1, 3), frame_rate=components.frame_rate),
+        )
+        return io.NodeOutput(output, components.images, count, components.audio, info, mask_video)
 
 
 def encoded_image(pixels, format):
@@ -581,13 +760,13 @@ def check_guided_group(source, group, frame, ticket, group_index, check):
 
 
 def native_video_preview(ticket, source, tracks, groups, active_group, frame, check):
-    _, timestamps, (width, _) = video_timeline(source)
+    timeline = video_timeline(source)
     styles = tuple(
         (group["color"], group["expand"], group["fill_holes"], index == active_group)
         for index, group in enumerate(groups)
     )
-    filename = cached_preview(ticket, source[0], tracks, styles, width, check)
-    return {"video": {"filename": filename, "type": "temp", "time": timestamps[frame]}}
+    filename = cached_preview(ticket, source[0], tracks, styles, timeline.size[0], check)
+    return {"video": {"filename": filename, "type": "temp", "time": timeline.timestamps[frame]}}
 
 
 def tracking_preview(source, groups, check):
@@ -640,8 +819,9 @@ if getattr(PromptServer, "instance", None) is not None:
     async def selective_video_info(request):
         try:
             source = input_video(request.query.get("video", ""))
-            _, timestamps, (width, height) = await asyncio.to_thread(video_timeline, source)
-            return web.json_response({"timestamps": timestamps, "width": width, "height": height})
+            timeline = await asyncio.to_thread(video_timeline, source)
+            width, height = timeline.size
+            return web.json_response({"timestamps": timeline.timestamps, "width": width, "height": height})
         except (OSError, ValueError, av.error.FFmpegError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
 
@@ -709,7 +889,7 @@ if getattr(PromptServer, "instance", None) is not None:
             if not isinstance(data, dict) or not isinstance(data.get("video"), str):
                 raise ValueError("Choose an input video first.")
             source = input_video(data["video"])
-            frames, _, _ = await asyncio.to_thread(video_timeline, source)
+            frames = (await asyncio.to_thread(video_timeline, source)).frames
             groups = parse_groups({"video": data["video"], "groups": [data.get("group")]},
                                   data["video"], len(frames))
             if not groups:
@@ -730,7 +910,7 @@ if getattr(PromptServer, "instance", None) is not None:
             if not isinstance(data, dict) or not isinstance(data.get("video"), str):
                 raise ValueError("Choose an input video first.")
             source = input_video(data["video"])
-            frames, _, _ = await asyncio.to_thread(video_timeline, source)
+            frames = (await asyncio.to_thread(video_timeline, source)).frames
             groups = parse_groups(data, data["video"], len(frames))
             if not groups:
                 raise ValueError("Add at least one selection to preview tracking.")
@@ -767,7 +947,7 @@ if getattr(PromptServer, "instance", None) is not None:
         source = cached[0][0]
         try:
             frame = int(request.query.get("frame", "-1"))
-            frames, _, _ = await asyncio.to_thread(video_timeline, source)
+            frames = (await asyncio.to_thread(video_timeline, source)).frames
             if not 0 <= frame < len(frames):
                 raise ValueError("Frame is outside the video.")
             masks = await asyncio.to_thread(preview_group_frame, cached[2], frame)
@@ -792,7 +972,7 @@ if getattr(PromptServer, "instance", None) is not None:
             if cached is None or cached[0][0] != source:
                 return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
 
-            frames, _, _ = await asyncio.to_thread(video_timeline, source)
+            frames = (await asyncio.to_thread(video_timeline, source)).frames
             groups = parse_groups(data, data["video"], len(frames))
             if [group["parts"] for group in groups] != json.loads(cached[0][1]):
                 raise ValueError("The selections changed. Run Track & preview again.")

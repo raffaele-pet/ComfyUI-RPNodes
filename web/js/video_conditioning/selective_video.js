@@ -963,6 +963,7 @@ app.registerExtension({
         if (node.comfyClass !== "RPSelectiveVideoInput") return;
         const video = node.widgets.find((widget) => widget.name === "video");
         const selections = node.widgets.find((widget) => widget.name === "selections");
+        const forceRate = node.widgets.find((widget) => widget.name === "force_rate");
         if (!video || !selections) return;
         selections.type = "converted-widget";
         selections.hidden = true;
@@ -1011,6 +1012,8 @@ app.registerExtension({
         const onConfigure = node.onConfigure;
         node.onConfigure = function (...args) {
             const result = onConfigure?.apply(this, args);
+            // Legacy workflows stored the upload button value in this position.
+            if (forceRate?.value === "image") forceRate.value = 0;
             refresh();
             return result;
         };
