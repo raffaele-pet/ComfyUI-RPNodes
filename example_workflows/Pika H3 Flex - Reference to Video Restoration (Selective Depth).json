@@ -1,0 +1,2240 @@
+{
+  "id": "5fde7175-5f93-4dd6-978d-daeb21eeccea",
+  "revision": 0,
+  "last_node_id": 1315,
+  "last_link_id": 1523,
+  "nodes": [
+    {
+      "id": 601,
+      "type": "Label (rgthree)",
+      "pos": [
+        -2390,
+        11070
+      ],
+      "size": [
+        90.71484375,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Duration",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 693,
+      "type": "RPGroupsMuter",
+      "pos": [
+        -4200,
+        10430
+      ],
+      "size": [
+        500,
+        112
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "ver": "a253d47380b87a51df855650cc681734c97113b2",
+        "Node name for S&R": "RPGroupsMuter",
+        "hideNestedGroups": true,
+        "matchTitle": "",
+        "matchColors": "",
+        "showNav": true,
+        "sort": "position"
+      },
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 830,
+      "type": "UNETLoader",
+      "pos": [
+        -3500,
+        10530
+      ],
+      "size": [
+        500,
+        90
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            947
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "weight_dtype": "default"
+      },
+      "color": "#5e566b",
+      "bgcolor": "#4a4257"
+    },
+    {
+      "id": 831,
+      "type": "CLIPLoader",
+      "pos": [
+        -3500,
+        10930
+      ],
+      "size": [
+        500,
+        110
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            1005
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "minimax",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "type": "minimax",
+        "device": "default"
+      },
+      "color": "#766c3b",
+      "bgcolor": "#625827"
+    },
+    {
+      "id": 832,
+      "type": "LoraLoaderModelOnly",
+      "pos": [
+        -3500,
+        10730
+      ],
+      "size": [
+        500,
+        90
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 947
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1022
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "LoraLoaderModelOnly",
+        "models": [
+          {
+            "name": "pika_h3_flex_ref2va_v1_bf16.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/loras/pika_h3_flex_ref2va_v1_bf16.safetensors",
+            "directory": "loras"
+          }
+        ]
+      },
+      "widgets_values": [
+        "pika\\pika_h3_flex_ref2va_v1_bf16.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "pika\\pika_h3_flex_ref2va_v1_bf16.safetensors",
+        "strength_model": 1
+      },
+      "color": "#5e566b",
+      "bgcolor": "#4a4257"
+    },
+    {
+      "id": 833,
+      "type": "VAELoader",
+      "pos": [
+        -3500,
+        11130
+      ],
+      "size": [
+        500,
+        60
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            952,
+            1006
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "minimax_h3_video_vae_int8_convrot.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_int8_convrot.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_video_vae_int8_convrot.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "minimax_h3_video_vae_int8_convrot.safetensors"
+      },
+      "color": "#723f3f",
+      "bgcolor": "#5e2b2b"
+    },
+    {
+      "id": 834,
+      "type": "VAELoader",
+      "pos": [
+        -3500,
+        11240
+      ],
+      "size": [
+        500,
+        60
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            950,
+            1007
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "minimax_h3_audio_vae_fp32.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_audio_vae_fp32.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+      },
+      "color": "#723f3f",
+      "bgcolor": "#5e2b2b"
+    },
+    {
+      "id": 836,
+      "type": "MiniMaxH3ReferenceToVideo",
+      "pos": [
+        -1800,
+        10530
+      ],
+      "size": [
+        400,
+        510
+      ],
+      "flags": {},
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 1005
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 1006
+        },
+        {
+          "name": "audio_vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 1007
+        },
+        {
+          "label": "ref_image_0",
+          "name": "ref_images.ref_image_0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 1008
+        },
+        {
+          "label": "ref_image_1",
+          "name": "ref_images.ref_image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 1009
+        },
+        {
+          "name": "ref_images.ref_image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 1026
+        },
+        {
+          "name": "ref_images.ref_image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "ref_images.ref_image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "ref_video_0",
+          "name": "ref_videos.ref_video_0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 1010
+        },
+        {
+          "label": "ref_video_audio_0",
+          "name": "ref_video_audios.ref_video_audio_0",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "ref_video_audios.ref_video_audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "ref_video_audios.ref_video_audio_2",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "label": "ref_audio_0",
+          "name": "ref_audios.ref_audio_0",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "ref_audios.ref_audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "ref_audios.ref_audio_2",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 1011
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 1012
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 1013
+        },
+        {
+          "name": "length",
+          "type": "INT",
+          "widget": {
+            "name": "length"
+          },
+          "link": 1014
+        },
+        {
+          "name": "ref_videos.ref_video_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            954
+          ]
+        },
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            962
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+      },
+      "widgets_values": [
+        "",
+        1344,
+        768,
+        124,
+        "match"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "width": 1344,
+        "height": 768,
+        "length": 124,
+        "ref_image_size": "match"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 837,
+      "type": "LoadImage",
+      "pos": [
+        -2900,
+        11030
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1009
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "LoadImage (Picture 2)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "Tavola Concept della Geisha.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "Tavola Concept della Geisha.png",
+        "upload": "image"
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 838,
+      "type": "LoadImage",
+      "pos": [
+        -2900,
+        10530
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1008
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "LoadImage (Picture 1 — pilot)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "Agniled tiles.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "Agniled tiles.png",
+        "upload": "image"
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 839,
+      "type": "VAEDecodeAudio",
+      "pos": [
+        -600,
+        10730
+      ],
+      "size": [
+        230,
+        60
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 36,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 949
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 950
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            956
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "VAEDecodeAudio"
+      },
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 840,
+      "type": "VAEDecode",
+      "pos": [
+        -600,
+        10630
+      ],
+      "size": [
+        230,
+        60
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 37,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 951
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 952
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            955
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "VAEDecode"
+      },
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 841,
+      "type": "KSamplerSelect",
+      "pos": [
+        -1300,
+        10770
+      ],
+      "size": [
+        300,
+        60
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            960
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "lcm"
+      ],
+      "widgets_values_named": {
+        "sampler_name": "lcm"
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 842,
+      "type": "BasicGuider",
+      "pos": [
+        -1300,
+        10670
+      ],
+      "size": [
+        300,
+        50
+      ],
+      "flags": {},
+      "order": 34,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1022
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 954
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            959
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "BasicGuider"
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 843,
+      "type": "RandomNoise",
+      "pos": [
+        -1300,
+        10530
+      ],
+      "size": [
+        300,
+        90
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            958
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        261662374822964,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "noise_seed": 261662374822964,
+        "control_after_generate": "fixed"
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 844,
+      "type": "CreateVideo",
+      "pos": [
+        -300,
+        10630
+      ],
+      "size": [
+        300,
+        180
+      ],
+      "flags": {},
+      "order": 38,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 955
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 956
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            983,
+            1025
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        24,
+        8,
+        "sRGB",
+        "auto",
+        "none"
+      ],
+      "widgets_values_named": {
+        "fps": 24,
+        "bit_depth": 8,
+        "color_space": "sRGB",
+        "chroma_subsampling": "auto",
+        "codec": "none"
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 845,
+      "type": "ComfyMathExpression",
+      "pos": [
+        -2260,
+        11300
+      ],
+      "size": [
+        230,
+        130
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "a",
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 982
+        },
+        {
+          "label": "b",
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            1014
+          ]
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": [
+        "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17"
+      ],
+      "widgets_values_named": {
+        "expression": "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17"
+      },
+      "color": "#233",
+      "bgcolor": "#355"
+    },
+    {
+      "id": 846,
+      "type": "PrimitiveFloat",
+      "pos": [
+        -2400,
+        11130
+      ],
+      "size": [
+        300,
+        70
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": [
+            982
+          ]
+        }
+      ],
+      "title": "Float (Duration)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "PrimitiveFloat"
+      },
+      "widgets_values": [
+        9
+      ],
+      "widgets_values_named": {
+        "value": 9
+      },
+      "color": "#233",
+      "bgcolor": "#355"
+    },
+    {
+      "id": 847,
+      "type": "ManualSigmas",
+      "pos": [
+        -1300,
+        10880
+      ],
+      "size": [
+        300,
+        60
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            961
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "ManualSigmas"
+      },
+      "widgets_values": [
+        "1.0, 0.972973, 0.923077, 0.8, 0.571429, 0.333333, 0.0"
+      ],
+      "widgets_values_named": {
+        "sigmas": "1.0, 0.972973, 0.923077, 0.8, 0.571429, 0.333333, 0.0"
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 849,
+      "type": "SaveVideo",
+      "pos": [
+        100,
+        10730
+      ],
+      "size": [
+        1700,
+        1270
+      ],
+      "flags": {},
+      "order": 39,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 983
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "video/Pika_H3_Flex_REF2V",
+        "auto",
+        "auto",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "video/Pika_H3_Flex_REF2V",
+        "format": "auto",
+        "format.codec": "auto",
+        "codec": "auto"
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 850,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        -900,
+        10630
+      ],
+      "size": [
+        220,
+        110
+      ],
+      "flags": {},
+      "order": 35,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise",
+          "type": "NOISE",
+          "link": 958
+        },
+        {
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 959
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 960
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 961
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 962
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            949,
+            951
+          ]
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "SamplerCustomAdvanced"
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 851,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        -2400,
+        10530
+      ],
+      "size": [
+        500,
+        470
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            1011
+          ]
+        }
+      ],
+      "title": "Input Text (Prompt)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "\nsubject_definitions:\n\n<Picture 1> is the upscaled first frame of the original video, \"Agniled tiles\". It defines the exact opening composition, the male character's first-frame appearance, facial identity, hairstyle, armor, sword placement, forest environment, lighting, colors, perspective, and cinematic image quality.\n\n<Picture 2> is the Geisha Character Concept Sheet. It defines the female character's exact facial identity, anatomy, hairstyle, costume design, embroidery, colors, accessories, and proportions.\n\nCharacter 2 is a young Japanese geisha with delicate realistic facial features, fair natural skin, dark expressive eyes, straight bangs, and long jet-black hair tied into a high ponytail decorated with delicate gold floral ornaments.\n\nShe wears an elegant crimson-red traditional Japanese kimono with detailed floral embroidery, wide ivory-and-gold sleeves decorated with red flowers, a structured golden obi tied around her waist, and flowing layered fabric. Her exact appearance follows <Picture 2>.\n\n<Picture 3> is the Cinematic Samurai Character Concept Sheet. It defines the male character's complete identity, face, hairstyle, anatomy, armor construction, clothing materials, weapons, and physical proportions from multiple viewing angles.\n\nCharacter 1 is a young Japanese samurai with fair natural skin, messy medium-length black hair, realistic facial features, and a lean athletic physique.\n\nHe wears dark blue-black layered samurai armor with metallic segmented shoulder guards, riveted chest protection, dark fabric underlayers, leather straps, armored forearms, and a reinforced waist belt. Two sword hilts extend diagonally behind his shoulders.\n\nHis exact face, hairstyle, armor details, colors, proportions, and weapons follow <Picture 3>, while his opening appearance and environmental presentation follow <Picture 1>.\n\n<Video 1> is a selective-depth guide made from the original nine-second shot. The visible silhouettes of the armored samurai and the geisha are replaced with grayscale depth maps that describe their shape, motion, overlap and relative distance. The surrounding forest, trees, flames, haze and other unmasked pixels remain in the original full-color footage, including changes in lighting, parallax and framing. Use these original pixels as the visual reference for the scene.\n\n\nreference_priority:\n\nFollow <Video 1> for movement, choreography, body positioning, camera behavior, shot continuity and timing. Reconstruct natural colors, faces, hair, armor and textiles inside the two grayscale silhouettes using the corresponding picture references. Keep the live-action color background, its depth cues, and the timing and direction of changes in ambient light and firelight. Render fully textured live-action characters in every restored frame.\n\nUse <Picture 1> as the primary visual reference for the opening frame, establishing the samurai's appearance and the forest environment.\n\nUse <Picture 2> as the definitive identity and costume reference for Character 2 throughout the entire sequence.\n\nUse <Picture 3> as the definitive character-design and armor reference for Character 1 throughout the entire sequence.\n\nThe concept sheets are identity references, not additional shots or chronological keyframes.\n\nCharacter 1 must always remain the same samurai from <Picture 3>, visually consistent with the man shown in <Picture 1>.\n\nCharacter 2 must always remain the same geisha from <Picture 2>.\n\nPreserve the exact sequence of actions from <Video 1> without introducing alternative movements, additional events, or different choreography.\n\n\ncamera_and_continuity:\n\nSingle continuous shot following the nine-second source action.\n\nThe entire sequence is one uninterrupted cinematic shot, following the original video from its first frame to its final frame.\n\nPreserve the original camera trajectory, framing changes, relative distances, character movements, and spatial relationships.\n\nAll transitions between body positions must happen through continuous physical movement.\n\nThe video is presented in smooth cinematic slow motion.\n\nMovement remains temporally continuous, with natural intermediate poses and physically coherent transitions.\n\nSlow motion must never produce frozen characters, repeated poses, stuttering, frame skipping, jerky animation, or sudden changes in playback speed.\n\nPreserve the original action timing over the full 9 seconds. Do not compress the choreography into a shorter interval.\n\nMaintain the continuous environmental background and the exact character interaction established by <Video 1>.\n\n\nenvironment_definition:\n\nA photorealistic Japanese forest with tall ancient trees, textured bark, green foliage, moss-covered roots, scattered leaves, and soft atmospheric haze.\n\nThe forest has muted natural green and brown tones, realistic depth, and soft diffused daylight filtering through the trees.\n\nBehind the samurai, several bright orange flames burn among wooden structures and branches, creating warm flickering highlights against the cooler woodland environment.\n\nThe opening environment must closely reproduce <Picture 1>, including the placement of the trees, background fires, forest floor, atmospheric perspective, and overall lighting.\n\nThroughout the scene, preserve realistic firelight, natural skin tones, detailed metallic armor reflections, physically accurate fabric materials, and subtle atmospheric movement.\n\n\nsummary:\n\n[video restoration]\n\nRestore <Video 1> into a photorealistic cinematic Japanese fantasy shot. Rebuild the characters from their selective depth silhouettes, using <Picture 1> for the opening composition, <Picture 2> for the geisha and <Picture 3> for the samurai. Retain the original forest, fire, lighting changes and camera movement visible in the color portions of <Video 1>.\n\nThe video begins with the samurai standing alone in the forest, matching the opening composition and visual appearance of <Picture 1>.\n\nThe geisha from <Picture 2> rapidly enters the frame from the left and approaches him.\n\nShe places her hands against his upper body and climbs onto his back, causing him to bend forward under her weight.\n\nTheir bodies move together through a continuous, physically believable transfer of momentum and weight.\n\nThe geisha gradually settles into a stable piggyback position, while the samurai adjusts his posture and begins carrying her forward.\n\nThe final portion shows the samurai moving through the forest with the geisha on his back.\n\nThe entire 9-second sequence must preserve the original choreography while exhibiting smooth, fluid slow-motion animation and stable photorealistic character identities.\n\n\ndetailed_description:\n\n[00:00–00:00.50]\n\nThe sequence opens with Character 1 standing alone in the forest, matching <Picture 1> as closely as possible.\n\nHe occupies the central foreground, wearing his detailed dark segmented samurai armor, with two sword hilts visible behind his shoulders.\n\nHis messy black hair frames his face, and his expression is tense and alert.\n\nHis gaze is directed slightly toward the left side of the frame.\n\nThe background contains tall trees, atmospheric forest haze, and bright orange flames burning among wooden structures.\n\nThe camera maintains the opening composition and perspective defined by <Video 1>.\n\nCharacter 1 remains naturally alive with subtle breathing, minimal posture adjustments, and slight hair movement.\n\n\n[00:00.50–00:01.50]\n\nCharacter 2 enters rapidly from the left foreground, following the exact entrance trajectory of <Video 1>.\n\nHer appearance perfectly matches <Picture 2>: long black ponytail, ornamental hair accessories, crimson kimono, embroidered ivory sleeves, and golden obi.\n\nHer sleeves and hair flow naturally with her forward momentum.\n\nShe approaches Character 1 and extends her arms toward his upper torso and shoulders.\n\nHer hands make physical contact with his chest and shoulder armor.\n\nCharacter 1 reacts with surprise and begins adjusting his balance.\n\nHis head and shoulders respond naturally to her arrival.\n\nThe interaction remains continuous, with clear contact between her hands and his armor.\n\n\n[00:01.50–00:03.00]\n\nCharacter 2 continues moving around and onto Character 1, following the precise choreography of <Video 1>.\n\nShe uses his shoulders and upper torso for support while transferring her body weight toward his back.\n\nCharacter 1 bends forward progressively under her momentum.\n\nHis shoulders lower, his torso leans forward, and his knees flex to maintain balance.\n\nThe geisha's kimono sleeves, layered skirt, ponytail, and golden sash respond naturally to the movement.\n\nHer hands maintain believable physical contact with the samurai.\n\nThe weight transfer is gradual and continuous, with realistic body mechanics and no sudden changes in position.\n\nThe camera preserves the original framing evolution.\n\n\n[00:03.00–00:04.50]\n\nCharacter 2 climbs fully onto Character 1's back.\n\nHer torso moves across his upper back as she temporarily assumes the forward-leaning, nearly horizontal carrying position visible in <Video 1>.\n\nHer long ponytail swings outward with the motion, while the crimson kimono flows around her legs.\n\nCharacter 1 bends deeply forward to accommodate her weight.\n\nHis armored shoulders and torso move naturally under the pressure, while his legs stabilize the combined weight of both characters.\n\nThe movement remains a single continuous physical interaction.\n\nPreserve the exact relative positioning of the two characters, including their contact points, arm placements, and body orientation.\n\nThe swords and armor remain correctly attached to Character 1.\n\n\n[00:04.50–00:05.80]\n\nCharacter 2 continues adjusting her position across Character 1's upper back.\n\nHer body gradually transitions from the nearly horizontal draped position into a more secure piggyback arrangement.\n\nShe lifts her upper torso slightly and shifts her weight toward his shoulders.\n\nHer arms establish a stable grip around his upper body.\n\nCharacter 1 remains bent forward, supporting her while making small, physically realistic adjustments to his stance.\n\nHer long black hair swings naturally, with continuous flowing motion.\n\nThe embroidered kimono fabric folds and slides naturally over the samurai's armor, maintaining consistent clothing geometry.\n\nThe physical contact between their bodies remains stable and anatomically convincing.\n\n\n[00:05.80–00:06.80]\n\nCharacter 1 begins rising slightly from his deeply bent position, while still leaning forward under Character 2's weight.\n\nCharacter 2 settles higher on his back and wraps her arms securely around his shoulders.\n\nHer legs hang naturally along his sides, with her crimson kimono draping over his armor.\n\nCharacter 1 adjusts his shoulders, hips, and balance to support her.\n\nHis expression conveys physical effort and concentration.\n\nCharacter 2 remains securely positioned behind and above him, maintaining the exact relationship defined by <Video 1>.\n\nThe transition into the established piggyback position is smooth and continuous.\n\n\n[00:06.80–00:09.00]\n\nCharacter 1 begins moving forward through the forest while carrying Character 2 on his back.\n\nThe camera follows the movement established by <Video 1>, maintaining a progressively closer view of both characters.\n\nCharacter 1 remains slightly hunched forward under her weight.\n\nHis movements produce subtle natural vertical body motion.\n\nCharacter 2 stays securely on his back, her hands resting around his shoulders and upper chest.\n\nHer long black ponytail swings with each movement, and her embroidered crimson kimono responds with realistic fabric inertia.\n\nThe samurai's shoulder armor, leather straps, and sword hilts remain stable and anatomically consistent.\n\nBoth characters preserve their identities and costume details from <Picture 2> and <Picture 3>.\n\nTheir expressions remain natural, with Character 1 appearing focused and physically strained while Character 2 concentrates on maintaining her balance.\n\nThe camera continues its original tracking movement, keeping both characters prominent as the forest and distant flames remain visible behind them.\n\nThe final frame preserves the ongoing forward carrying motion without introducing a cut, an abrupt stop, or a new action.\n\n\noverall_quality_requirements:\n\nHigh-end photorealistic cinematic video restoration.\n\nPreserve the exact 9-second choreography and continuous camera motion of <Video 1>.\n\nMaintain stable facial identities and consistent anatomy for both characters.\n\nReproduce Character 1's detailed dark samurai armor from <Picture 3>, including metallic plates, rivets, leather straps, fabric layers, and sword placement.\n\nReproduce Character 2's crimson kimono from <Picture 2>, including floral embroidery, ivory sleeves, golden obi, ornamental hair accessories, and long black ponytail.\n\nMaintain realistic skin texture, natural facial expressions, coherent lighting, and physically accurate materials.\n\nEvery body movement must respect balance, gravity, inertia, and weight transfer.\n\nThe geisha must remain in convincing physical contact with the samurai throughout the climbing and carrying sequence.\n\nAvoid body intersections, limb duplication, facial distortion, costume morphing, disappearing weapons, or floating body parts.\n\nPreserve the natural forest environment, cinematic atmospheric depth, and realistic background firelight.\n\n\ncamera_and_motion:\n\nFollow the exact camera behavior and framing progression of <Video 1>.\n\nMaintain a single uninterrupted shot from the opening samurai-focused composition through the geisha's entrance, climbing movement, and final carrying sequence.\n\nAll camera movement must be smooth and temporally consistent.\n\nUse fluid cinematic slow motion throughout the full 9 seconds.\n\nEvery movement must contain natural intermediate transitions, including subtle breathing, realistic balance corrections, continuous arm movement, flowing hair, and physically coherent fabric motion.\n\nSlow motion must retain a convincing sense of weight and momentum.\n\nThe samurai's forward movement and the geisha's secondary body motion must remain synchronized.\n\nNo temporal freezing, duplicate frames, strobing, erratic interpolation, unnatural motion trails, or abrupt acceleration.\n\nNo hard cuts, no sudden camera repositioning, no scene transitions.\n\n\nfinal_goal:\n\nA restored 9-second photorealistic cinematic fantasy video that precisely follows the original sequence of <Video 1>, beginning with the samurai visually matching <Picture 1>, preserving his identity and armor from <Picture 3>, introducing the geisha from <Picture 2>, and reconstructing her entire climbing movement and subsequent piggyback carrying sequence with realistic physical interaction.\n\nThe finished video must achieve smooth, continuous, natural cinematic slow motion, stable character identities, faithful choreography, realistic environmental lighting, and complete temporal continuity from the first frame to the last.\n"
+      ],
+      "widgets_values_named": {
+        "value": "\nsubject_definitions:\n\n<Picture 1> is the upscaled first frame of the original video, \"Agniled tiles\". It defines the exact opening composition, the male character's first-frame appearance, facial identity, hairstyle, armor, sword placement, forest environment, lighting, colors, perspective, and cinematic image quality.\n\n<Picture 2> is the Geisha Character Concept Sheet. It defines the female character's exact facial identity, anatomy, hairstyle, costume design, embroidery, colors, accessories, and proportions.\n\nCharacter 2 is a young Japanese geisha with delicate realistic facial features, fair natural skin, dark expressive eyes, straight bangs, and long jet-black hair tied into a high ponytail decorated with delicate gold floral ornaments.\n\nShe wears an elegant crimson-red traditional Japanese kimono with detailed floral embroidery, wide ivory-and-gold sleeves decorated with red flowers, a structured golden obi tied around her waist, and flowing layered fabric. Her exact appearance follows <Picture 2>.\n\n<Picture 3> is the Cinematic Samurai Character Concept Sheet. It defines the male character's complete identity, face, hairstyle, anatomy, armor construction, clothing materials, weapons, and physical proportions from multiple viewing angles.\n\nCharacter 1 is a young Japanese samurai with fair natural skin, messy medium-length black hair, realistic facial features, and a lean athletic physique.\n\nHe wears dark blue-black layered samurai armor with metallic segmented shoulder guards, riveted chest protection, dark fabric underlayers, leather straps, armored forearms, and a reinforced waist belt. Two sword hilts extend diagonally behind his shoulders.\n\nHis exact face, hairstyle, armor details, colors, proportions, and weapons follow <Picture 3>, while his opening appearance and environmental presentation follow <Picture 1>.\n\n<Video 1> is a selective-depth guide made from the original nine-second shot. The visible silhouettes of the armored samurai and the geisha are replaced with grayscale depth maps that describe their shape, motion, overlap and relative distance. The surrounding forest, trees, flames, haze and other unmasked pixels remain in the original full-color footage, including changes in lighting, parallax and framing. Use these original pixels as the visual reference for the scene.\n\n\nreference_priority:\n\nFollow <Video 1> for movement, choreography, body positioning, camera behavior, shot continuity and timing. Reconstruct natural colors, faces, hair, armor and textiles inside the two grayscale silhouettes using the corresponding picture references. Keep the live-action color background, its depth cues, and the timing and direction of changes in ambient light and firelight. Render fully textured live-action characters in every restored frame.\n\nUse <Picture 1> as the primary visual reference for the opening frame, establishing the samurai's appearance and the forest environment.\n\nUse <Picture 2> as the definitive identity and costume reference for Character 2 throughout the entire sequence.\n\nUse <Picture 3> as the definitive character-design and armor reference for Character 1 throughout the entire sequence.\n\nThe concept sheets are identity references, not additional shots or chronological keyframes.\n\nCharacter 1 must always remain the same samurai from <Picture 3>, visually consistent with the man shown in <Picture 1>.\n\nCharacter 2 must always remain the same geisha from <Picture 2>.\n\nPreserve the exact sequence of actions from <Video 1> without introducing alternative movements, additional events, or different choreography.\n\n\ncamera_and_continuity:\n\nSingle continuous shot following the nine-second source action.\n\nThe entire sequence is one uninterrupted cinematic shot, following the original video from its first frame to its final frame.\n\nPreserve the original camera trajectory, framing changes, relative distances, character movements, and spatial relationships.\n\nAll transitions between body positions must happen through continuous physical movement.\n\nThe video is presented in smooth cinematic slow motion.\n\nMovement remains temporally continuous, with natural intermediate poses and physically coherent transitions.\n\nSlow motion must never produce frozen characters, repeated poses, stuttering, frame skipping, jerky animation, or sudden changes in playback speed.\n\nPreserve the original action timing over the full 9 seconds. Do not compress the choreography into a shorter interval.\n\nMaintain the continuous environmental background and the exact character interaction established by <Video 1>.\n\n\nenvironment_definition:\n\nA photorealistic Japanese forest with tall ancient trees, textured bark, green foliage, moss-covered roots, scattered leaves, and soft atmospheric haze.\n\nThe forest has muted natural green and brown tones, realistic depth, and soft diffused daylight filtering through the trees.\n\nBehind the samurai, several bright orange flames burn among wooden structures and branches, creating warm flickering highlights against the cooler woodland environment.\n\nThe opening environment must closely reproduce <Picture 1>, including the placement of the trees, background fires, forest floor, atmospheric perspective, and overall lighting.\n\nThroughout the scene, preserve realistic firelight, natural skin tones, detailed metallic armor reflections, physically accurate fabric materials, and subtle atmospheric movement.\n\n\nsummary:\n\n[video restoration]\n\nRestore <Video 1> into a photorealistic cinematic Japanese fantasy shot. Rebuild the characters from their selective depth silhouettes, using <Picture 1> for the opening composition, <Picture 2> for the geisha and <Picture 3> for the samurai. Retain the original forest, fire, lighting changes and camera movement visible in the color portions of <Video 1>.\n\nThe video begins with the samurai standing alone in the forest, matching the opening composition and visual appearance of <Picture 1>.\n\nThe geisha from <Picture 2> rapidly enters the frame from the left and approaches him.\n\nShe places her hands against his upper body and climbs onto his back, causing him to bend forward under her weight.\n\nTheir bodies move together through a continuous, physically believable transfer of momentum and weight.\n\nThe geisha gradually settles into a stable piggyback position, while the samurai adjusts his posture and begins carrying her forward.\n\nThe final portion shows the samurai moving through the forest with the geisha on his back.\n\nThe entire 9-second sequence must preserve the original choreography while exhibiting smooth, fluid slow-motion animation and stable photorealistic character identities.\n\n\ndetailed_description:\n\n[00:00–00:00.50]\n\nThe sequence opens with Character 1 standing alone in the forest, matching <Picture 1> as closely as possible.\n\nHe occupies the central foreground, wearing his detailed dark segmented samurai armor, with two sword hilts visible behind his shoulders.\n\nHis messy black hair frames his face, and his expression is tense and alert.\n\nHis gaze is directed slightly toward the left side of the frame.\n\nThe background contains tall trees, atmospheric forest haze, and bright orange flames burning among wooden structures.\n\nThe camera maintains the opening composition and perspective defined by <Video 1>.\n\nCharacter 1 remains naturally alive with subtle breathing, minimal posture adjustments, and slight hair movement.\n\n\n[00:00.50–00:01.50]\n\nCharacter 2 enters rapidly from the left foreground, following the exact entrance trajectory of <Video 1>.\n\nHer appearance perfectly matches <Picture 2>: long black ponytail, ornamental hair accessories, crimson kimono, embroidered ivory sleeves, and golden obi.\n\nHer sleeves and hair flow naturally with her forward momentum.\n\nShe approaches Character 1 and extends her arms toward his upper torso and shoulders.\n\nHer hands make physical contact with his chest and shoulder armor.\n\nCharacter 1 reacts with surprise and begins adjusting his balance.\n\nHis head and shoulders respond naturally to her arrival.\n\nThe interaction remains continuous, with clear contact between her hands and his armor.\n\n\n[00:01.50–00:03.00]\n\nCharacter 2 continues moving around and onto Character 1, following the precise choreography of <Video 1>.\n\nShe uses his shoulders and upper torso for support while transferring her body weight toward his back.\n\nCharacter 1 bends forward progressively under her momentum.\n\nHis shoulders lower, his torso leans forward, and his knees flex to maintain balance.\n\nThe geisha's kimono sleeves, layered skirt, ponytail, and golden sash respond naturally to the movement.\n\nHer hands maintain believable physical contact with the samurai.\n\nThe weight transfer is gradual and continuous, with realistic body mechanics and no sudden changes in position.\n\nThe camera preserves the original framing evolution.\n\n\n[00:03.00–00:04.50]\n\nCharacter 2 climbs fully onto Character 1's back.\n\nHer torso moves across his upper back as she temporarily assumes the forward-leaning, nearly horizontal carrying position visible in <Video 1>.\n\nHer long ponytail swings outward with the motion, while the crimson kimono flows around her legs.\n\nCharacter 1 bends deeply forward to accommodate her weight.\n\nHis armored shoulders and torso move naturally under the pressure, while his legs stabilize the combined weight of both characters.\n\nThe movement remains a single continuous physical interaction.\n\nPreserve the exact relative positioning of the two characters, including their contact points, arm placements, and body orientation.\n\nThe swords and armor remain correctly attached to Character 1.\n\n\n[00:04.50–00:05.80]\n\nCharacter 2 continues adjusting her position across Character 1's upper back.\n\nHer body gradually transitions from the nearly horizontal draped position into a more secure piggyback arrangement.\n\nShe lifts her upper torso slightly and shifts her weight toward his shoulders.\n\nHer arms establish a stable grip around his upper body.\n\nCharacter 1 remains bent forward, supporting her while making small, physically realistic adjustments to his stance.\n\nHer long black hair swings naturally, with continuous flowing motion.\n\nThe embroidered kimono fabric folds and slides naturally over the samurai's armor, maintaining consistent clothing geometry.\n\nThe physical contact between their bodies remains stable and anatomically convincing.\n\n\n[00:05.80–00:06.80]\n\nCharacter 1 begins rising slightly from his deeply bent position, while still leaning forward under Character 2's weight.\n\nCharacter 2 settles higher on his back and wraps her arms securely around his shoulders.\n\nHer legs hang naturally along his sides, with her crimson kimono draping over his armor.\n\nCharacter 1 adjusts his shoulders, hips, and balance to support her.\n\nHis expression conveys physical effort and concentration.\n\nCharacter 2 remains securely positioned behind and above him, maintaining the exact relationship defined by <Video 1>.\n\nThe transition into the established piggyback position is smooth and continuous.\n\n\n[00:06.80–00:09.00]\n\nCharacter 1 begins moving forward through the forest while carrying Character 2 on his back.\n\nThe camera follows the movement established by <Video 1>, maintaining a progressively closer view of both characters.\n\nCharacter 1 remains slightly hunched forward under her weight.\n\nHis movements produce subtle natural vertical body motion.\n\nCharacter 2 stays securely on his back, her hands resting around his shoulders and upper chest.\n\nHer long black ponytail swings with each movement, and her embroidered crimson kimono responds with realistic fabric inertia.\n\nThe samurai's shoulder armor, leather straps, and sword hilts remain stable and anatomically consistent.\n\nBoth characters preserve their identities and costume details from <Picture 2> and <Picture 3>.\n\nTheir expressions remain natural, with Character 1 appearing focused and physically strained while Character 2 concentrates on maintaining her balance.\n\nThe camera continues its original tracking movement, keeping both characters prominent as the forest and distant flames remain visible behind them.\n\nThe final frame preserves the ongoing forward carrying motion without introducing a cut, an abrupt stop, or a new action.\n\n\noverall_quality_requirements:\n\nHigh-end photorealistic cinematic video restoration.\n\nPreserve the exact 9-second choreography and continuous camera motion of <Video 1>.\n\nMaintain stable facial identities and consistent anatomy for both characters.\n\nReproduce Character 1's detailed dark samurai armor from <Picture 3>, including metallic plates, rivets, leather straps, fabric layers, and sword placement.\n\nReproduce Character 2's crimson kimono from <Picture 2>, including floral embroidery, ivory sleeves, golden obi, ornamental hair accessories, and long black ponytail.\n\nMaintain realistic skin texture, natural facial expressions, coherent lighting, and physically accurate materials.\n\nEvery body movement must respect balance, gravity, inertia, and weight transfer.\n\nThe geisha must remain in convincing physical contact with the samurai throughout the climbing and carrying sequence.\n\nAvoid body intersections, limb duplication, facial distortion, costume morphing, disappearing weapons, or floating body parts.\n\nPreserve the natural forest environment, cinematic atmospheric depth, and realistic background firelight.\n\n\ncamera_and_motion:\n\nFollow the exact camera behavior and framing progression of <Video 1>.\n\nMaintain a single uninterrupted shot from the opening samurai-focused composition through the geisha's entrance, climbing movement, and final carrying sequence.\n\nAll camera movement must be smooth and temporally consistent.\n\nUse fluid cinematic slow motion throughout the full 9 seconds.\n\nEvery movement must contain natural intermediate transitions, including subtle breathing, realistic balance corrections, continuous arm movement, flowing hair, and physically coherent fabric motion.\n\nSlow motion must retain a convincing sense of weight and momentum.\n\nThe samurai's forward movement and the geisha's secondary body motion must remain synchronized.\n\nNo temporal freezing, duplicate frames, strobing, erratic interpolation, unnatural motion trails, or abrupt acceleration.\n\nNo hard cuts, no sudden camera repositioning, no scene transitions.\n\n\nfinal_goal:\n\nA restored 9-second photorealistic cinematic fantasy video that precisely follows the original sequence of <Video 1>, beginning with the samurai visually matching <Picture 1>, preserving his identity and armor from <Picture 3>, introducing the geisha from <Picture 2>, and reconstructing her entire climbing movement and subsequent piggyback carrying sequence with realistic physical interaction.\n\nThe finished video must achieve smooth, continuous, natural cinematic slow motion, stable character identities, faithful choreography, realistic environmental lighting, and complete temporal continuity from the first frame to the last.\n"
+      },
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 853,
+      "type": "ImageScaleToTotalPixels",
+      "pos": [
+        -2400,
+        11530
+      ],
+      "size": [
+        300,
+        110
+      ],
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "showAdvanced": true,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1023
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1028,
+            1030
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "ImageScaleToTotalPixels"
+      },
+      "widgets_values": [
+        "nearest-exact",
+        0.4,
+        32
+      ],
+      "widgets_values_named": {
+        "upscale_method": "nearest-exact",
+        "megapixels": 0.4,
+        "resolution_steps": 32
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159",
+      "title": "Reference video resolution"
+    },
+    {
+      "id": 857,
+      "type": "RPSelectiveVideoInput",
+      "pos": [
+        -3500,
+        11530
+      ],
+      "size": [
+        480,
+        130
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": []
+        },
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "links": [
+            1023,
+            1027
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "Node name for S&R": "RPSelectiveVideoInput"
+      },
+      "widgets_values": [
+        "Samurai.mp4",
+        "{\"video\":\"Samurai.mp4\",\"layers\":[{\"text\":\"armored samurai\",\"frame\":22,\"threshold\":0.45,\"preprocessor\":\"depth\",\"color\":\"#1678ff\",\"instances\":[0]},{\"text\":\"woman in a red kimono\",\"frame\":22,\"threshold\":0.45,\"preprocessor\":\"depth\",\"color\":\"#ff6d32\",\"instances\":[0]}]}",
+        "image"
+      ],
+      "widgets_values_named": {
+        "video": "Samurai.mp4",
+        "selections": "{\"video\":\"Samurai.mp4\",\"layers\":[{\"text\":\"armored samurai\",\"frame\":22,\"threshold\":0.45,\"preprocessor\":\"depth\",\"color\":\"#1678ff\",\"instances\":[0]},{\"text\":\"woman in a red kimono\",\"frame\":22,\"threshold\":0.45,\"preprocessor\":\"depth\",\"color\":\"#ff6d32\",\"instances\":[0]}]}",
+        "upload": "image"
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 858,
+      "type": "Label (rgthree)",
+      "pos": [
+        -3490,
+        11470
+      ],
+      "size": [
+        120.99609375,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 14,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Selective depth reference",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 859,
+      "type": "MarkdownNote",
+      "pos": [
+        -1300,
+        11530
+      ],
+      "size": [
+        300,
+        370
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Note: Size Settings Reference",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "| megapixels | Aspect | Output (multiple=32) |\n|---|---|---|\n| 0.2 | 16:9 | 608 x 352 |\n| 0.3 | 16:9 | 736 x 416 |\n| 0.4 | 16:9 | 864 x 480 |\n| 0.5 | 16:9 | 960 x 544 |\n| 0.6 | 16:9 | 1056 x 608 |\n| 0.7 | 16:9 | 1152 x 640 |\n| 0.8 | 16:9 | 1216 x 672 |\n| 0.9 | 16:9 | 1280 x 736 |\n| 0.98 | 16:9 | 1344 x 768 |\n| 1.0 | 16:9 | 1376 x 768 |\n| 1.2 | 16:9 | 1504 x 832 |\n| 1.5 | 16:9 | 1664 x 928 |\n| 1.8 | 16:9 | 1824 x 1024 |\n| 2.0 | 16:9 | 1920 x 1088 |\n"
+      ],
+      "widgets_values_named": {
+        "text": "| megapixels | Aspect | Output (multiple=32) |\n|---|---|---|\n| 0.2 | 16:9 | 608 x 352 |\n| 0.3 | 16:9 | 736 x 416 |\n| 0.4 | 16:9 | 864 x 480 |\n| 0.5 | 16:9 | 960 x 544 |\n| 0.6 | 16:9 | 1056 x 608 |\n| 0.7 | 16:9 | 1152 x 640 |\n| 0.8 | 16:9 | 1216 x 672 |\n| 0.9 | 16:9 | 1280 x 736 |\n| 0.98 | 16:9 | 1344 x 768 |\n| 1.0 | 16:9 | 1376 x 768 |\n| 1.2 | 16:9 | 1504 x 832 |\n| 1.5 | 16:9 | 1664 x 928 |\n| 1.8 | 16:9 | 1824 x 1024 |\n| 2.0 | 16:9 | 1920 x 1088 |\n"
+      },
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 860,
+      "type": "ImageScaleToTotalPixels",
+      "pos": [
+        -2000,
+        11730
+      ],
+      "size": [
+        300,
+        110
+      ],
+      "flags": {},
+      "order": 28,
+      "mode": 0,
+      "showAdvanced": true,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1024
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            969
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "ImageScaleToTotalPixels"
+      },
+      "widgets_values": [
+        "nearest-exact",
+        1,
+        32
+      ],
+      "widgets_values_named": {
+        "upscale_method": "nearest-exact",
+        "megapixels": 1,
+        "resolution_steps": 32
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 861,
+      "type": "GetImageSize",
+      "pos": [
+        -1600,
+        11730
+      ],
+      "size": [
+        200,
+        130
+      ],
+      "flags": {},
+      "order": 29,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 969
+        }
+      ],
+      "outputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            1012
+          ]
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            1013
+          ]
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "GetImageSize"
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 862,
+      "type": "Label (rgthree)",
+      "pos": [
+        -1990,
+        11670
+      ],
+      "size": [
+        113.40234375,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 16,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Resolution",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 864,
+      "type": "ImageFromBatch",
+      "title": "Frame for output sizing",
+      "pos": [
+        -2400,
+        11730
+      ],
+      "size": [
+        300,
+        90
+      ],
+      "flags": {},
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1027
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1024
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "ImageFromBatch"
+      },
+      "widgets_values": [
+        0,
+        1
+      ],
+      "widgets_values_named": {
+        "batch_index": 0,
+        "length": 1
+      },
+      "color": "#223",
+      "bgcolor": "#335"
+    },
+    {
+      "id": 865,
+      "type": "PlaySound|pysssss",
+      "pos": [
+        100,
+        10630
+      ],
+      "size": [
+        320,
+        110
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 40,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "any",
+          "name": "any",
+          "type": "*",
+          "link": 1025
+        }
+      ],
+      "outputs": [
+        {
+          "label": "*",
+          "name": "*",
+          "shape": 6,
+          "type": "*",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "9f7b3215e6af317603056a9a1666bf6e83e28835",
+        "Node name for S&R": "PlaySound|pysssss",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "always",
+        1,
+        "notify.mp3"
+      ],
+      "widgets_values_named": {
+        "mode": "always",
+        "volume": 1,
+        "file": "notify.mp3"
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 866,
+      "type": "LoadImage",
+      "pos": [
+        -1970,
+        11080
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1026
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "LoadImage (Picture 3)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "Tavola Concept del Samurai Cinematografico.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "Tavola Concept del Samurai Cinematografico.png",
+        "upload": "image"
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 1199,
+      "type": "Label (rgthree)",
+      "pos": [
+        -3490,
+        10470
+      ],
+      "size": [
+        77.3671875,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 18,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Models",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 1301,
+      "type": "Label (rgthree)",
+      "pos": [
+        -2390,
+        10470
+      ],
+      "size": [
+        77.35546875,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 19,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Prompt",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 1303,
+      "type": "Label (rgthree)",
+      "pos": [
+        -1790,
+        10470
+      ],
+      "size": [
+        133.4296875,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 20,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Conditioning",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 1306,
+      "type": "Label (rgthree)",
+      "pos": [
+        -1290,
+        10470
+      ],
+      "size": [
+        100.0546875,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 21,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Sampling",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 1309,
+      "type": "Label (rgthree)",
+      "pos": [
+        -590,
+        10570
+      ],
+      "size": [
+        101.40234375,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 22,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Decoding",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 1312,
+      "type": "Label (rgthree)",
+      "pos": [
+        -290,
+        10570
+      ],
+      "size": [
+        139.65234375,
+        24
+      ],
+      "flags": {
+        "allow_interaction": true
+      },
+      "order": 23,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Create Video",
+      "properties": {
+        "fontSize": 24,
+        "fontFamily": "Arial",
+        "fontColor": "#ffffff",
+        "textAlign": "left",
+        "backgroundColor": "transparent",
+        "padding": 0,
+        "borderRadius": 0,
+        "angle": 0
+      },
+      "color": "#fff0",
+      "bgcolor": "#fff0"
+    },
+    {
+      "id": 1313,
+      "type": "ImageFromBatch",
+      "title": "Last reference frame",
+      "pos": [
+        -2400,
+        11930
+      ],
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1028
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1029
+          ]
+        }
+      ],
+      "widgets_values": [
+        -1,
+        1
+      ],
+      "widgets_values_named": {
+        "batch_index": -1,
+        "length": 1
+      },
+      "size": [
+        320,
+        115
+      ],
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "ImageFromBatch"
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 1314,
+      "type": "RepeatImageBatch",
+      "title": "Tail padding for the H3 frame grid",
+      "pos": [
+        -2000,
+        11930
+      ],
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1029
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1031
+          ]
+        }
+      ],
+      "widgets_values": [
+        16
+      ],
+      "widgets_values_named": {
+        "amount": 16
+      },
+      "size": [
+        320,
+        115
+      ],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "RepeatImageBatch"
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 1315,
+      "type": "BatchImagesNode",
+      "title": "Reference frames with tail padding",
+      "pos": [
+        -1600,
+        11930
+      ],
+      "inputs": [
+        {
+          "name": "images.image0",
+          "type": "IMAGE",
+          "link": 1030
+        },
+        {
+          "name": "images.image1",
+          "type": "IMAGE",
+          "link": 1031
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1010
+          ]
+        }
+      ],
+      "size": [
+        320,
+        115
+      ],
+      "flags": {},
+      "order": 32,
+      "mode": 0,
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "BatchImagesNode"
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    }
+  ],
+  "links": [
+    [
+      947,
+      830,
+      0,
+      832,
+      0,
+      "MODEL"
+    ],
+    [
+      949,
+      850,
+      0,
+      839,
+      0,
+      "LATENT"
+    ],
+    [
+      950,
+      834,
+      0,
+      839,
+      1,
+      "VAE"
+    ],
+    [
+      951,
+      850,
+      0,
+      840,
+      0,
+      "LATENT"
+    ],
+    [
+      952,
+      833,
+      0,
+      840,
+      1,
+      "VAE"
+    ],
+    [
+      954,
+      836,
+      0,
+      842,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      955,
+      840,
+      0,
+      844,
+      0,
+      "IMAGE"
+    ],
+    [
+      956,
+      839,
+      0,
+      844,
+      1,
+      "AUDIO"
+    ],
+    [
+      958,
+      843,
+      0,
+      850,
+      0,
+      "NOISE"
+    ],
+    [
+      959,
+      842,
+      0,
+      850,
+      1,
+      "GUIDER"
+    ],
+    [
+      960,
+      841,
+      0,
+      850,
+      2,
+      "SAMPLER"
+    ],
+    [
+      961,
+      847,
+      0,
+      850,
+      3,
+      "SIGMAS"
+    ],
+    [
+      962,
+      836,
+      1,
+      850,
+      4,
+      "LATENT"
+    ],
+    [
+      969,
+      860,
+      0,
+      861,
+      0,
+      "IMAGE"
+    ],
+    [
+      1022,
+      832,
+      0,
+      842,
+      0,
+      "MODEL"
+    ],
+    [
+      1023,
+      857,
+      1,
+      853,
+      0,
+      "IMAGE"
+    ],
+    [
+      1024,
+      864,
+      0,
+      860,
+      0,
+      "IMAGE"
+    ],
+    [
+      1025,
+      844,
+      0,
+      865,
+      0,
+      "VIDEO"
+    ],
+    [
+      982,
+      846,
+      0,
+      845,
+      0,
+      "FLOAT"
+    ],
+    [
+      983,
+      844,
+      0,
+      849,
+      0,
+      "VIDEO"
+    ],
+    [
+      1005,
+      831,
+      0,
+      836,
+      0,
+      "CLIP"
+    ],
+    [
+      1006,
+      833,
+      0,
+      836,
+      1,
+      "VAE"
+    ],
+    [
+      1007,
+      834,
+      0,
+      836,
+      2,
+      "VAE"
+    ],
+    [
+      1008,
+      838,
+      0,
+      836,
+      3,
+      "IMAGE"
+    ],
+    [
+      1009,
+      837,
+      0,
+      836,
+      4,
+      "IMAGE"
+    ],
+    [
+      1026,
+      866,
+      0,
+      836,
+      5,
+      "IMAGE"
+    ],
+    [
+      1010,
+      1315,
+      0,
+      836,
+      8,
+      "IMAGE"
+    ],
+    [
+      1011,
+      851,
+      0,
+      836,
+      15,
+      "STRING"
+    ],
+    [
+      1012,
+      861,
+      0,
+      836,
+      16,
+      "INT"
+    ],
+    [
+      1013,
+      861,
+      1,
+      836,
+      17,
+      "INT"
+    ],
+    [
+      1014,
+      845,
+      1,
+      836,
+      18,
+      "INT"
+    ],
+    [
+      1027,
+      857,
+      1,
+      864,
+      0,
+      "IMAGE"
+    ],
+    [
+      1028,
+      853,
+      0,
+      1313,
+      0,
+      "IMAGE"
+    ],
+    [
+      1029,
+      1313,
+      0,
+      1314,
+      0,
+      "IMAGE"
+    ],
+    [
+      1030,
+      853,
+      0,
+      1315,
+      0,
+      "IMAGE"
+    ],
+    [
+      1031,
+      1314,
+      0,
+      1315,
+      1,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 33,
+      "title": "Pika H3 Flex: Reference to Video Restoration",
+      "bounding": [
+        -3600,
+        10400,
+        5500,
+        1800
+      ],
+      "color": "#8A8",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.59.11",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true,
+    "ds": {
+      "scale": 0.23092115320381812,
+      "offset": [
+        5441.671610086887,
+        -9077.29490249924
+      ]
+    }
+  },
+  "version": 0.4,
+  "seed_widgets": {
+    "843": 0
+  }
+}

@@ -1,8 +1,8 @@
 {
   "id": "cddd54c8-2732-44eb-b74e-3490f5748d3e",
   "revision": 2,
-  "last_node_id": 585,
-  "last_link_id": 614,
+  "last_node_id": 588,
+  "last_link_id": 615,
   "nodes": [
     {
       "id": 446,
@@ -3918,6 +3918,123 @@
       },
       "color": "#223",
       "bgcolor": "#335"
+    },
+    {
+      "id": 586,
+      "type": "Note",
+      "title": "RP Selective Video Input",
+      "pos": [
+        6100,
+        6950
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 88,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ENGLISH\nUpload a video, open Edit video selections, find a frame and detect a person or object by text. Choose a map and apply the layers. The selected silhouettes are tracked; the rest of the clip retains its source colors. Use the video socket to save the composite with audio.\n\nITALIANO\nCarica un video, apri Edit video selections, scegli un fotogramma e cerca una persona o un oggetto con una descrizione. Assegna una mappa e applica i livelli. Il nodo segue le sagome selezionate e conserva i colori originali fuori dalle maschere. L'uscita video conserva anche l'audio."
+      ],
+      "widgets_values_named": {
+        "text": "ENGLISH\nUpload a video, open Edit video selections, find a frame and detect a person or object by text. Choose a map and apply the layers. The selected silhouettes are tracked; the rest of the clip retains its source colors. Use the video socket to save the composite with audio.\n\nITALIANO\nCarica un video, apri Edit video selections, scegli un fotogramma e cerca una persona o un oggetto con una descrizione. Assegna una mappa e applica i livelli. Il nodo segue le sagome selezionate e conserva i colori originali fuori dalle maschere. L'uscita video conserva anche l'audio."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 587,
+      "type": "RPSelectiveVideoInput",
+      "pos": [
+        6600,
+        6950
+      ],
+      "size": [
+        480,
+        130
+      ],
+      "flags": {},
+      "order": 89,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            615
+          ]
+        },
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "raffaele-pet/ComfyUI-RPNodes",
+        "Node name for S&R": "RPSelectiveVideoInput"
+      },
+      "widgets_values": [
+        "Ada_Montage.mp4",
+        "{\"video\":\"Ada_Montage.mp4\",\"layers\":[]}",
+        "image"
+      ],
+      "widgets_values_named": {
+        "video": "Ada_Montage.mp4",
+        "selections": "{\"video\":\"Ada_Montage.mp4\",\"layers\":[]}",
+        "upload": "image"
+      },
+      "color": "#375570",
+      "bgcolor": "#23415c"
+    },
+    {
+      "id": 588,
+      "type": "SaveVideo",
+      "pos": [
+        7130,
+        6950
+      ],
+      "size": [
+        340,
+        190
+      ],
+      "flags": {},
+      "order": 90,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 615
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "rp_examples/selective_video",
+        "mp4",
+        "h264"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "rp_examples/selective_video",
+        "format": "mp4",
+        "format.codec": "h264"
+      }
     }
   ],
   "links": [
@@ -4392,6 +4509,14 @@
       547,
       1,
       "IMAGE"
+    ],
+    [
+      615,
+      587,
+      0,
+      588,
+      0,
+      "VIDEO"
     ]
   ],
   "groups": [
@@ -4595,6 +4720,18 @@
         4500,
         2200,
         600
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 20,
+      "title": "RP Selective Video Input",
+      "bounding": [
+        6000,
+        6820,
+        1570,
+        530
       ],
       "color": "#3f789e",
       "flags": {}

@@ -1,6 +1,6 @@
 # ComfyUI RPNodes
 
-Utility nodes for ComfyUI, listed in the same order as the example workflow:
+Utility nodes for ComfyUI:
 
 - [Image saving](#image-saving)
 - [Image sizing and resizing](#image-sizing-and-resizing)
@@ -8,7 +8,7 @@ Utility nodes for ComfyUI, listed in the same order as the example workflow:
 - [Face detection](#face-detection)
 - [Image folder processing](#image-folder-processing)
 - [Video frame processing](#video-frame-processing)
-- [MiniMax H3 keyframes](#minimax-h3-keyframes)
+- [Video conditioning](#video-conditioning)
 
 ## Image saving
 
@@ -229,7 +229,7 @@ Saves the processed frames and rebuilds the video with its original frame rate
 and optional source audio. It also provides an in-node preview. Existing videos
 receive a numbered filename unless `overwrite` is enabled.
 
-## MiniMax H3 keyframes
+## Video conditioning
 
 ### RP H3-Keyframes
 
@@ -240,6 +240,37 @@ The images are distributed automatically across the video duration, with up to
 The node needs H3 conditioning, its video VAE, and the AV latent. It returns
 conditioning with the connected keyframes in order. Each image input accepts
 one still image; images can be fitted by centered cropping or stretching.
+
+### RP Selective Video Input
+
+Choose or upload a video, open **Edit video selections**, and scrub to a frame
+that clearly shows the subject. Enter a short noun phrase and click **Detect**.
+Check the matching instances, assign **Depth**, **Canny**, **OpenPose**, or
+**Color segmentation** (the default), then click **Add layer** and **Apply
+selections**. The workflow saves each layer with its anchor and optional
+tracking range. For a hard cut, you can anchor a new layer on the other shot and
+limit both ranges to their respective shots. Lower layers in the list take
+precedence where masks overlap.
+
+SAM 3.1 tracks the selected instances forward and backward from their anchor.
+The node computes each requested map once per source frame and applies it
+only within the corresponding silhouettes. The `frames` output is an IMAGE
+batch, and `video` carries the source audio and frame rate. ComfyUI's component
+video output uses the average frame rate when exporting variable-rate sources.
+
+Requires ComfyUI with native SAM 3.1 nodes and
+[`sam3.1_multiplex_fp16.safetensors`](https://huggingface.co/Comfy-Org/sam3.1/tree/main/checkpoints)
+in `ComfyUI/models/checkpoints`. Depth and OpenPose also use
+[comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux)
+and its Depth Anything V2 Large and OpenPose weights. Canny and color
+segmentation use ComfyUI and SAM 3.1 alone.
+
+The [Pika restoration workflow](./example_workflows/Pika%20H3%20Flex%20-%20Reference%20to%20Video%20Restoration%20%28Selective%20Depth%29.json)
+applies depth to the samurai and geisha in `Samurai.mp4` and uses the original RGB
+background as part of the H3 reference. It expects the source video, the
+three reference images, and the H3 and Pika model files named by the workflow.
+The reference branch repeats the final frame to fit H3's temporal grid so that
+H3 keeps the source's final frames.
 
 ## Installation
 
@@ -256,7 +287,7 @@ the node search.
 ## Example workflow
 
 [`RP_All_Nodes_Examples.json`](./example_workflows/RP_All_Nodes_Examples.json)
-contains all 17 RP nodes in 15 example groups, in the same order as this README.
+contains an example for each RP node.
 Each group has a short English and Italian note describing its purpose.
 
 Load the JSON through ComfyUI's workflow menu or drag it onto the canvas.

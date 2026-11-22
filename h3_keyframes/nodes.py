@@ -102,7 +102,7 @@ class RPH3Keyframes(io.ComfyNode):
         return io.Schema(
             node_id="RPH3Keyframes",
             display_name="RP H3-Keyframes",
-            category="RP/MiniMax H3",
+            category="RP/Video Conditioning",
             description=(
                 "Adds an ordered sequence of still-image keyframes to MiniMax "
                 "H3 conditioning with automatically growing image inputs."
