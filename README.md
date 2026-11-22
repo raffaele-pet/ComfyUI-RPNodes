@@ -244,20 +244,22 @@ one still image; images can be fitted by centered cropping or stretching.
 ### RP Selective Video Input
 
 Choose or upload a video, open **Edit video selections**, and click **New
-group**. The group opens with its settings ready to edit. Scrub to a frame,
-enter a description, click **Detect**, and add the matching masks. The first
-search supplies the group name, and the first saved selection keeps it.
-For example, detect an armored person and two sword hilts separately and add
-both selections to the same group. Each group has one preprocessor (Depth,
-Canny, OpenPose or Segmentation), color and mask expansion. Segmentation uses
-the group color. **Fill holes** is enabled by default and closes enclosed gaps
-before mask expansion, which defaults to **10 source pixels**.
+group**. Scrub to a frame, enter a description, and click **Detect** to save the
+matching masks. The first match names the group and enables renaming. Use the
+mask checkboxes to keep the matches you want. **Add selection** opens a new
+description in the same group, for example to add sword hilts to an armored
+person. Click a saved selection to reopen it at its anchor frame.
+
+Each group has one preprocessor (Depth, Canny, OpenPose or Segmentation), color
+and mask expansion. Click **Detect** again to apply changes to the settings.
+The group color updates as you pick it. Segmentation uses this color.
+**Fill holes** is enabled by default and closes enclosed gaps before mask
+expansion, which defaults to **10 source pixels**.
 
 Saved masks stay visible on their anchor frames. Use the × on an anchor marker
-to remove the selections made on that frame. **Check** runs detection on the
-current frame. **Check group** uses the approved masks to guide that detection
-through the existing tracking preview or the path from each anchor to the
-current frame.
+to remove the selections made on that frame. **Check group** uses the approved
+masks to guide detection on the current frame through the existing tracking
+preview or the path from each anchor.
 
 Run **Track & preview** to inspect the propagated masks across the clip. After
 **Apply selections**, play, pause, or scrub the tracked preview directly on the
