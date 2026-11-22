@@ -3938,10 +3938,10 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "ENGLISH\nUpload a video, open Edit video selections, find a frame and detect a person or object by text. Choose a map and apply the layers. The selected silhouettes are tracked; the rest of the clip retains its source colors. Use the video socket to save the composite with audio.\n\nITALIANO\nCarica un video, apri Edit video selections, scegli un fotogramma e cerca una persona o un oggetto con una descrizione. Assegna una mappa e applica i livelli. Il nodo segue le sagome selezionate e conserva i colori originali fuori dalle maschere. L'uscita video conserva anche l'audio."
+        "ENGLISH\nUpload a video and open Edit video selections. Detect a person or object in a frame, then add it to a group. Each group shares its map and mask expansion. Select Track & preview to check the group masks across the clip. Apply selections and use the video socket to save the composite with audio.\n\nITALIANO\nCarica un video e apri Edit video selections. Cerca una persona o un oggetto in un fotogramma e aggiungilo a un gruppo. Il gruppo condivide mappa e margine della maschera. Usa Track & preview per controllare le sagome negli altri fotogrammi. Applica le selezioni e usa l'uscita video per salvare il composito con audio."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\nUpload a video, open Edit video selections, find a frame and detect a person or object by text. Choose a map and apply the layers. The selected silhouettes are tracked; the rest of the clip retains its source colors. Use the video socket to save the composite with audio.\n\nITALIANO\nCarica un video, apri Edit video selections, scegli un fotogramma e cerca una persona o un oggetto con una descrizione. Assegna una mappa e applica i livelli. Il nodo segue le sagome selezionate e conserva i colori originali fuori dalle maschere. L'uscita video conserva anche l'audio."
+        "text": "ENGLISH\nUpload a video and open Edit video selections. Detect a person or object in a frame, then add it to a group. Each group shares its map and mask expansion. Select Track & preview to check the group masks across the clip. Apply selections and use the video socket to save the composite with audio.\n\nITALIANO\nCarica un video e apri Edit video selections. Cerca una persona o un oggetto in un fotogramma e aggiungilo a un gruppo. Il gruppo condivide mappa e margine della maschera. Usa Track & preview per controllare le sagome negli altri fotogrammi. Applica le selezioni e usa l'uscita video per salvare il composito con audio."
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -3981,12 +3981,12 @@
       },
       "widgets_values": [
         "Ada_Montage.mp4",
-        "{\"video\":\"Ada_Montage.mp4\",\"layers\":[]}",
+        "{\"version\":2,\"video\":\"Ada_Montage.mp4\",\"groups\":[]}",
         "image"
       ],
       "widgets_values_named": {
         "video": "Ada_Montage.mp4",
-        "selections": "{\"video\":\"Ada_Montage.mp4\",\"layers\":[]}",
+        "selections": "{\"version\":2,\"video\":\"Ada_Montage.mp4\",\"groups\":[]}",
         "upload": "image"
       },
       "color": "#375570",

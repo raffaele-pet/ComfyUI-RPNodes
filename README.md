@@ -243,20 +243,26 @@ one still image; images can be fitted by centered cropping or stretching.
 
 ### RP Selective Video Input
 
-Choose or upload a video, open **Edit video selections**, and scrub to a frame
-that clearly shows the subject. Enter a short noun phrase and click **Detect**.
-Check the matching instances, assign **Depth**, **Canny**, **OpenPose**, or
-**Color segmentation** (the default), then click **Add layer** and **Apply
-selections**. The workflow saves each layer with its anchor and optional
-tracking range. For a hard cut, you can anchor a new layer on the other shot and
-limit both ranges to their respective shots. Lower layers in the list take
-precedence where masks overlap.
+Choose or upload a video and open **Edit video selections**. Scrub to a frame,
+enter a description, click **Detect**, and add the checked instances to a group.
+For example, detect an armored person and two sword hilts separately and add
+both selections to the same group. Each group has one preprocessor (Depth,
+Canny, OpenPose or Segmentation), color and mask expansion. Segmentation uses
+the group color. Expansion defaults to **10 source pixels**.
 
-SAM 3.1 tracks the selected instances forward and backward from their anchor.
-The node computes each requested map once per source frame and applies it
-only within the corresponding silhouettes. The `frames` output is an IMAGE
-batch, and `video` carries the source audio and frame rate. ComfyUI's component
-video output uses the average frame rate when exporting variable-rate sources.
+Saved masks stay visible on their anchor frames. Click an anchor marker to
+jump to it, or run **Track & preview** to inspect the propagated group masks
+anywhere in the clip before queueing. Use **Apply selections** to save the
+groups and their anchor masks in the workflow. A selection can have its own
+tracking range, which lets you anchor it separately across hard cuts. Lower
+groups in the list take precedence where their expanded masks overlap.
+
+SAM 3.1 tracks each selection in both directions from its anchor. The node
+joins the masks within a group and expands the union before applying its map.
+Every requested map is computed at most once per source frame. The `frames`
+output is an IMAGE batch, and `video` carries the source audio and frame rate.
+ComfyUI's component video output uses the average frame rate when exporting
+variable-rate sources.
 
 Requires ComfyUI with native SAM 3.1 nodes and
 [`sam3.1_multiplex_fp16.safetensors`](https://huggingface.co/Comfy-Org/sam3.1/tree/main/checkpoints)
@@ -266,7 +272,7 @@ and its Depth Anything V2 Large and OpenPose weights. Canny and color
 segmentation use ComfyUI and SAM 3.1 alone.
 
 The [Pika restoration workflow](./example_workflows/Pika%20H3%20Flex%20-%20Reference%20to%20Video%20Restoration%20%28Selective%20Depth%29.json)
-applies depth to the samurai and geisha in `Samurai.mp4` and uses the original RGB
+applies depth to the samurai and his two sword hilts, and to the geisha in `Samurai.mp4`. It uses the original RGB
 background as part of the H3 reference. It expects the source video, the
 three reference images, and the H3 and Pika model files named by the workflow.
 The reference branch repeats the final frame to fit H3's temporal grid so that
