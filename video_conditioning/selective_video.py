@@ -19,7 +19,7 @@ import torch
 import torch.nn.functional as F
 from aiohttp import web
 from PIL import Image
-from scipy.ndimage import binary_fill_holes, maximum_filter
+from scipy.ndimage import binary_fill_holes, distance_transform_edt, maximum_filter
 
 import comfy.model_management as model_management
 import comfy.utils
@@ -136,7 +136,7 @@ def preview_frame(source, index):
         return preview_pixels(image)
 
 
-def parse_groups(data, filename, frame_count):
+def parse_groups(data, filename, frame_count, *, edge_fill=False):
     if not isinstance(data, dict):
         raise ValueError("Use the editor to configure selection groups.")
     groups = data.get("groups")
@@ -160,9 +160,16 @@ def parse_groups(data, filename, frame_count):
         name = group.get("name")
         if not isinstance(name, str) or not 0 < len(name.strip()) <= 120:
             raise ValueError("Enter a group name of up to 120 characters.")
-        kind = group.get("preprocessor", "segmentation")
-        if kind not in PREPROCESSORS:
-            raise ValueError("Unknown group preprocessor.")
+        if edge_fill:
+            fill_from_edges = group.get("fill_from_edges", True)
+            if type(fill_from_edges) is not bool:
+                raise ValueError("Fill inward from edges must be enabled or disabled.")
+            effect = {"fill_from_edges": fill_from_edges}
+        else:
+            kind = group.get("preprocessor", "segmentation")
+            if kind not in PREPROCESSORS:
+                raise ValueError("Unknown group preprocessor.")
+            effect = {"preprocessor": kind}
         color = group.get("color", "#1678ff")
         if not isinstance(color, str) or len(color) != 7 or not color.startswith("#"):
             raise ValueError("Group color must be a hex RGB color.")
@@ -175,8 +182,8 @@ def parse_groups(data, filename, frame_count):
             raise ValueError("Fill holes must be enabled or disabled.")
         parts = [parse_part(part, frame_count) for part in group["parts"]]
         normalized.append({
-            "name": name, "preprocessor": kind, "color": color, "expand": expand,
-            "fill_holes": fill_holes, "parts": parts,
+            "name": name, "color": color, "expand": expand, "fill_holes": fill_holes,
+            "parts": parts, **effect,
         })
     return normalized
 
@@ -521,8 +528,32 @@ def resize_components(components, width, height):
         components.alpha = resize_selection_batch(alpha, width, height, "bilinear")
 
 
-def apply_preprocessors(images, groups, tracks, indices, source_size):
-    kinds = {group["preprocessor"] for group in groups} - {"segmentation"}
+def fill_frame_from_edges(frame, selection, fill):
+    if not fill.any():
+        frame[selection] = 0
+        return
+
+    # One background pixel around the selection's bounds is enough to find
+    # the nearest available source pixel for every selected pixel.
+    rows = np.flatnonzero(selection.any(axis=1))
+    columns = np.flatnonzero(selection.any(axis=0))
+    bounds = (
+        slice(max(0, rows[0] - 1), rows[-1] + 2),
+        slice(max(0, columns[0] - 1), columns[-1] + 2),
+    )
+    region = frame[bounds]
+    selection = selection[bounds]
+    fill = fill[bounds]
+    if selection.all():
+        region[selection] = 0
+        return
+    y, x = distance_transform_edt(selection, return_distances=False, return_indices=True)
+    region[fill] = region[y[fill], x[fill]]
+    region[selection & ~fill] = 0
+
+
+def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=False):
+    kinds = set() if edge_fill else {group["preprocessor"] for group in groups} - {"segmentation"}
     processors = prepare_preprocessors(kinds) if kinds else {}
     progress = comfy.utils.ProgressBar(len(images))
     height, width = images.shape[1:3]
@@ -540,7 +571,7 @@ def apply_preprocessors(images, groups, tracks, indices, source_size):
                 offsets = torch.as_tensor(frame_indices[left:right], dtype=torch.long) - first
                 active.append((group, slice(left, right), packed.index_select(0, offsets)))
 
-        needed = {group["preprocessor"] for group, _, _ in active} & processors.keys()
+        needed = {group["preprocessor"] for group, _, _ in active} & processors.keys() if processors else set()
         maps = {}
         # Evaluate each map from the original RGB before any layer writes.
         if needed & {"depth", "openpose"}:
@@ -554,11 +585,16 @@ def apply_preprocessors(images, groups, tracks, indices, source_size):
             maps[name] = resize_frames(mapped, height, width)
 
         union = mask_frames[start:start + len(chunk)]
+        if edge_fill:
+            fill = torch.zeros_like(union, dtype=torch.bool)
         for group, section, packed in active:
             mask = expanded_masks(packed, source_height, source_width, group["expand"], group["fill_holes"])
             if (width, height) != source_size:
                 mask = resize_selection_batch(mask[..., None].float(), width, height, "nearest-exact")[..., 0].bool()
             union[section][mask] = 1
+            if edge_fill:
+                fill[section][mask] = group["fill_from_edges"]
+                continue
             kind = group["preprocessor"]
             if kind == "segmentation":
                 value = group["color"]
@@ -566,19 +602,27 @@ def apply_preprocessors(images, groups, tracks, indices, source_size):
                 chunk[section][mask] = color
             else:
                 chunk[section][mask] = maps[kind][section][mask]
+        if edge_fill and active:
+            for frame, selection, fill_pixels in zip(chunk.numpy(), union.numpy(), fill.numpy()):
+                fill_frame_from_edges(frame, selection.astype(bool), fill_pixels)
         progress.update(len(chunk))
     return mask_frames
 
 
 class RPSelectiveVideoInput(io.ComfyNode):
+    title = "RP Selective Video Input"
+    description = "Select objects by text before queueing and apply a different map to each tracked group."
+    aliases = ["SAM3 video", "selective depth", "video segmentation", "video restoration"]
+    edge_fill = False
+
     @classmethod
     def define_schema(cls):
         return io.Schema(
-            node_id="RPSelectiveVideoInput",
-            display_name="RP Selective Video Input",
+            node_id=cls.__name__,
+            display_name=cls.title,
             category=CATEGORY,
-            description="Select objects by text before queueing and apply a different map to each tracked group.",
-            search_aliases=["SAM3 video", "selective depth", "video segmentation", "video restoration"],
+            description=cls.description,
+            search_aliases=cls.aliases,
             inputs=[
                 io.Combo.Input("video", options=_available_videos(), upload=io.UploadType.video),
                 io.String.Input("selections", default='{"groups":[]}'),
@@ -637,11 +681,11 @@ class RPSelectiveVideoInput(io.ComfyNode):
         resized = (width, height) != timeline.size
         if resized:
             resize_components(components, width, height)
-        groups = parse_groups(json.loads(selections), video, len(timeline.frames))
+        groups = parse_groups(json.loads(selections), video, len(timeline.frames), edge_fill=cls.edge_fill)
         if groups:
             with INFERENCE_LOCK:
                 _, tracks = track_groups(source, groups)
-                masks = apply_preprocessors(components.images, groups, tracks, indices, timeline.size)
+                masks = apply_selections(components.images, groups, tracks, indices, timeline.size, edge_fill=cls.edge_fill)
         else:
             masks = torch.zeros(1, 1, 1).expand(count, height, width)
         output = original
@@ -665,6 +709,13 @@ class RPSelectiveVideoInput(io.ComfyNode):
         mask_images = masks[..., None].expand(-1, -1, -1, 3)
         mask_video = InputImpl.VideoFromComponents(VideoComponents(images=mask_images, frame_rate=components.frame_rate))
         return io.NodeOutput(output, components.images, count, components.audio, info, mask_images, mask_video, masks)
+
+
+class RPSelectiveVideoEdgeFill(RPSelectiveVideoInput):
+    title = "RP Selective Video Edge Fill"
+    description = "Track selected objects and fill their regions inward with neighboring background pixels."
+    aliases = ["SAM3 video", "inward edge fill", "object removal", "replicate border"]
+    edge_fill = True
 
 
 def encoded_image(pixels, format):

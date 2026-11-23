@@ -1,5 +1,11 @@
-from .selective_video import RPSelectiveVideoInput
+from .selective_video import RPSelectiveVideoEdgeFill, RPSelectiveVideoInput
 
 
-NODE_CLASS_MAPPINGS = {"RPSelectiveVideoInput": RPSelectiveVideoInput}
-NODE_DISPLAY_NAME_MAPPINGS = {"RPSelectiveVideoInput": "RP Selective Video Input"}
+NODE_CLASS_MAPPINGS = {
+    "RPSelectiveVideoInput": RPSelectiveVideoInput,
+    "RPSelectiveVideoEdgeFill": RPSelectiveVideoEdgeFill,
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "RPSelectiveVideoInput": RPSelectiveVideoInput.title,
+    "RPSelectiveVideoEdgeFill": RPSelectiveVideoEdgeFill.title,
+}

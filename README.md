@@ -308,6 +308,16 @@ three reference images, and the H3 and Pika model files named by the workflow.
 The reference branch repeats the final frame to fit H3's temporal grid so that
 H3 keeps the source's final frames.
 
+### RP Selective Video Edge Fill
+
+This node uses the same SAM 3.1 selection editor, loading controls, and
+outputs as **RP Selective Video Input**. Each group has **Fill inward from
+edges**, enabled by default. Every pixel inside the expanded selection takes
+the color of the nearest pixel outside all selected regions. Pixels outside
+the selections keep their original colors. Turning off the checkbox leaves
+the group's selected area black. A selection that covers the entire frame
+also turns black because it has no visible pixels to copy.
+
 ## Installation
 
 Open a terminal in `ComfyUI/custom_nodes` and run:

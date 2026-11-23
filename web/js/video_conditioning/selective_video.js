@@ -287,7 +287,7 @@ const editorStyle = `
     }
 `;
 
-function openEditor(video, groups, session, onSave) {
+function openEditor(video, groups, session, edgeFill, onSave) {
     const modal = element("dialog", "", "rp-selective-editor");
     modal.setAttribute("aria-label", "Selective Video · Selection editor");
     const life = new AbortController();
@@ -309,9 +309,15 @@ function openEditor(video, groups, session, onSave) {
     name.placeholder = "Group name";
     name.className = "rp-flex";
     name.hidden = true;
-    const mode = element("select", "", "rp-flex");
-    mode.setAttribute("aria-label", "Group preprocessor");
-    for (const [value, title] of Object.entries(maps)) mode.append(new Option(title, value));
+    const mode = edgeFill ? input("checkbox", "", "Fill inward from edges") : element("select");
+    if (edgeFill) {
+        mode.checked = true;
+        mode.title = "Copy the nearest background pixels inward. Turn off to leave the selection black.";
+        mode.addEventListener("change", () => { activeGroup.fill_from_edges = mode.checked; });
+    } else {
+        mode.setAttribute("aria-label", "Group preprocessor");
+        for (const [value, title] of Object.entries(maps)) mode.append(new Option(title, value));
+    }
     const color = colorPicker((value) => {
         activeGroup.color = value;
         syncGroupCard(activeGroup);
@@ -521,7 +527,8 @@ function openEditor(video, groups, session, onSave) {
         name.hidden = true;
         color.close();
         if (group) {
-            mode.value = group.preprocessor ?? "segmentation";
+            if (edgeFill) mode.checked = group.fill_from_edges ?? true;
+            else mode.value = group.preprocessor ?? "segmentation";
             color.setColor(group.color ?? colors[0]);
             expansion.value = group.expand ?? defaultExpansion;
             fillHoles.checked = group.fill_holes ?? true;
@@ -692,7 +699,8 @@ function openEditor(video, groups, session, onSave) {
         const part = { text, frame, threshold: confidence };
         if (start) part.start = start;
         if (end !== null) part.end = end;
-        const groupSettings = { preprocessor: mode.value, expand: radius, fill_holes: fillHoles.checked };
+        const groupSettings = { expand: radius, fill_holes: fillHoles.checked };
+        if (!edgeFill) groupSettings.preprocessor = mode.value;
         const previous = currentPart;
         clearCheck();
         clearDetection();
@@ -939,13 +947,16 @@ function openEditor(video, groups, session, onSave) {
     settings.append(element("summary", "Detection confidence and tracking range"),
         row(label("Confidence", threshold)), row(label("From", from), label("To", to)));
     const draft = element("section", "", "rp-group-content");
-    draft.append(row(prompt, detect), row(mode, color.wrapper),
+    const effect = edgeFill ? label("Fill inward from edges", mode) : mode;
+    effect.classList.add("rp-flex");
+    draft.append(row(prompt, detect), row(effect, color.wrapper),
         row(label("Expand (px)", expansion), label("Fill holes", fillHoles)),
         candidateList, status, settings, element("hr", "", "rp-selection-divider"), row(add));
     const newButton = button("New group", () => {
         const group = {
-            name: "", preprocessor: "segmentation", color: colors[groups.length % colors.length],
+            name: "", color: colors[groups.length % colors.length],
             expand: defaultExpansion, fill_holes: true, parts: [],
+            ...(edgeFill ? { fill_from_edges: true } : { preprocessor: "segmentation" }),
         };
         groups.push(group);
         openGroup(group);
@@ -1013,7 +1024,8 @@ app.registerExtension({
         migrateMaskOutputs(workflow);
     },
     nodeCreated(node) {
-        if (node.comfyClass !== "RPSelectiveVideoInput") return;
+        const edgeFill = node.comfyClass === "RPSelectiveVideoEdgeFill";
+        if (!edgeFill && node.comfyClass !== "RPSelectiveVideoInput") return;
         const video = node.widgets.find((widget) => widget.name === "video");
         const selections = node.widgets.find((widget) => widget.name === "selections");
         if (!video || !selections) return;
@@ -1044,7 +1056,7 @@ app.registerExtension({
                     signature: signature(groups),
                 };
             }
-            modal = openEditor(filename, groups, session, (savedGroups, preview) => {
+            modal = openEditor(filename, groups, session, edgeFill, (savedGroups, preview) => {
                 app.graph?.beforeChange?.();
                 const data = { version: 2, video: filename, groups: savedGroups };
                 if (preview) data.trackingPreview = preview;
