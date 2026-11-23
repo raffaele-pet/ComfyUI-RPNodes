@@ -282,9 +282,10 @@ defaults. The selection editor continues to use source frame numbers.
 clip and is empty for silent sources. `video_info` connects to VHS Video Info
 nodes. `MASK_IMAGE` gives the white-on-black mask as an RGB image batch.
 `mask_video` gives the same frames as a silent **VIDEO** at the processed
-clip's frame rate. Both show the union of the selected regions, including
-**Expand** and **Fill holes**. Connect `mask_video` to **Save Video** to
-export the mask.
+clip's frame rate. `MASK` provides a binary batch for nodes that accept
+ComfyUI masks directly. All three show the union of the selected regions,
+including **Expand** and **Fill holes**. Connect `mask_video` to **Save Video**
+to export the mask.
 
 SAM 3.1 tracks each selection in both directions from its anchor. The node
 joins the masks within a group and expands the union before applying its map.
