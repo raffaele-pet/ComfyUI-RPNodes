@@ -1,3 +1,5 @@
+import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +10,51 @@ from video_frame_processing import video_frames_workflow as workflow
 
 
 class VideoFramesWorkflowTests(unittest.TestCase):
+    def test_short_audio_does_not_drop_processed_video_frames(self):
+        try:
+            ffmpeg = workflow._find_executable("ffmpeg")
+            ffprobe = workflow._find_executable("ffprobe")
+        except RuntimeError as error:
+            self.skipTest(str(error))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "short_audio.mp4"
+            frame_count = 12
+            rate = "24000/1001"
+            workflow._run(
+                [
+                    ffmpeg, "-hide_banner", "-loglevel", "error",
+                    "-f", "lavfi", "-i", f"color=c=red:s=32x32:r={rate}",
+                    "-f", "lavfi", "-i", "sine=sample_rate=48000:duration=0.15",
+                    "-frames:v", str(frame_count), "-c:v", "libx264", "-c:a", "aac",
+                    str(source),
+                ],
+                "creating a video with a shorter audio track",
+            )
+            frames = root / "frames"
+            processed = root / "processed"
+            _, last_image, _, _, context = workflow.RPVideoToFrames().extract(
+                str(source), str(frames), str(processed), False, False, loop_index=frame_count - 1,
+            )
+            for frame in frames.glob("frame_*.png"):
+                shutil.copyfile(frame, processed / frame.name)
+            output = workflow.RPFramesToVideo().combine(
+                "stub", last_image, context, "result.mp4", "libx264", 19, True, False,
+            )
+            info = workflow._run(
+                [
+                    ffprobe, "-v", "error", "-show_entries",
+                    "stream=codec_type,nb_frames,avg_frame_rate,duration", "-of", "json", output[0],
+                ],
+                "checking the assembled video and audio",
+            )
+            video, audio = json.loads(info.stdout)["streams"]
+            self.assertEqual(int(video["nb_frames"]), frame_count)
+            self.assertEqual(video["avg_frame_rate"], rate)
+            self.assertEqual(audio["codec_type"], "audio")
+            self.assertLess(float(audio["duration"]), float(video["duration"]))
+
     def test_extract_every_variable_rate_frame_and_reassemble_video(self):
         try:
             ffmpeg = workflow._find_executable("ffmpeg")
@@ -60,6 +107,11 @@ class VideoFramesWorkflowTests(unittest.TestCase):
             info = workflow._probe_video(Path(output[0]))
             self.assertEqual((info["width"], info["height"]), (32, 32))
             self.assertAlmostEqual(info["fps"], result[4]["fps"], places=2)
+            with_optional_audio = workflow.RPFramesToVideo().combine(
+                "stub", image, context, "silent.mp4", "libx264", 19, True, False
+            )
+            self.assertEqual(with_optional_audio[1], 3)
+            self.assertTrue(Path(with_optional_audio[0]).is_file())
 
             original_bytes = Path(output[0]).read_bytes()
             occupied = processed / "result_1.mp4"

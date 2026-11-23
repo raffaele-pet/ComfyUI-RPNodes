@@ -593,7 +593,8 @@ class RPFramesToVideo:
                 output_path = frames_directory / f"{stem}_{counter}.mp4"
                 counter += 1
 
-        duration = 1.0 / rate
+        frame_rate = Fraction(rate).limit_denominator(1_000_000)
+        duration = float(frame_count / frame_rate)
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".ffconcat", encoding="utf-8", delete=False
         ) as concat_file:
@@ -602,9 +603,6 @@ class RPFramesToVideo:
             for image in images:
                 escaped = image.resolve().as_posix().replace("'", "'\\''")
                 concat_file.write(f"file '{escaped}'\n")
-                concat_file.write(f"duration {duration:.12f}\n")
-            escaped_last = images[-1].resolve().as_posix().replace("'", "'\\''")
-            concat_file.write(f"file '{escaped_last}'\n")
 
         ffmpeg = _find_executable("ffmpeg")
         command = [
@@ -626,8 +624,11 @@ class RPFramesToVideo:
             command.extend(["-map", "0:v:0"])
         command.extend(
             [
+                # Assign each processed image one video tick at the original frame rate.
+                "-vf",
+                f"settb={frame_rate.denominator}/{frame_rate.numerator},setpts=N",
                 "-r",
-                f"{rate:.12g}",
+                str(frame_rate),
                 "-c:v",
                 video_codec,
                 "-crf",
@@ -637,7 +638,7 @@ class RPFramesToVideo:
             ]
         )
         if copy_original_audio:
-            command.extend(["-c:a", "aac", "-shortest"])
+            command.extend(["-c:a", "aac", "-af", f"atrim=duration={duration:.12f}"])
         command.extend(["-movflags", "+faststart", str(output_path)])
 
         try:
