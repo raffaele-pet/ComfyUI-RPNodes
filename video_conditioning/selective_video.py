@@ -643,13 +643,13 @@ class RPSelectiveVideoInput(io.ComfyNode):
             outputs=[
                 io.Video.Output(display_name="video"),
                 io.Image.Output(display_name="frames"),
+                io.Image.Output(display_name="original_frames", tooltip="Sampled and resized source RGB frames before applying selections."),
                 io.Int.Output(display_name="frame_count"),
                 io.Audio.Output(display_name="audio"),
                 VideoInfo.Output(display_name="video_info"),
                 io.Image.Output(display_name="MASK_IMAGE", tooltip="White selected regions on black as RGB frames."),
                 io.Video.Output(display_name="mask_video", tooltip="White selected regions on black, without audio."),
                 io.Mask.Output(display_name="MASK", tooltip="Binary mask batch with 1 for selected pixels and 0 elsewhere."),
-                io.Image.Output(display_name="original_frames", tooltip="Sampled and resized source RGB frames before applying selections."),
             ],
         )
 
@@ -712,7 +712,7 @@ class RPSelectiveVideoInput(io.ComfyNode):
         mask_images = masks[..., None].expand(-1, -1, -1, 3)
         mask_video = InputImpl.VideoFromComponents(VideoComponents(images=mask_images, frame_rate=components.frame_rate))
         return io.NodeOutput(
-            output, components.images, count, components.audio, info, mask_images, mask_video, masks, original_frames,
+            output, components.images, original_frames, count, components.audio, info, mask_images, mask_video, masks,
         )
 
 

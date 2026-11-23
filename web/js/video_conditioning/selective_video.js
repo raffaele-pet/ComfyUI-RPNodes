@@ -14,36 +14,44 @@ const loadOptionDefaults = {
     format: "None",
 };
 
-function migrateMaskOutputs(workflow) {
-    const videoSlot = 5;
-    const migrated = new Set();
-    for (const node of workflow.nodes ?? []) {
-        const videoMask = node.outputs?.[videoSlot];
-        if (node.type !== "RPSelectiveVideoInput" || videoMask?.name !== "video_mask" || videoMask.type !== "VIDEO") continue;
+const selectiveVideoOutputs = Object.entries({
+    video: "VIDEO", frames: "IMAGE", original_frames: "IMAGE", frame_count: "INT", audio: "AUDIO",
+    video_info: "VHS_VIDEOINFO", MASK_IMAGE: "IMAGE", mask_video: "VIDEO", MASK: "MASK",
+});
 
-        const imageMask = { name: "MASK_IMAGE", type: "IMAGE", links: null };
-        if ("slot_index" in videoMask) {
-            imageMask.slot_index = videoSlot;
-            videoMask.slot_index = videoSlot + 1;
-        }
-        if ("localized_name" in videoMask) {
-            imageMask.localized_name = "MASK_IMAGE";
-            videoMask.localized_name = "mask_video";
-        }
-        videoMask.name = "mask_video";
-        node.outputs.splice(videoSlot, 0, imageMask);
-        migrated.add(node.id);
+function migrateSelectiveVideoOutputs(workflow) {
+    const canonical = selectiveVideoOutputs.map(([name]) => name);
+    const remaps = new Map();
+    for (const node of workflow.nodes ?? []) {
+        if (node.type !== "RPSelectiveVideoInput" && node.type !== "RPSelectiveVideoEdgeFill") continue;
+        const outputs = node.outputs;
+        if (!outputs?.length ||
+            (outputs.length === canonical.length && outputs.every(({ name }, index) => name === canonical[index]))) continue;
+
+        const slots = outputs.map(({ name }) => canonical.indexOf(name === "video_mask" ? "mask_video" : name));
+        if (slots.includes(-1) || new Set(slots).size !== slots.length) continue;
+
+        const saved = new Map(slots.map((slot, index) => [slot, outputs[index]]));
+        node.outputs = selectiveVideoOutputs.map(([name, type], slot) => {
+            const old = saved.get(slot);
+            if (!old) return { name, type, links: null };
+            if ("slot_index" in old) old.slot_index = slot;
+            if (old.name !== name && "localized_name" in old) old.localized_name = name;
+            old.name = name;
+            return old;
+        });
+        remaps.set(node.id, slots);
     }
-    if (migrated.size) {
+    if (remaps.size) {
         for (const link of [...(workflow.links ?? []), ...(workflow.floatingLinks ?? [])]) {
             if (Array.isArray(link)) {
-                if (migrated.has(link[1]) && link[2] === videoSlot) link[2] += 1;
-            } else if (migrated.has(link.origin_id) && link.origin_slot === videoSlot) {
-                link.origin_slot += 1;
+                link[2] = remaps.get(link[1])?.[link[2]] ?? link[2];
+            } else {
+                link.origin_slot = remaps.get(link.origin_id)?.[link.origin_slot] ?? link.origin_slot;
             }
         }
     }
-    for (const graph of workflow.definitions?.subgraphs ?? []) migrateMaskOutputs(graph);
+    for (const graph of workflow.definitions?.subgraphs ?? []) migrateSelectiveVideoOutputs(graph);
 }
 
 function loadOptionValue(value, fallback) {
@@ -1021,7 +1029,7 @@ function openEditor(video, groups, session, edgeFill, onSave) {
 app.registerExtension({
     name: "RPNodes.SelectiveVideo",
     beforeConfigureGraph(workflow) {
-        migrateMaskOutputs(workflow);
+        migrateSelectiveVideoOutputs(workflow);
     },
     nodeCreated(node) {
         const edgeFill = node.comfyClass === "RPSelectiveVideoEdgeFill";
