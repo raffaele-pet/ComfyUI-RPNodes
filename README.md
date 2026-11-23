@@ -285,7 +285,8 @@ nodes. `MASK_IMAGE` gives the white-on-black mask as an RGB image batch.
 clip's frame rate. `MASK` provides a binary batch for nodes that accept
 ComfyUI masks directly. All three show the union of the selected regions,
 including **Expand** and **Fill holes**. Connect `mask_video` to **Save Video**
-to export the mask.
+to export the mask. `original_frames` gives the source RGB frames after
+sampling and resizing, with the same shape and frame order as `MASK`.
 
 SAM 3.1 tracks each selection in both directions from its anchor. The node
 joins the masks within a group and expands the union before applying its map.

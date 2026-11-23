@@ -649,6 +649,7 @@ class RPSelectiveVideoInput(io.ComfyNode):
                 io.Image.Output(display_name="MASK_IMAGE", tooltip="White selected regions on black as RGB frames."),
                 io.Video.Output(display_name="mask_video", tooltip="White selected regions on black, without audio."),
                 io.Mask.Output(display_name="MASK", tooltip="Binary mask batch with 1 for selected pixels and 0 elsewhere."),
+                io.Image.Output(display_name="original_frames", tooltip="Sampled and resized source RGB frames before applying selections."),
             ],
         )
 
@@ -681,10 +682,12 @@ class RPSelectiveVideoInput(io.ComfyNode):
         resized = (width, height) != timeline.size
         if resized:
             resize_components(components, width, height)
+        original_frames = components.images
         groups = parse_groups(json.loads(selections), video, len(timeline.frames), edge_fill=cls.edge_fill)
         if groups:
             with INFERENCE_LOCK:
                 _, tracks = track_groups(source, groups)
+                components.images = original_frames.clone()
                 masks = apply_selections(components.images, groups, tracks, indices, timeline.size, edge_fill=cls.edge_fill)
         else:
             masks = torch.zeros(1, 1, 1).expand(count, height, width)
@@ -708,7 +711,9 @@ class RPSelectiveVideoInput(io.ComfyNode):
         }
         mask_images = masks[..., None].expand(-1, -1, -1, 3)
         mask_video = InputImpl.VideoFromComponents(VideoComponents(images=mask_images, frame_rate=components.frame_rate))
-        return io.NodeOutput(output, components.images, count, components.audio, info, mask_images, mask_video, masks)
+        return io.NodeOutput(
+            output, components.images, count, components.audio, info, mask_images, mask_video, masks, original_frames,
+        )
 
 
 class RPSelectiveVideoEdgeFill(RPSelectiveVideoInput):
