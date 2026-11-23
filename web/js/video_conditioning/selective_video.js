@@ -14,6 +14,38 @@ const loadOptionDefaults = {
     format: "None",
 };
 
+function migrateMaskOutputs(workflow) {
+    const videoSlot = 5;
+    const migrated = new Set();
+    for (const node of workflow.nodes ?? []) {
+        const videoMask = node.outputs?.[videoSlot];
+        if (node.type !== "RPSelectiveVideoInput" || videoMask?.name !== "video_mask" || videoMask.type !== "VIDEO") continue;
+
+        const imageMask = { name: "MASK_IMAGE", type: "IMAGE", links: null };
+        if ("slot_index" in videoMask) {
+            imageMask.slot_index = videoSlot;
+            videoMask.slot_index = videoSlot + 1;
+        }
+        if ("localized_name" in videoMask) {
+            imageMask.localized_name = "MASK_IMAGE";
+            videoMask.localized_name = "mask_video";
+        }
+        videoMask.name = "mask_video";
+        node.outputs.splice(videoSlot, 0, imageMask);
+        migrated.add(node.id);
+    }
+    if (migrated.size) {
+        for (const link of [...(workflow.links ?? []), ...(workflow.floatingLinks ?? [])]) {
+            if (Array.isArray(link)) {
+                if (migrated.has(link[1]) && link[2] === videoSlot) link[2] += 1;
+            } else if (migrated.has(link.origin_id) && link.origin_slot === videoSlot) {
+                link.origin_slot += 1;
+            }
+        }
+    }
+    for (const graph of workflow.definitions?.subgraphs ?? []) migrateMaskOutputs(graph);
+}
+
 function loadOptionValue(value, fallback) {
     if (typeof value === "string") {
         value = value.trim();
@@ -977,6 +1009,9 @@ function openEditor(video, groups, session, onSave) {
 
 app.registerExtension({
     name: "RPNodes.SelectiveVideo",
+    beforeConfigureGraph(workflow) {
+        migrateMaskOutputs(workflow);
+    },
     nodeCreated(node) {
         if (node.comfyClass !== "RPSelectiveVideoInput") return;
         const video = node.widgets.find((widget) => widget.name === "video");

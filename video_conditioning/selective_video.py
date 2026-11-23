@@ -602,7 +602,8 @@ class RPSelectiveVideoInput(io.ComfyNode):
                 io.Int.Output(display_name="frame_count"),
                 io.Audio.Output(display_name="audio"),
                 VideoInfo.Output(display_name="video_info"),
-                io.Video.Output(display_name="video_mask", tooltip="White selected regions on black, without audio."),
+                io.Image.Output(display_name="MASK_IMAGE", tooltip="White selected regions on black as RGB frames."),
+                io.Video.Output(display_name="mask_video", tooltip="White selected regions on black, without audio."),
             ],
         )
 
@@ -660,10 +661,9 @@ class RPSelectiveVideoInput(io.ComfyNode):
             "loaded_width": width,
             "loaded_height": height,
         }
-        mask_video = InputImpl.VideoFromComponents(
-            VideoComponents(images=masks[..., None].expand(-1, -1, -1, 3), frame_rate=components.frame_rate),
-        )
-        return io.NodeOutput(output, components.images, count, components.audio, info, mask_video)
+        mask_images = masks[..., None].expand(-1, -1, -1, 3)
+        mask_video = InputImpl.VideoFromComponents(VideoComponents(images=mask_images, frame_rate=components.frame_rate))
+        return io.NodeOutput(output, components.images, count, components.audio, info, mask_images, mask_video)
 
 
 def encoded_image(pixels, format):
