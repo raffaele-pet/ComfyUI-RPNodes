@@ -320,6 +320,25 @@ the selections keep their original colors. Turning off the checkbox leaves
 the group's selected area black. A selection that covers the entire frame
 also turns black because it has no visible pixels to copy.
 
+### RP Selective Video Guides
+
+This node adds three group preprocessors to **RP Selective Video Input**.
+**OpenPose · Body, hands and face** and **OpenPose · Face only** render
+landmarks for people matched to the selected region. **Tracked rectangle**
+uses the bounds of the tracked mask and the group's color.
+
+Select a guide and scrub to an anchor frame or run **Track & preview**.
+Drag a corner of the guide to resize it around its center. Hold **Shift**
+to keep the proportions. The width and height percentages can also be entered
+directly. **Reset scale** returns both to 100%. The scale applies to the group
+throughout the clip.
+
+`guide_video` combines the guides on a transparent canvas at the loaded
+resolution and frame rate. The original outputs still carry the source and
+any ordinary composite preprocessors. Use **Save Video** with **MOV** and
+**ProRes** to preserve alpha. The two pose guides use
+`comfyui_controlnet_aux` and its OpenPose weights.
+
 ## Installation
 
 Open a terminal in `ComfyUI/custom_nodes` and run:

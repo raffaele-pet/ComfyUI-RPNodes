@@ -1,4 +1,5 @@
 import { app } from "/scripts/app.js";
+import { createGuideEditor, guideModes, guideStyle } from "./selective_video_guides.js";
 import {
     attachNativePreview, colors, createPainter, decodeMask, defaultExpansion, loadGroupOverlays,
     loadPhoto, loadTrackedMasks, post, previewJob, releaseOverlays, request,
@@ -295,7 +296,7 @@ const editorStyle = `
     }
 `;
 
-function openEditor(video, groups, session, edgeFill, onSave) {
+function openEditor(video, groups, session, edgeFill, withGuides, onSave) {
     const modal = element("dialog", "", "rp-selective-editor");
     modal.setAttribute("aria-label", "Selective Video · Selection editor");
     const life = new AbortController();
@@ -324,7 +325,14 @@ function openEditor(video, groups, session, edgeFill, onSave) {
         mode.addEventListener("change", () => { activeGroup.fill_from_edges = mode.checked; });
     } else {
         mode.setAttribute("aria-label", "Group preprocessor");
-        for (const [value, title] of Object.entries(maps)) mode.append(new Option(title, value));
+        const options = withGuides ? { ...maps, openpose: "OpenPose (composite)", ...guideModes } : maps;
+        for (const [value, title] of Object.entries(options)) mode.append(new Option(title, value));
+        if (withGuides) mode.addEventListener("change", () => {
+            if (!activeGroup) return;
+            activeGroup.preprocessor = mode.value;
+            guideEditor.update(activeGroup, currentFrame);
+            draw();
+        });
     }
     const color = colorPicker((value) => {
         activeGroup.color = value;
@@ -413,10 +421,11 @@ function openEditor(video, groups, session, edgeFill, onSave) {
         const scale = photo.width / sourceWidth;
         if (checkResult?.frame === frame) {
             const { group, bitmap } = checkResult;
-            paint(photo, bitmap ? [{
+            const overlay = bitmap ? {
                 bitmaps: [bitmap], color: group.color, opacity: 0.57,
                 radius: Math.round((group.expand ?? defaultExpansion) * scale), fillHoles: group.fill_holes ?? true,
-            }] : []);
+            } : null;
+            paintFrame(overlay ? [overlay] : [], group === activeGroup ? overlay : null);
             return;
         }
 
@@ -429,10 +438,27 @@ function openEditor(video, groups, session, edgeFill, onSave) {
             const draft = candidates.flatMap(({ mask }, index) => checked.includes(index) ? [] : [{
                 bitmaps: [mask], color: colors[index % colors.length], opacity: 0.16,
             }]);
-            paint(photo, [...overlays, ...draft]);
+            paintFrame([...overlays, ...draft], overlays[visibleGroups.indexOf(activeGroup)]);
         } finally {
             releaseOverlays(overlays);
         }
+    }
+
+    function paintFrame(overlays, activeOverlay) {
+        if (!guideEditor || !Object.hasOwn(guideModes, activeGroup?.preprocessor)) {
+            guideEditor?.update(activeGroup, shownFrame);
+            paint(photo, overlays);
+            return;
+        }
+        if (!activeOverlay?.bitmaps.length) {
+            guideEditor.update(activeGroup, shownFrame);
+            paint(photo, overlays);
+            return;
+        }
+        activeOverlay.opacity = 0;
+        paint(photo, overlays, (overlay, mask) => {
+            if (overlay === activeOverlay) guideEditor.update(activeGroup, shownFrame, mask);
+        });
     }
 
     function setFrameStatus() {
@@ -530,6 +556,7 @@ function openEditor(video, groups, session, edgeFill, onSave) {
 
     function openGroup(group) {
         activeGroup = group;
+        guideEditor?.update(group, currentFrame);
         const part = currentParts.has(group) ? currentParts.get(group) : group?.parts.at(-1);
         openSelection(group?.parts.includes(part) ? part : null);
         name.hidden = true;
@@ -613,6 +640,7 @@ function openEditor(video, groups, session, edgeFill, onSave) {
             status.textContent = "";
         }
         currentFrame = target;
+        guideEditor?.update(activeGroup, target);
         session.frame = target;
         frameFetch?.abort();
         const controller = new AbortController();
@@ -946,6 +974,7 @@ function openEditor(video, groups, session, edgeFill, onSave) {
 
     const stage = element("div", "", "rp-stage");
     stage.append(canvas);
+    const guideEditor = withGuides ? createGuideEditor(stage, video) : null;
     const timeline = row(previous, slider, next, frameInput, time);
     timeline.classList.add("rp-timeline");
     const view = element("section", "", "rp-view");
@@ -958,7 +987,9 @@ function openEditor(video, groups, session, edgeFill, onSave) {
     const effect = edgeFill ? label("Fill inward from edges", mode) : mode;
     effect.classList.add("rp-flex");
     draft.append(row(prompt, detect), row(effect, color.wrapper),
-        row(label("Expand (px)", expansion), label("Fill holes", fillHoles)),
+        row(label("Expand (px)", expansion), label("Fill holes", fillHoles)));
+    if (guideEditor) draft.append(guideEditor.controls);
+    draft.append(
         candidateList, status, settings, element("hr", "", "rp-selection-divider"), row(add));
     const newButton = button("New group", () => {
         const group = {
@@ -994,9 +1025,10 @@ function openEditor(video, groups, session, edgeFill, onSave) {
             onSave(saved, preview);
             modal.close();
         }, "rp-primary")));
-    modal.append(element("style", editorStyle), header, layout, footer);
+    modal.append(element("style", withGuides ? editorStyle + guideStyle : editorStyle), header, layout, footer);
     modal.addEventListener("close", () => {
         life.abort();
+        guideEditor?.disconnect();
         frameFetch?.abort();
         trackFetch?.abort();
         checkRun?.abort();
@@ -1033,7 +1065,8 @@ app.registerExtension({
     },
     nodeCreated(node) {
         const edgeFill = node.comfyClass === "RPSelectiveVideoEdgeFill";
-        if (!edgeFill && node.comfyClass !== "RPSelectiveVideoInput") return;
+        const withGuides = node.comfyClass === "RPSelectiveVideoGuides";
+        if (!edgeFill && !withGuides && node.comfyClass !== "RPSelectiveVideoInput") return;
         const video = node.widgets.find((widget) => widget.name === "video");
         const selections = node.widgets.find((widget) => widget.name === "selections");
         if (!video || !selections) return;
@@ -1064,7 +1097,7 @@ app.registerExtension({
                     signature: signature(groups),
                 };
             }
-            modal = openEditor(filename, groups, session, edgeFill, (savedGroups, preview) => {
+            modal = openEditor(filename, groups, session, edgeFill, withGuides, (savedGroups, preview) => {
                 app.graph?.beforeChange?.();
                 const data = { version: 2, video: filename, groups: savedGroups };
                 if (preview) data.trackingPreview = preview;

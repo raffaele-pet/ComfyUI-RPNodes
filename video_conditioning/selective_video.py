@@ -5,6 +5,7 @@ import json
 import logging
 from bisect import bisect_left
 from collections import OrderedDict, defaultdict
+from contextlib import nullcontext
 from dataclasses import dataclass
 from fractions import Fraction
 from functools import lru_cache
@@ -29,6 +30,9 @@ from nodes import MAX_RESOLUTION
 from server import PromptServer
 
 from ..video_frame_processing.video_frames_workflow import VIDEO_EXTENSIONS, _available_videos
+from .video_guides import (
+    GUIDE_MODES, POSE_GUIDES, guide_artwork, guide_detector, guide_scale, pose_geometry, render_guides,
+)
 from .video_preview import cached_preview, preview_pixels
 
 
@@ -136,7 +140,7 @@ def preview_frame(source, index):
         return preview_pixels(image)
 
 
-def parse_groups(data, filename, frame_count, *, edge_fill=False):
+def parse_groups(data, filename, frame_count, *, edge_fill=False, guide_modes=False):
     if not isinstance(data, dict):
         raise ValueError("Use the editor to configure selection groups.")
     groups = data.get("groups")
@@ -167,9 +171,11 @@ def parse_groups(data, filename, frame_count, *, edge_fill=False):
             effect = {"fill_from_edges": fill_from_edges}
         else:
             kind = group.get("preprocessor", "segmentation")
-            if kind not in PREPROCESSORS:
+            if kind not in PREPROCESSORS and not (guide_modes and kind in GUIDE_MODES):
                 raise ValueError("Unknown group preprocessor.")
             effect = {"preprocessor": kind}
+            if kind in GUIDE_MODES:
+                effect["guide_scale"] = guide_scale(group.get("guide_scale", [1, 1]))
         color = group.get("color", "#1678ff")
         if not isinstance(color, str) or len(color) != 7 or not color.startswith("#"):
             raise ValueError("Group color must be a hex RGB color.")
@@ -552,8 +558,8 @@ def fill_frame_from_edges(frame, selection, fill):
     region[selection & ~fill] = 0
 
 
-def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=False):
-    kinds = set() if edge_fill else {group["preprocessor"] for group in groups} - {"segmentation"}
+def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=False, guides=None, detector=None):
+    kinds = set() if edge_fill else {group["preprocessor"] for group in groups} & {"depth", "canny", "openpose"}
     processors = prepare_preprocessors(kinds) if kinds else {}
     progress = comfy.utils.ProgressBar(len(images))
     height, width = images.shape[1:3]
@@ -574,7 +580,9 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
         needed = {group["preprocessor"] for group, _, _ in active} & processors.keys() if processors else set()
         maps = {}
         # Evaluate each map from the original RGB before any layer writes.
-        if needed & {"depth", "openpose"}:
+        pose_needed = detector is not None and any(group["preprocessor"] in POSE_GUIDES for group, _, _ in active)
+        rgb = None
+        if pose_needed or needed & {"depth", "openpose"}:
             rgb = (chunk.clamp(0, 1) * 255).round().to(torch.uint8).cpu().numpy()
         for name in needed:
             processor = processors[name]
@@ -587,6 +595,7 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
         union = mask_frames[start:start + len(chunk)]
         if edge_fill:
             fill = torch.zeros_like(union, dtype=torch.bool)
+        guide_items = []
         for group, section, packed in active:
             mask = expanded_masks(packed, source_height, source_width, group["expand"], group["fill_holes"])
             if (width, height) != source_size:
@@ -596,7 +605,9 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
                 fill[section][mask] = group["fill_from_edges"]
                 continue
             kind = group["preprocessor"]
-            if kind == "segmentation":
+            if kind in GUIDE_MODES:
+                guide_items.append((group, section, mask.numpy()))
+            elif kind == "segmentation":
                 value = group["color"]
                 color = chunk.new_tensor([int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)])
                 chunk[section][mask] = color
@@ -605,15 +616,15 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
         if edge_fill and active:
             for frame, selection, fill_pixels in zip(chunk.numpy(), union.numpy(), fill.numpy()):
                 fill_frame_from_edges(frame, selection.astype(bool), fill_pixels)
+        if guide_items:
+            render_guides(guides[start:start + len(chunk)], guide_items, rgb, detector)
         progress.update(len(chunk))
     return mask_frames
 
 
-class RPSelectiveVideoInput(io.ComfyNode):
-    title = "RP Selective Video Input"
-    description = "Select objects by text before queueing and apply a different map to each tracked group."
-    aliases = ["SAM3 video", "selective depth", "video segmentation", "video restoration"]
+class _SelectiveVideo(io.ComfyNode):
     edge_fill = False
+    guide_modes = False
 
     @classmethod
     def define_schema(cls):
@@ -650,6 +661,8 @@ class RPSelectiveVideoInput(io.ComfyNode):
                 io.Image.Output(display_name="MASK_IMAGE", tooltip="White selected regions on black as RGB frames."),
                 io.Video.Output(display_name="mask_video", tooltip="White selected regions on black, without audio."),
                 io.Mask.Output(display_name="MASK", tooltip="Binary mask batch with 1 for selected pixels and 0 elsewhere."),
+                *([io.Video.Output(display_name="guide_video", tooltip="Transparent, silent video containing only the selected guides. Export as MOV ProRes to keep alpha.")]
+                  if cls.guide_modes else []),
             ],
         )
 
@@ -683,16 +696,23 @@ class RPSelectiveVideoInput(io.ComfyNode):
         if resized:
             resize_components(components, width, height)
         original_frames = components.images
-        groups = parse_groups(json.loads(selections), video, len(timeline.frames), edge_fill=cls.edge_fill)
+        groups = parse_groups(json.loads(selections), video, len(timeline.frames),
+                              edge_fill=cls.edge_fill, guide_modes=cls.guide_modes)
+        guide_kinds = {group["preprocessor"] for group in groups} & set(GUIDE_MODES) if cls.guide_modes else set()
+        guides = torch.zeros((count, height, width, 4), dtype=torch.float16) if guide_kinds else None
+        composite = bool(groups) and (cls.edge_fill or any(group["preprocessor"] not in GUIDE_MODES for group in groups))
         if groups:
             with INFERENCE_LOCK:
                 _, tracks = track_groups(source, groups)
-                components.images = original_frames.clone()
-                masks = apply_selections(components.images, groups, tracks, indices, timeline.size, edge_fill=cls.edge_fill)
+                if composite:
+                    components.images = original_frames.clone()
+                with guide_detector() if guide_kinds & POSE_GUIDES else nullcontext() as detector:
+                    masks = apply_selections(components.images, groups, tracks, indices, timeline.size,
+                                             edge_fill=cls.edge_fill, guides=guides, detector=detector)
         else:
             masks = torch.zeros(1, 1, 1).expand(count, height, width)
         output = original
-        if groups or resized or force_rate or count != len(timeline.frames) or rate != timeline.rate:
+        if composite or resized or force_rate or count != len(timeline.frames) or rate != timeline.rate:
             output = InputImpl.VideoFromComponents(
                 components, original.get_bit_depth(), original.get_color_space(), original.get_chroma_subsampling(),
             )
@@ -711,16 +731,34 @@ class RPSelectiveVideoInput(io.ComfyNode):
         }
         mask_images = masks[..., None].expand(-1, -1, -1, 3)
         mask_video = InputImpl.VideoFromComponents(VideoComponents(images=mask_images, frame_rate=components.frame_rate))
-        return io.NodeOutput(
-            output, components.images, original_frames, count, components.audio, info, mask_images, mask_video, masks,
-        )
+        outputs = (output, components.images, original_frames, count, components.audio, info, mask_images, mask_video, masks)
+        if cls.guide_modes:
+            if guides is None:
+                guides = torch.zeros(1, 1, 1, 4).expand(count, height, width, 4)
+            outputs += (InputImpl.VideoFromComponents(VideoComponents(
+                images=guides[..., :3], alpha=guides[..., 3], frame_rate=components.frame_rate,
+            )),)
+        return io.NodeOutput(*outputs)
 
 
-class RPSelectiveVideoEdgeFill(RPSelectiveVideoInput):
+class RPSelectiveVideoInput(_SelectiveVideo):
+    title = "RP Selective Video Input"
+    description = "Select objects by text before queueing and apply a different map to each tracked group."
+    aliases = ["SAM3 video", "selective depth", "video segmentation", "video restoration"]
+
+
+class RPSelectiveVideoEdgeFill(_SelectiveVideo):
     title = "RP Selective Video Edge Fill"
     description = "Track selected objects and fill their regions inward with neighboring background pixels."
     aliases = ["SAM3 video", "inward edge fill", "object removal", "replicate border"]
     edge_fill = True
+
+
+class RPSelectiveVideoGuides(_SelectiveVideo):
+    title = "RP Selective Video Guides"
+    description = "Track groups, apply selective maps and export resizable pose, face or rectangle guides with alpha."
+    aliases = ["transparent guide", "OpenPose face", "tracked rectangle", "video blockout"]
+    guide_modes = True
 
 
 def encoded_image(pixels, format):
@@ -739,6 +777,27 @@ def detect_preview(source, frame, prompt, threshold):
     with INFERENCE_LOCK, torch.inference_mode():
         _, masks, scores = detect_objects(preview_frame(source, frame), prompt, threshold)
     return {"candidates": [{"score": score, "mask": encode_mask(mask)} for mask, score in zip(masks, scores)]}
+
+
+@lru_cache(maxsize=12)
+def preview_pose_geometry(source, frame, include_hands):
+    with INFERENCE_LOCK, torch.inference_mode(), guide_detector() as detector:
+        return pose_geometry(detector, preview_frame(source, frame), include_hands)
+
+
+def preview_guide(source, frame, kind, encoded_mask):
+    if not isinstance(encoded_mask, str) or len(encoded_mask) > 1_500_000:
+        raise ValueError("Invalid guide preview mask.")
+    with Image.open(buffer_io.BytesIO(base64.b64decode(encoded_mask, validate=True)), formats=["PNG"]) as image:
+        if max(image.size) > 1280 or "A" not in image.getbands():
+            raise ValueError("Invalid guide preview mask.")
+        mask = np.asarray(image.getchannel("A")) > 127
+    geometry = preview_pose_geometry(source, frame, kind == "pose_guide") if mask.any() else None
+    artwork = guide_artwork(kind, mask, None, geometry)
+    if artwork is None:
+        return {"bounds": None, "image": None}
+    image, bounds = artwork
+    return {"bounds": bounds, "image": base64.b64encode(encoded_image(np.asarray(image), "PNG")).decode("ascii")}
 
 
 def check_saved_prompts(source, frame, prompts):
@@ -914,6 +973,28 @@ if getattr(PromptServer, "instance", None) is not None:
             log.exception("Selective video detection failed")
             return web.json_response({"error": str(exc)}, status=500)
 
+    @routes.post("/rp/selective-video/guide-frame")
+    async def selective_video_guide_frame(request):
+        try:
+            body = await request.json()
+            if not isinstance(body, dict) or not isinstance(body.get("video"), str):
+                raise ValueError("Choose an input video first.")
+            source = input_video(body["video"])
+            frame, kind = body.get("frame"), body.get("kind")
+            if kind not in POSE_GUIDES:
+                raise ValueError("Choose an OpenPose guide.")
+            frames = (await asyncio.to_thread(video_timeline, source)).frames
+            if type(frame) is not int or not 0 <= frame < len(frames):
+                raise ValueError("Frame is outside the video.")
+            if preview_inference_busy():
+                return web.json_response({"error": "ComfyUI is busy. Try the guide preview when the queue is idle."}, status=409)
+            return web.json_response(await asyncio.to_thread(preview_guide, source, frame, kind, body.get("mask")))
+        except (OSError, ValueError, av.error.FFmpegError) as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except Exception as exc:
+            log.exception("Selective video guide preview failed")
+            return web.json_response({"error": str(exc)}, status=500)
+
     @routes.post("/rp/selective-video/check")
     async def selective_video_check(request):
         try:
@@ -951,7 +1032,7 @@ if getattr(PromptServer, "instance", None) is not None:
             source = input_video(data["video"])
             frames = (await asyncio.to_thread(video_timeline, source)).frames
             groups = parse_groups({"video": data["video"], "groups": [data.get("group")]},
-                                  data["video"], len(frames))
+                                  data["video"], len(frames), guide_modes=True)
             if not groups:
                 raise ValueError("Add a selection to this group before checking it.")
             frame = data.get("frame")
@@ -971,7 +1052,7 @@ if getattr(PromptServer, "instance", None) is not None:
                 raise ValueError("Choose an input video first.")
             source = input_video(data["video"])
             frames = (await asyncio.to_thread(video_timeline, source)).frames
-            groups = parse_groups(data, data["video"], len(frames))
+            groups = parse_groups(data, data["video"], len(frames), guide_modes=True)
             if not groups:
                 raise ValueError("Add at least one selection to preview tracking.")
             if preview_inference_busy():
@@ -1033,7 +1114,7 @@ if getattr(PromptServer, "instance", None) is not None:
                 return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
 
             frames = (await asyncio.to_thread(video_timeline, source)).frames
-            groups = parse_groups(data, data["video"], len(frames))
+            groups = parse_groups(data, data["video"], len(frames), guide_modes=True)
             if [group["parts"] for group in groups] != json.loads(cached[0][1]):
                 raise ValueError("The selections changed. Run Track & preview again.")
             frame = data.get("frame", 0)

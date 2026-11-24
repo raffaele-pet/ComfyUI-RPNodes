@@ -114,7 +114,7 @@ export function createPainter(canvas) {
     const tint = scratch.getContext("2d", { willReadFrequently: true });
     let work;
 
-    return (photo, overlays) => {
+    return (photo, overlays, onMask) => {
         const { width, height } = photo;
         if (canvas.width !== width || canvas.height !== height) {
             canvas.width = width;
@@ -127,7 +127,8 @@ export function createPainter(canvas) {
         }
 
         context.drawImage(photo, 0, 0, width, height);
-        for (const { bitmaps, color, opacity, radius = 0, fillHoles = false } of overlays) {
+        for (const overlay of overlays) {
+            const { bitmaps, color, opacity, radius = 0, fillHoles = false } = overlay;
             if (!bitmaps.length) continue;
             tint.clearRect(0, 0, width, height);
             for (const bitmap of bitmaps) tint.drawImage(bitmap, 0, 0, width, height);
@@ -137,6 +138,7 @@ export function createPainter(canvas) {
             }
             spreadMask(tint, radius, true);
             spreadMask(tint, radius, false);
+            onMask?.(overlay, scratch);
             tint.globalCompositeOperation = "source-in";
             tint.fillStyle = color;
             tint.fillRect(0, 0, width, height);
