@@ -3666,7 +3666,7 @@
     {
       "id": 586,
       "type": "Note",
-      "title": "RP Selective Video Input",
+      "title": "RP Selective Video Guides",
       "pos": [
         6100,
         6950
@@ -3682,17 +3682,17 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "ENGLISH\nUpload a video and open Edit video selections. Detect a person or object in a frame, then add it to a group. Each group shares its map and mask expansion. Select Track & preview to check the group masks across the clip. Apply selections and use the video socket to save the composite with audio.\n\nITALIANO\nCarica un video e apri Edit video selections. Cerca una persona o un oggetto in un fotogramma e aggiungilo a un gruppo. Il gruppo condivide mappa e margine della maschera. Usa Track & preview per controllare le sagome negli altri fotogrammi. Applica le selezioni e usa l'uscita video per salvare il composito con audio."
+        "ENGLISH\nUpload a video and open Edit video selections. Describe a subject and click Detect. Choose a map guide, then track the selection or apply it directly. Connect video to export the composited maps with source audio.\n\nITALIANO\nCarica un video e apri Edit video selections. Descrivi un soggetto e fai clic su Detect. Scegli una Map guide, poi traccia la selezione o applicala direttamente. Collega video per esportare le mappe compositate con l'audio originale."
       ],
       "widgets_values_named": {
-        "text": "ENGLISH\nUpload a video and open Edit video selections. Detect a person or object in a frame, then add it to a group. Each group shares its map and mask expansion. Select Track & preview to check the group masks across the clip. Apply selections and use the video socket to save the composite with audio.\n\nITALIANO\nCarica un video e apri Edit video selections. Cerca una persona o un oggetto in un fotogramma e aggiungilo a un gruppo. Il gruppo condivide mappa e margine della maschera. Usa Track & preview per controllare le sagome negli altri fotogrammi. Applica le selezioni e usa l'uscita video per salvare il composito con audio."
+        "text": "ENGLISH\nUpload a video and open Edit video selections. Describe a subject and click Detect. Choose a map guide, then track the selection or apply it directly. Connect video to export the composited maps with source audio.\n\nITALIANO\nCarica un video e apri Edit video selections. Descrivi un soggetto e fai clic su Detect. Scegli una Map guide, poi traccia la selezione o applicala direttamente. Collega video per esportare le mappe compositate con l'audio originale."
       },
       "color": "#432",
       "bgcolor": "#653"
     },
     {
       "id": 587,
-      "type": "RPSelectiveVideoInput",
+      "type": "RPSelectiveVideoGuides",
       "pos": [
         6600,
         6950
@@ -3714,14 +3714,54 @@
           ]
         },
         {
-          "name": "frames",
+          "name": "frames_map_guide",
           "type": "IMAGE",
           "links": []
+        },
+        {
+          "name": "frames_transparent_guide",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "original_frames",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null
+        },
+        {
+          "name": "MASK_IMAGE",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "mask_video",
+          "type": "VIDEO",
+          "links": null
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
         }
       ],
       "properties": {
         "aux_id": "raffaele-pet/ComfyUI-RPNodes",
-        "Node name for S&R": "RPSelectiveVideoInput"
+        "Node name for S&R": "RPSelectiveVideoGuides"
       },
       "widgets_values": [
         "Ada_Montage.mp4",
@@ -4591,7 +4631,7 @@
     },
     {
       "id": 20,
-      "title": "RP Selective Video Input",
+      "title": "RP Selective Video Guides",
       "bounding": [
         6000,
         6820,

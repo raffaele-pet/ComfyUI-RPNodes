@@ -15,7 +15,7 @@ function fixture(options) {
     const widgets = { video: { name: "video" }, selections: { name: "selections" } };
     for (const [name, value] of Object.entries(options)) widgets[name] = { name, value };
     const node = {
-        comfyClass: "RPSelectiveVideoInput",
+        comfyClass: "RPSelectiveVideoGuides",
         widgets: Object.values(widgets),
         addWidget() { return {}; },
         setDirtyCanvas() {},
@@ -77,22 +77,23 @@ test("old video-mask links migrate without moving the original video output", ()
         definitions: { subgraphs: [nested] },
     };
     extension.beforeConfigureGraph(workflow);
-    assert.equal(node.outputs[2].name, "original_frames");
-    assert.equal(node.outputs[6].name, "MASK_IMAGE");
-    assert.equal(node.outputs[6].type, "IMAGE");
-    assert.equal(node.outputs[7].name, "mask_video");
-    assert.equal(node.outputs[7].localized_name, "mask_video");
-    assert.equal(node.outputs[7].slot_index, 7);
-    assert.deepEqual(node.outputs[7].links, [619]);
-    assert.deepEqual(workflow.links, [[618, 587, 0, 588, 0, "VIDEO"], [619, 587, 7, 589, 0, "VIDEO"]]);
-    assert.equal(nested.links[0].origin_slot, 7);
-    assert.equal(nested.floatingLinks[0].origin_slot, 7);
+    assert.equal(node.type, "RPSelectiveVideoGuides");
+    assert.equal(node.outputs[3].name, "original_frames");
+    assert.equal(node.outputs[7].name, "MASK_IMAGE");
+    assert.equal(node.outputs[7].type, "IMAGE");
+    assert.equal(node.outputs[8].name, "mask_video");
+    assert.equal(node.outputs[8].localized_name, "mask_video");
+    assert.equal(node.outputs[8].slot_index, 8);
+    assert.deepEqual(node.outputs[8].links, [619]);
+    assert.deepEqual(workflow.links, [[618, 587, 0, 588, 0, "VIDEO"], [619, 587, 8, 589, 0, "VIDEO"]]);
+    assert.equal(nested.links[0].origin_slot, 8);
+    assert.equal(nested.floatingLinks[0].origin_slot, 8);
     const migrated = JSON.stringify(workflow);
     extension.beforeConfigureGraph(workflow);
     assert.equal(JSON.stringify(workflow), migrated);
 });
 
-test("reordering original frames preserves all output links on both RP variants", () => {
+test("older Input nodes become Guides while Edge Fill keeps its own outputs", () => {
     const names = ["video", "frames", "frame_count", "audio", "video_info", "MASK_IMAGE", "mask_video", "MASK", "original_frames"];
     for (const type of ["RPSelectiveVideoInput", "RPSelectiveVideoEdgeFill"]) {
         const node = {
@@ -104,10 +105,13 @@ test("reordering original frames preserves all output links on both RP variants"
             links: names.map((_, index) => [100 + index, node.id, index, 81 + index, 0]),
         };
         extension.beforeConfigureGraph(workflow);
-        const orderedNames = ["video", "frames", "original_frames", ...names.slice(2, -1)];
+        const guide = type === "RPSelectiveVideoInput";
+        const frameNames = guide ? ["frames_map_guide", "frames_transparent_guide"] : ["frames"];
+        const orderedNames = ["video", ...frameNames, "original_frames", ...names.slice(2, -1)];
+        assert.equal(node.type, guide ? "RPSelectiveVideoGuides" : type);
         assert.deepEqual(Array.from(node.outputs, ({ name }) => name), orderedNames);
         for (const [link, _, slot] of workflow.links) {
-            assert.equal(node.outputs[slot].name, names[link - 100]);
+            assert.equal(node.outputs[slot].name, link === 101 ? frameNames[0] : names[link - 100]);
             assert.equal(node.outputs[slot].slot_index, slot);
             assert.deepEqual(node.outputs[slot].links, [link]);
         }

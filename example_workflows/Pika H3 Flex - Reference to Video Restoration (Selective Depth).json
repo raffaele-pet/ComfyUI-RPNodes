@@ -1199,7 +1199,7 @@
     },
     {
       "id": 857,
-      "type": "RPSelectiveVideoInput",
+      "type": "RPSelectiveVideoGuides",
       "pos": [
         -3500,
         11530
@@ -1219,17 +1219,57 @@
           "links": []
         },
         {
-          "name": "frames",
+          "name": "frames_map_guide",
           "type": "IMAGE",
           "links": [
             1023,
             1027
           ]
+        },
+        {
+          "name": "frames_transparent_guide",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "original_frames",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null
+        },
+        {
+          "name": "MASK_IMAGE",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "mask_video",
+          "type": "VIDEO",
+          "links": null
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
         }
       ],
       "properties": {
         "aux_id": "raffaele-pet/ComfyUI-RPNodes",
-        "Node name for S&R": "RPSelectiveVideoInput"
+        "Node name for S&R": "RPSelectiveVideoGuides"
       },
       "widgets_values": [
         "Samurai.mp4",

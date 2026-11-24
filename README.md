@@ -268,33 +268,31 @@ The node needs H3 conditioning, its video VAE, and the AV latent. It returns
 conditioning with the connected keyframes in order. Each image input accepts
 one still image; images can be fitted by centered cropping or stretching.
 
-### RP Selective Video Input
+### RP Selective Video Guides
 
-Choose or upload a video, open **Edit video selections**, and click **New
-group**. Scrub to a frame, enter a description, and click **Detect** to save the
-matching masks. The first match names the group and enables renaming. Use the
-mask checkboxes to keep the matches you want. **Add selection** opens a new
-description in the same group, for example to add sword hilts to an armored
-person. Click a saved selection to reopen it at its anchor frame.
+Open **Edit video selections** and describe a subject in the first card.
+Click **Detect** to save its anchor mask. **Add selection** opens another
+card with its own preprocessor, color and tracking range. The color picker
+offers a palette and manual color controls. **Select the guide** leaves the
+selection available as a mask. Choose a guide to add a preprocessor.
 
-Each group has one preprocessor (Depth, Canny, OpenPose or Segmentation), color
-and mask expansion. Click **Detect** again to apply changes to the settings.
-The group color updates as you pick it. Segmentation uses this color.
-**Fill holes** is enabled by default and closes enclosed gaps before mask
-expansion, which defaults to **10 source pixels**.
+Use the × on an anchor marker to remove the selections made on that frame.
+**Fill holes** closes enclosed gaps before expansion, which defaults to
+10 source pixels. Lower selections take precedence where their map guides
+overlap.
 
-Saved masks stay visible on their anchor frames. Use the × on an anchor marker
-to remove the selections made on that frame. **Check group** uses the approved
-masks to guide detection on the current frame through the existing tracking
-preview or the path from each anchor.
+**Track & preview** tracks every selection and prepares the selected
+preprocessors at the node's output settings. Switch **Segmentation** and
+**Guide** independently while scrubbing. **Apply selections** prepares pending
+changes before closing the editor. The workflow reuses the prepared result
+while it is cached for the same video, selections and output settings.
 
-Run **Track & preview** to inspect the propagated masks across the clip. After
-**Apply selections**, play, pause, or scrub the tracked preview directly on the
-node in ComfyUI's standard player. It shows the source video until the tracked
-preview is ready. The workflow saves the groups and their
-anchor masks. A selection can have its own tracking range,
-which lets you anchor it separately across hard cuts. Lower
-groups in the list take precedence where their expanded masks overlap.
+**OpenPose · Body, hands and face** and **OpenPose · Face only** render
+landmarks for people matched to the selected region. **Tracked rectangle**
+follows the tracked mask's main axis on each frame. Drag a guide to move it or
+drag the round handle to rotate it. Drag a corner to resize proportionally
+and hold **Shift** to resize each axis independently. Use **Reset scale** to
+restore 100% or **Reset position** to clear the manual offset and rotation.
 
 The loading controls work on the outputs. `force_rate` changes the sampling
 rate before `skip_first_frames` and `select_every_nth`. `frame_load_cap` limits
@@ -316,10 +314,13 @@ ComfyUI masks directly. All three show the union of the selected regions,
 including **Expand** and **Fill holes**. Connect `mask_video` to **Save Video**
 to export the mask.
 
-SAM 3.1 tracks each selection in both directions from its anchor. The node
-joins the masks within a group and expands the union before applying its map.
-Every requested map is computed at most once per source frame. The `frames`
-output is an IMAGE batch, and `video` carries the source audio and frame rate.
+SAM 3.1 tracks each selection in both directions from its anchor.
+`frames_map_guide` and `video` carry the source with the selected map guides
+applied. `video` also carries the source audio and loaded frame rate.
+`frames_transparent_guide` is an RGBA image batch with the transparent guides.
+Connect it to **frames** on **RP Save Transparent Video** and connect
+`video_info` to keep the loaded frame rate. The saver exports a ProRes 4444
+MOV with alpha and plays a browser-compatible preview on a checkerboard.
 ComfyUI's component video output uses the average frame rate when exporting
 variable-rate sources.
 
@@ -339,46 +340,13 @@ H3 keeps the source's final frames.
 
 ### RP Selective Video Edge Fill
 
-This node uses the same SAM 3.1 selection editor, loading controls, and
-outputs as **RP Selective Video Input**. Each group has **Fill inward from
+This node uses SAM 3.1 tracking and the same loading controls and mask
+outputs as **RP Selective Video Guides**. Each group has **Fill inward from
 edges**, enabled by default. Every pixel inside the expanded selection takes
 the color of the nearest pixel outside all selected regions. Pixels outside
 the selections keep their original colors. Turning off the checkbox leaves
 the group's selected area black. A selection that covers the entire frame
 also turns black because it has no visible pixels to copy.
-
-### RP Selective Video Guides
-
-Open **Edit video selections** and describe a subject in the first card.
-Click **Detect** to save its anchor mask. **Add selection** opens another
-card with its own preprocessor, color and tracking range. The color picker
-offers a palette and manual color controls. **Select the guide** leaves the
-selection available as a mask. Choose a guide to add a preprocessor.
-
-**OpenPose · Body, hands and face** and **OpenPose · Face only** render
-landmarks for people matched to the selected region. **Tracked rectangle**
-follows the tracked mask's main axis on each frame. It uses the selection's color
-and a narrow fit across that axis.
-
-**Track & preview** tracks every selection and prepares the selected
-preprocessors at the node's output settings. Switch **Segmentation** and
-**Guide** independently while scrubbing. The editor opens with **Segmentation**
-enabled. **Apply selections** prepares any
-pending changes before closing the editor. The workflow reuses the prepared
-result while it is cached for the same video, selections and output settings.
-
-Drag the guide to move it or drag the round handle to rotate it. Drag a corner
-to resize proportionally and hold **Shift** to resize each axis independently.
-Use **Reset scale** to restore 100% or **Reset position** to clear the manual
-offset and rotation. These adjustments apply throughout the clip.
-
-`frames_map_guide` gives the source frames with the selected map guides
-applied. `frames_transparent_guide` is an RGBA image batch with the transparent
-guides. Connect it to **frames** on **RP Save Transparent Video** and connect
-`video_info` to keep the loaded frame rate. The saver exports a ProRes 4444
-MOV with alpha and plays a browser-compatible preview on a checkerboard.
-The two pose guides use
-`comfyui_controlnet_aux` and its OpenPose weights.
 
 ## Installation
 

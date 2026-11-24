@@ -39,7 +39,7 @@ from .video_preview import cached_preview, preview_pixels
 
 CATEGORY = "RP/Video Conditioning"
 CHECKPOINT = "sam3.1_multiplex_fp16.safetensors"
-PREPROCESSORS = ("segmentation", "depth", "canny", "openpose")
+MAP_PREPROCESSORS = ("segmentation", "depth", "canny")
 MAX_INSTANCES = 12
 MAX_TRACK_OBJECTS = 64
 DEFAULT_EXPANSION = 10
@@ -146,11 +146,11 @@ def preview_frame(source, index):
         return preview_pixels(image)
 
 
-def parse_groups(data, filename, frame_count, *, edge_fill=False, guide_modes=False):
+def parse_groups(data, filename, frame_count, *, edge_fill=False):
     if not isinstance(data, dict):
         raise ValueError("Use the editor to configure selection groups.")
     groups = data.get("groups")
-    layers = data.get("selections") if guide_modes and "selections" in data else data.get("layers")
+    layers = data.get("selections", data.get("layers"))
     if groups is None and isinstance(layers, list):
         groups = []
         for layer in layers:
@@ -177,10 +177,10 @@ def parse_groups(data, filename, frame_count, *, edge_fill=False, guide_modes=Fa
                 raise ValueError("Fill inward from edges must be enabled or disabled.")
             effect = {"fill_from_edges": fill_from_edges}
         else:
-            kind = group.get("preprocessor", "none" if guide_modes and "selections" in data else "segmentation")
-            if guide_modes and kind == "openpose":
+            kind = group.get("preprocessor", "none" if "selections" in data else "segmentation")
+            if kind == "openpose":
                 kind = "pose_guide"
-            if kind not in PREPROCESSORS and not (guide_modes and (kind == "none" or kind in GUIDE_MODES)):
+            if kind not in ("none", *MAP_PREPROCESSORS, *GUIDE_MODES):
                 raise ValueError("Unknown group preprocessor.")
             effect = {"preprocessor": kind}
             if kind in GUIDE_MODES:
@@ -424,20 +424,13 @@ def prepare_preprocessors(kinds):
             return Canny.execute(images, 0.1, 0.3).result[0]
         processors["canny"] = canny
 
-    if kinds & {"depth", "openpose"}:
+    if "depth" in kinds:
         try:
             from custom_controlnet_aux.depth_anything_v2 import DepthAnythingV2Detector
-            from custom_controlnet_aux.open_pose import OpenposeDetector
         except ImportError as exc:
-            raise RuntimeError("Install comfyui_controlnet_aux to use Depth or OpenPose.") from exc
-        if "depth" in kinds:
-            depth = DepthAnythingV2Detector.from_pretrained(filename="depth_anything_v2_vitl.pth").to(device)
-            processors["depth"] = lambda frame: depth(frame, detect_resolution=1024, max_depth=1, output_type="np")
-        if "openpose" in kinds:
-            pose = OpenposeDetector.from_pretrained().to(device)
-            processors["openpose"] = lambda frame: pose(
-                frame, detect_resolution=512, include_hand=True, include_face=True, output_type="np",
-            )
+            raise RuntimeError("Install comfyui_controlnet_aux to use Depth.") from exc
+        depth = DepthAnythingV2Detector.from_pretrained(filename="depth_anything_v2_vitl.pth").to(device)
+        processors["depth"] = lambda frame: depth(frame, detect_resolution=1024, max_depth=1, output_type="np")
     return processors
 
 
@@ -572,7 +565,7 @@ def fill_frame_from_edges(frame, selection, fill):
 
 def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=False, guides=None, detector=None,
                      artwork=None, check=model_management.throw_exception_if_processing_interrupted):
-    kinds = set() if edge_fill else {group["preprocessor"] for group in groups} & {"depth", "canny", "openpose"}
+    kinds = set() if edge_fill else {group["preprocessor"] for group in groups} & {"depth", "canny"}
     processors = prepare_preprocessors(kinds) if kinds else {}
     progress = comfy.utils.ProgressBar(len(images)) if artwork is None else None
     height, width = images.shape[1:3]
@@ -595,7 +588,7 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
         # Evaluate each map from the original RGB before any layer writes.
         pose_needed = detector is not None and any(group["preprocessor"] in POSE_GUIDES for _, group, _, _ in active)
         rgb = None
-        if pose_needed or needed & {"depth", "openpose"}:
+        if pose_needed or "depth" in needed:
             rgb = (chunk.clamp(0, 1) * 255).round().to(torch.uint8).cpu().numpy()
         for name in needed:
             processor = processors[name]
@@ -764,7 +757,7 @@ class _SelectiveVideo(io.ComfyNode):
         source = input_video(video)
         options = (force_rate, custom_width, custom_height, frame_load_cap, skip_first_frames, select_every_nth, format)
         groups = parse_groups(json.loads(selections), video, len(video_timeline(source).frames),
-                              edge_fill=cls.edge_fill, guide_modes=cls.guide_modes)
+                              edge_fill=cls.edge_fill)
         if cls.guide_modes:
             prepared = find_prepared(key=preparation_key(source, options, groups))
             if prepared is not None:
@@ -784,7 +777,7 @@ class _SelectiveVideo(io.ComfyNode):
         width, height = target_size(*timeline.size, custom_width, custom_height, format)
         guide_kinds = {group["preprocessor"] for group in groups} & set(GUIDE_MODES) if cls.guide_modes else set()
         composite = bool(groups) and (cls.edge_fill or any(
-            group["preprocessor"] in PREPROCESSORS for group in groups
+            group["preprocessor"] in MAP_PREPROCESSORS for group in groups
         ))
         if prepare:
             bytes_per_pixel = 16 + 12 * composite + 8 * bool(guide_kinds)
@@ -849,12 +842,6 @@ class _SelectiveVideo(io.ComfyNode):
         return PreparedVideo(uuid4().hex, tracking, groups, tracks, indices, timeline.size, outputs, artwork, size_bytes)
 
 
-class RPSelectiveVideoInput(_SelectiveVideo):
-    title = "RP Selective Video Input"
-    description = "Select objects by text before queueing and apply a different map to each tracked group."
-    aliases = ["SAM3 video", "selective depth", "video segmentation", "video restoration"]
-
-
 class RPSelectiveVideoEdgeFill(_SelectiveVideo):
     title = "RP Selective Video Edge Fill"
     description = "Track selected objects and fill their regions inward with neighboring background pixels."
@@ -865,7 +852,8 @@ class RPSelectiveVideoEdgeFill(_SelectiveVideo):
 class RPSelectiveVideoGuides(_SelectiveVideo):
     title = "RP Selective Video Guides"
     description = "Track selections, prepare selective maps and export resizable pose, face or rectangle guides with alpha."
-    aliases = ["transparent guide", "OpenPose face", "tracked rectangle", "video blockout"]
+    aliases = ["SAM3 video", "selective depth", "video segmentation", "video restoration",
+               "transparent guide", "OpenPose face", "tracked rectangle", "video blockout"]
     guide_modes = True
 
 
@@ -1209,7 +1197,7 @@ if getattr(PromptServer, "instance", None) is not None:
             source = input_video(data["video"])
             frames = (await asyncio.to_thread(video_timeline, source)).frames
             groups = parse_groups({"video": data["video"], "groups": [data.get("group")]},
-                                  data["video"], len(frames), guide_modes=True)
+                                  data["video"], len(frames))
             if not groups:
                 raise ValueError("Add a selection to this group before checking it.")
             frame = data.get("frame")
@@ -1229,7 +1217,7 @@ if getattr(PromptServer, "instance", None) is not None:
                 raise ValueError("Choose an input video first.")
             source = input_video(data["video"])
             frames = (await asyncio.to_thread(video_timeline, source)).frames
-            groups = parse_groups(data, data["video"], len(frames), guide_modes=True)
+            groups = parse_groups(data, data["video"], len(frames))
             if not groups:
                 raise ValueError("Add at least one selection to preview tracking.")
             if preview_inference_busy():
@@ -1246,7 +1234,7 @@ if getattr(PromptServer, "instance", None) is not None:
                 raise ValueError("Choose an input video first.")
             source = input_video(data["video"])
             timeline = await asyncio.to_thread(video_timeline, source)
-            groups = parse_groups(data, data["video"], len(timeline.frames), guide_modes=True)
+            groups = parse_groups(data, data["video"], len(timeline.frames))
             options = load_options(data.get("settings", {}))
             key = preparation_key(source, options, groups)
             ready = find_prepared(key=key)
@@ -1330,7 +1318,7 @@ if getattr(PromptServer, "instance", None) is not None:
                 return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
 
             frames = (await asyncio.to_thread(video_timeline, source)).frames
-            groups = parse_groups(data, data["video"], len(frames), guide_modes=True)
+            groups = parse_groups(data, data["video"], len(frames))
             if [group["parts"] for group in groups] != json.loads(cached[0][1]):
                 raise ValueError("The selections changed. Run Track & preview again.")
             frame = data.get("frame", 0)

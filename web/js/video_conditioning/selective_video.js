@@ -4,8 +4,7 @@ import {
     attachNativePreview, colors, createPainter, decodeMask, defaultExpansion, loadGroupOverlays,
     loadPhoto, loadTrackedMasks, post, previewJob, releaseOverlays, request,
 } from "./selective_video_preview.js";
-const maps = { segmentation: "Segmentation", depth: "Depth", canny: "Canny", openpose: "OpenPose" };
-const guideMaps = { segmentation: maps.segmentation, depth: maps.depth, canny: maps.canny };
+const guideMaps = { segmentation: "Segmentation", depth: "Depth", canny: "Canny" };
 const loadOptionDefaults = {
     force_rate: 0,
     custom_width: 0,
@@ -30,8 +29,15 @@ function migrateSelectiveVideoOutputs(workflow) {
     const guideVideoSlots = new Map();
     const nodes = new Map((workflow.nodes ?? []).map((node) => [node.id, node]));
     for (const node of nodes.values()) {
+        if (node.type === "RPSelectiveVideoInput") {
+            node.type = "RPSelectiveVideoGuides";
+            if (node.properties?.["Node name for S&R"] === "RPSelectiveVideoInput") {
+                node.properties["Node name for S&R"] = node.type;
+            }
+            if (node.title === "RP Selective Video Input") node.title = "RP Selective Video Guides";
+        }
         const guides = node.type === "RPSelectiveVideoGuides";
-        if (!guides && node.type !== "RPSelectiveVideoInput" && node.type !== "RPSelectiveVideoEdgeFill") continue;
+        if (!guides && node.type !== "RPSelectiveVideoEdgeFill") continue;
         const schema = guides ? selectiveGuidesOutputs : selectiveVideoOutputs;
         const canonical = schema.map(([name]) => name);
         const outputs = node.outputs;
@@ -452,22 +458,18 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         mode.title = "Copy the nearest background pixels inward. Turn off to leave the selection black.";
         mode.addEventListener("change", () => { activeGroup.fill_from_edges = mode.checked; });
     } else {
-        mode.setAttribute("aria-label", withGuides ? "Selection preprocessor" : "Group preprocessor");
-        if (withGuides) {
-            mode.append(new Option("Select the guide", "none"));
-            for (const [label, options] of [
-                ["Map guide", guideMaps],
-                ["Transparent guide", guideModes],
-            ]) {
-                const section = element("optgroup");
-                section.label = label;
-                for (const [value, title] of Object.entries(options)) section.append(new Option(title, value));
-                mode.append(section);
-            }
-        } else {
-            for (const [value, title] of Object.entries(maps)) mode.append(new Option(title, value));
+        mode.setAttribute("aria-label", "Selection preprocessor");
+        mode.append(new Option("Select the guide", "none"));
+        for (const [label, options] of [
+            ["Map guide", guideMaps],
+            ["Transparent guide", guideModes],
+        ]) {
+            const section = element("optgroup");
+            section.label = label;
+            for (const [value, title] of Object.entries(options)) section.append(new Option(title, value));
+            mode.append(section);
         }
-        if (withGuides) mode.addEventListener("change", () => {
+        mode.addEventListener("change", () => {
             if (!activeGroup) return;
             activeGroup.preprocessor = mode.value;
             mode.classList.toggle("rp-guide-placeholder", mode.value === "none");
@@ -758,8 +760,8 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         if (group) {
             if (edgeFill) mode.checked = group.fill_from_edges ?? true;
             else {
-                mode.value = group.preprocessor ?? (withGuides ? "none" : "segmentation");
-                mode.classList.toggle("rp-guide-placeholder", withGuides && mode.value === "none");
+                mode.value = group.preprocessor ?? "none";
+                mode.classList.toggle("rp-guide-placeholder", mode.value === "none");
             }
             color.setColor(group.color ?? colors[0]);
             expansion.value = group.expand ?? defaultExpansion;
@@ -1349,7 +1351,7 @@ app.registerExtension({
     nodeCreated(node) {
         const edgeFill = node.comfyClass === "RPSelectiveVideoEdgeFill";
         const withGuides = node.comfyClass === "RPSelectiveVideoGuides";
-        if (!edgeFill && !withGuides && node.comfyClass !== "RPSelectiveVideoInput") return;
+        if (!edgeFill && !withGuides) return;
         const video = node.widgets.find((widget) => widget.name === "video");
         const selections = node.widgets.find((widget) => widget.name === "selections");
         if (!video || !selections) return;
