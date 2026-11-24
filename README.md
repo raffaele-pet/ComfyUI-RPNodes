@@ -349,17 +349,26 @@ also turns black because it has no visible pixels to copy.
 
 ### RP Selective Video Guides
 
-This node adds three group preprocessors to **RP Selective Video Input**.
+Open **Edit video selections** and describe a subject in the first card.
+Click **Detect** to save its anchor mask. **Add selection** opens another
+card with its own preprocessor, color and tracking range. The color picker
+offers a palette and manual color controls.
+
 **OpenPose · Body, hands and face** and **OpenPose · Face only** render
 landmarks for people matched to the selected region. **Tracked rectangle**
-follows the tracked mask's main axis on each frame. It uses the group's color
+follows the tracked mask's main axis on each frame. It uses the selection's color
 and a narrow fit across that axis.
 
-Select a guide and scrub to an anchor frame or run **Track & preview**.
+**Track & preview** tracks every selection and prepares the selected
+preprocessors at the node's output settings. Switch **Segmentation** and
+**Guide** independently while scrubbing. **Apply selections** prepares any
+pending changes before closing the editor. The workflow reuses the prepared
+result while it is cached for the same video, selections and output settings.
+
 Drag the guide to move it or drag the round handle to rotate it. Drag a corner
 to resize proportionally and hold **Shift** to resize each axis independently.
 Use **Reset scale** to restore 100% or **Reset position** to clear the manual
-offset and rotation. These adjustments apply to the group throughout the clip.
+offset and rotation. These adjustments apply throughout the clip.
 
 `guide_video` combines the guides on a transparent canvas at the loaded
 resolution and frame rate. The original outputs still carry the source and

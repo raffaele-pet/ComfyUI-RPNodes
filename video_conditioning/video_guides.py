@@ -1,4 +1,5 @@
 import math
+from io import BytesIO
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import lru_cache
@@ -169,19 +170,27 @@ def composite_guide(canvas, artwork, scale, offset, rotation):
     canvas.alpha_composite(visible, (x0, y0))
 
 
-def render_guides(output, items, rgb, detector):
+def render_guides(output, items, rgb, detector, prepared=None, start=0):
     height, width = output.shape[1:3]
     for index in range(len(output)):
         visible = [
-            (group, masks[index - section.start]) for group, section, masks in items
+            (group_id, group, masks[index - section.start]) for group_id, group, section, masks in items
             if section.start <= index < section.stop and masks[index - section.start].any()
         ]
         if not visible:
             continue
-        kinds = {group["preprocessor"] for group, _ in visible}
+        kinds = {group["preprocessor"] for _, group, _ in visible}
         geometry = pose_geometry(detector, rgb[index], "pose_guide" in kinds) if kinds & POSE_GUIDES else None
         canvas = Image.new("RGBA", (width, height))
-        for group, mask in visible:
+        for group_id, group, mask in visible:
             artwork = guide_artwork(group["preprocessor"], mask, group["color"], geometry)
             composite_guide(canvas, artwork, group["guide_scale"], group["guide_offset"], group["guide_rotation"])
+            if prepared is not None and artwork:
+                image, placement = artwork
+                png = None
+                if group["preprocessor"] in POSE_GUIDES:
+                    with BytesIO() as buffer:
+                        image.save(buffer, format="PNG")
+                        png = buffer.getvalue()
+                prepared.setdefault(start + index, {})[group_id] = (placement, png)
         output[index] = torch.from_numpy(np.array(canvas)).to(output.dtype).div_(255)

@@ -29,6 +29,7 @@ export async function previewJob(path, payload, signal) {
     let query;
     try {
         const started = await post(path, payload, signal);
+        if (started.done) return started;
         query = new URLSearchParams({ job: started.job });
         while (!signal.aborted) {
             const response = await request(`/track-status?${query}`, { signal, cache: "no-store" });

@@ -251,9 +251,30 @@ export function createGuideEditor(stage, video) {
         box.hidden = true;
     }
 
+    function showArtwork(artwork, isRectangle) {
+        geometry = artwork?.geometry;
+        rectangle.hidden = !isRectangle;
+        image.hidden = isRectangle;
+        box.hidden = !geometry;
+        if (geometry) {
+            if (isRectangle) rectangle.style.background = group.color;
+            else image.src = `data:image/png;base64,${artwork.image}`;
+            position();
+        }
+    }
+
     return {
         controls,
         clear,
+        showPrepared(activeGroup, size, artwork) {
+            clear();
+            group = activeGroup;
+            frameSize = size;
+            controls.hidden = !Object.hasOwn(guideModes, group?.preprocessor);
+            updateFields();
+            showArtwork(artwork, group?.preprocessor === "rectangle_guide");
+            status.textContent = artwork ? hint : "";
+        },
         disconnect() {
             clear();
             observer.disconnect();
@@ -288,14 +309,7 @@ export function createGuideEditor(stage, video) {
                         video, frame, kind, mask: encoded,
                     }, controller.signal);
                     if (controller.signal.aborted) return;
-                    geometry = result.geometry;
-                    rectangle.hidden = !isRectangle;
-                    image.hidden = isRectangle;
-                    box.hidden = !geometry;
-                    if (geometry) {
-                        if (!isRectangle) image.src = `data:image/png;base64,${result.image}`;
-                        position();
-                    }
+                    showArtwork(result, isRectangle);
                     status.textContent = geometry ? hint : isRectangle ? "No selection on this frame." : "No matching pose on this frame.";
                 } catch (error) {
                     if (!controller.signal.aborted) {
