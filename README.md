@@ -335,8 +335,10 @@ throughout the clip.
 
 `guide_video` combines the guides on a transparent canvas at the loaded
 resolution and frame rate. The original outputs still carry the source and
-any ordinary composite preprocessors. Use **Save Video** with **MOV** and
-**ProRes** to preserve alpha. The two pose guides use
+any ordinary composite preprocessors. Connect `guide_video` to
+**RP Save Transparent Video** to export a ProRes 4444 MOV with alpha. The
+node plays a browser-compatible preview on a checkerboard and provides a
+download link for the original MOV. The two pose guides use
 `comfyui_controlnet_aux` and its OpenPose weights.
 
 ## Installation

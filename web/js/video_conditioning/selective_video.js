@@ -325,8 +325,19 @@ function openEditor(video, groups, session, edgeFill, withGuides, onSave) {
         mode.addEventListener("change", () => { activeGroup.fill_from_edges = mode.checked; });
     } else {
         mode.setAttribute("aria-label", "Group preprocessor");
-        const options = withGuides ? { ...maps, openpose: "OpenPose (composite)", ...guideModes } : maps;
-        for (const [value, title] of Object.entries(options)) mode.append(new Option(title, value));
+        if (withGuides) {
+            for (const [label, options] of [
+                ["Transparent guide · guide_video", guideModes],
+                ["Applied to source · video", { ...maps, openpose: "OpenPose · On source" }],
+            ]) {
+                const section = element("optgroup");
+                section.label = label;
+                for (const [value, title] of Object.entries(options)) section.append(new Option(title, value));
+                mode.append(section);
+            }
+        } else {
+            for (const [value, title] of Object.entries(maps)) mode.append(new Option(title, value));
+        }
         if (withGuides) mode.addEventListener("change", () => {
             if (!activeGroup) return;
             activeGroup.preprocessor = mode.value;

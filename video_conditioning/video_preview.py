@@ -18,12 +18,12 @@ PREVIEW_FILES = OrderedDict()
 RENDER_LOCK = Lock()
 
 
-def preview_pixels(image, max_size=1008, even_size=False):
+def preview_pixels(image, max_size=1008, even_size=False, pixel_format="rgb24"):
     scale = min(1, max_size / max(image.width, image.height))
     alignment = 2 if even_size else 1
     width = alignment * max(1, round(image.width * scale / alignment))
     height = alignment * max(1, round(image.height * scale / alignment))
-    pixels = image.reformat(width=width, height=height, format="rgb24").to_ndarray()
+    pixels = image.reformat(width=width, height=height, format=pixel_format).to_ndarray()
     rotation = round(image.rotation / 90) % 4
     return np.ascontiguousarray(np.rot90(pixels, rotation))
 

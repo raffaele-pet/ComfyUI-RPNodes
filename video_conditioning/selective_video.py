@@ -661,7 +661,7 @@ class _SelectiveVideo(io.ComfyNode):
                 io.Image.Output(display_name="MASK_IMAGE", tooltip="White selected regions on black as RGB frames."),
                 io.Video.Output(display_name="mask_video", tooltip="White selected regions on black, without audio."),
                 io.Mask.Output(display_name="MASK", tooltip="Binary mask batch with 1 for selected pixels and 0 elsewhere."),
-                *([io.Video.Output(display_name="guide_video", tooltip="Transparent, silent video containing only the selected guides. Export as MOV ProRes to keep alpha.")]
+                *([io.Video.Output(display_name="guide_video", tooltip="Transparent, silent video containing only the selected guides. Use RP Save Transparent Video to export with alpha.")]
                   if cls.guide_modes else []),
             ],
         )
