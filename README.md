@@ -325,13 +325,14 @@ also turns black because it has no visible pixels to copy.
 This node adds three group preprocessors to **RP Selective Video Input**.
 **OpenPose · Body, hands and face** and **OpenPose · Face only** render
 landmarks for people matched to the selected region. **Tracked rectangle**
-uses the bounds of the tracked mask and the group's color.
+follows the tracked mask's main axis on each frame. It uses the group's color
+and a narrow fit across that axis.
 
 Select a guide and scrub to an anchor frame or run **Track & preview**.
-Drag a corner of the guide to resize it around its center. Hold **Shift**
-to keep the proportions. The width and height percentages can also be entered
-directly. **Reset scale** returns both to 100%. The scale applies to the group
-throughout the clip.
+Drag the guide to move it or drag the round handle to rotate it. Drag a corner
+to resize proportionally and hold **Shift** to resize each axis independently.
+Use **Reset scale** to restore 100% or **Reset position** to clear the manual
+offset and rotation. These adjustments apply to the group throughout the clip.
 
 `guide_video` combines the guides on a transparent canvas at the loaded
 resolution and frame rate. The original outputs still carry the source and

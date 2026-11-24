@@ -6,7 +6,7 @@ import logging
 from bisect import bisect_left
 from collections import OrderedDict, defaultdict
 from contextlib import nullcontext
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from fractions import Fraction
 from functools import lru_cache
 from pathlib import Path
@@ -31,7 +31,8 @@ from server import PromptServer
 
 from ..video_frame_processing.video_frames_workflow import VIDEO_EXTENSIONS, _available_videos
 from .video_guides import (
-    GUIDE_MODES, POSE_GUIDES, guide_artwork, guide_detector, guide_scale, pose_geometry, render_guides,
+    GUIDE_MODES, POSE_GUIDES, guide_artwork, guide_detector, guide_placement, guide_scale,
+    pose_geometry, rectangle_frame, render_guides,
 )
 from .video_preview import cached_preview, preview_pixels
 
@@ -176,6 +177,9 @@ def parse_groups(data, filename, frame_count, *, edge_fill=False, guide_modes=Fa
             effect = {"preprocessor": kind}
             if kind in GUIDE_MODES:
                 effect["guide_scale"] = guide_scale(group.get("guide_scale", [1, 1]))
+                effect["guide_offset"], effect["guide_rotation"] = guide_placement(
+                    group.get("guide_offset", [0, 0]), group.get("guide_rotation", 0),
+                )
         color = group.get("color", "#1678ff")
         if not isinstance(color, str) or len(color) != 7 or not color.startswith("#"):
             raise ValueError("Group color must be a hex RGB color.")
@@ -792,12 +796,18 @@ def preview_guide(source, frame, kind, encoded_mask):
         if max(image.size) > 1280 or "A" not in image.getbands():
             raise ValueError("Invalid guide preview mask.")
         mask = np.asarray(image.getchannel("A")) > 127
+    if kind == "rectangle_guide":
+        rectangle = rectangle_frame(mask)
+        return {"geometry": asdict(rectangle) if rectangle else None}
     geometry = preview_pose_geometry(source, frame, kind == "pose_guide") if mask.any() else None
     artwork = guide_artwork(kind, mask, None, geometry)
     if artwork is None:
-        return {"bounds": None, "image": None}
-    image, bounds = artwork
-    return {"bounds": bounds, "image": base64.b64encode(encoded_image(np.asarray(image), "PNG")).decode("ascii")}
+        return {"geometry": None}
+    image, placement = artwork
+    return {
+        "geometry": asdict(placement),
+        "image": base64.b64encode(encoded_image(np.asarray(image), "PNG")).decode("ascii"),
+    }
 
 
 def check_saved_prompts(source, frame, prompts):
@@ -981,12 +991,12 @@ if getattr(PromptServer, "instance", None) is not None:
                 raise ValueError("Choose an input video first.")
             source = input_video(body["video"])
             frame, kind = body.get("frame"), body.get("kind")
-            if kind not in POSE_GUIDES:
-                raise ValueError("Choose an OpenPose guide.")
+            if kind not in GUIDE_MODES:
+                raise ValueError("Choose a guide preprocessor.")
             frames = (await asyncio.to_thread(video_timeline, source)).frames
             if type(frame) is not int or not 0 <= frame < len(frames):
                 raise ValueError("Frame is outside the video.")
-            if preview_inference_busy():
+            if kind in POSE_GUIDES and preview_inference_busy():
                 return web.json_response({"error": "ComfyUI is busy. Try the guide preview when the queue is idle."}, status=409)
             return web.json_response(await asyncio.to_thread(preview_guide, source, frame, kind, body.get("mask")))
         except (OSError, ValueError, av.error.FFmpegError) as exc:
