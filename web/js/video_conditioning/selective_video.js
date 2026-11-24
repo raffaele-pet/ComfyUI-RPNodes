@@ -350,14 +350,18 @@ const editorStyle = `
     @keyframes rp-prepare-spin { to { transform:rotate(360deg); } }
     .rp-selective-editor .rp-preview-toolbar { display:grid; gap:6px; padding:6px 10px;
         border:1px solid var(--border-color,#545761); border-radius:8px; }
-    .rp-selective-editor .rp-preview-toolbar .rp-preview-top { flex-wrap:wrap; }
-    .rp-selective-editor .rp-preview-toolbar .rp-preview-options { column-gap:14px; flex-wrap:wrap; }
+    .rp-selective-editor .rp-preview-toolbar .rp-preview-top { display:grid; grid-template-columns:max-content minmax(0,1fr);
+        height:34px; }
+    .rp-selective-editor .rp-preview-toolbar .rp-preview-options { column-gap:12px; }
     .rp-selective-editor .rp-preview-options input { margin:0; accent-color:#6792eb; }
-    .rp-selective-editor .rp-preview-toolbar .rp-anchors { flex:1 1 150px; min-width:0; padding-inline-start:10px;
+    .rp-selective-editor .rp-preview-toolbar .rp-anchors { height:34px; min-height:0; min-width:0;
+        gap:6px; padding:4px 6px 0 9px; overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
         border-inline-start:1px solid var(--border-color,#545761); }
-    .rp-selective-editor .rp-preview-toolbar .rp-anchors:empty { display:none; }
+    .rp-selective-editor .rp-preview-toolbar .rp-anchors:empty { visibility:hidden; }
     .rp-selective-editor .rp-preview-toolbar .rp-preview-actions { padding-top:6px; justify-content:space-between;
-        flex-wrap:wrap; border-top:1px solid var(--border-color,#545761); }
+        border-top:1px solid var(--border-color,#545761); }
+    .rp-selective-editor .rp-preview-actions .rp-status { min-width:0; overflow:hidden;
+        white-space:nowrap; text-overflow:ellipsis; text-align:right; }
     .rp-selective-editor .rp-timeline input[type=range] { flex:1; min-width:48px; }
     .rp-selective-editor .rp-frame { width:70px; }
     .rp-selective-editor .rp-time { min-width:64px; text-align:right; font-variant-numeric:tabular-nums; }
@@ -398,6 +402,11 @@ const editorStyle = `
         content:""; grid-area:1/1; width:7px; height:1px; background:currentColor; transform:rotate(45deg); }
     .rp-selective-editor .rp-anchor-remove::after { transform:rotate(-45deg); }
     .rp-selective-editor .rp-anchors button { padding:3px 8px; }
+    .rp-selective-guides .rp-anchor { margin-inline-end:3px; }
+    .rp-selective-guides .rp-anchor button:first-child { min-width:26px; height:22px; padding:0 5px;
+        font-size:12px; line-height:1; }
+    .rp-selective-guides .rp-anchor .rp-anchor-remove { width:12px; height:12px; top:-4px; right:-4px; }
+    .rp-selective-guides .rp-anchor-remove::before,.rp-selective-guides .rp-anchor-remove::after { width:5px; }
     .rp-selective-editor .rp-color-picker { position:relative; }
     .rp-selective-editor .rp-color-picker > button { display:grid; place-items:center; width:41px; height:34px; }
     .rp-selective-guides .rp-selection-remove,.rp-selective-guides .rp-color-picker > button {
@@ -416,6 +425,7 @@ const editorStyle = `
     .rp-selective-editor .rp-color-swatches { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
     .rp-selective-editor .rp-color-swatches button { min-height:25px; padding:0; }
     .rp-selective-editor .rp-add-selection { align-self:flex-start; }
+    .rp-selective-guides footer { justify-content:flex-end; }
     .rp-selective-editor input[aria-label="Group name"] { text-transform:uppercase; }
     .rp-selective-editor .rp-small-number { width:70px; }
     .rp-selective-editor details .rp-row { margin:5px 0; flex-wrap:wrap; }
@@ -425,7 +435,6 @@ const editorStyle = `
         .rp-selective-editor .rp-layout { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(245px,1fr) minmax(0,1fr); }
         .rp-selective-editor footer > span { display:none; }
         .rp-selective-editor footer { justify-content:flex-end; }
-        .rp-selective-editor .rp-preview-toolbar .rp-anchors { border:0; padding-inline-start:4px; }
     }
 `;
 
@@ -473,6 +482,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
             if (!activeGroup) return;
             activeGroup.preprocessor = mode.value;
             mode.classList.toggle("rp-guide-placeholder", mode.value === "none");
+            showTransparentGuide(mode.value);
             guideEditor.update(activeGroup, currentFrame);
             draw();
         });
@@ -510,9 +520,9 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     const partList = element("div", "", "rp-list rp-part-list");
     const candidateList = element("div", "", "rp-list rp-candidates");
     const anchors = element("div", "", "rp-anchors");
-    const showSegmentation = input("checkbox", "", "Segmentation");
+    const showSelection = input("checkbox", "", "Selection");
     const showGuide = input("checkbox", "", "Guide");
-    showSegmentation.checked = true;
+    showSelection.checked = true;
     const spinner = element("div", "", "rp-prepare-spinner");
     spinner.hidden = true;
     spinner.setAttribute("role", "status");
@@ -575,6 +585,13 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         return anchorBitmaps.get(encoded);
     }
 
+    function showTransparentGuide(kind) {
+        if (Object.hasOwn(guideModes, kind)) {
+            showSelection.checked = false;
+            showGuide.checked = true;
+        }
+    }
+
     async function draw() {
         if (!photo || shownFrame !== currentFrame || life.signal.aborted) return;
         const frame = shownFrame;
@@ -585,7 +602,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
             preparedFetch = controller;
             const query = new URLSearchParams({
                 ticket: prepared, frame, active: groups.filter(({ parts }) => parts.length).indexOf(activeGroup),
-                segmentation: showSegmentation.checked ? 1 : 0, guide: showGuide.checked ? 1 : 0,
+                segmentation: showSelection.checked ? 1 : 0, guide: showGuide.checked ? 1 : 0,
             });
             try {
                 const result = await (await request(`/prepared-frame?${query}`, { signal: controller.signal })).json();
@@ -634,7 +651,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     }
 
     function paintFrame(overlays, activeOverlay) {
-        if (withGuides && !showSegmentation.checked) {
+        if (withGuides && !showSelection.checked) {
             for (const overlay of overlays) overlay.opacity = 0;
         }
         if (!guideEditor || !showGuide.checked || !Object.hasOwn(guideModes, activeGroup?.preprocessor)) {
@@ -751,6 +768,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     }
 
     function openGroup(group) {
+        if (withGuides && group !== activeGroup) showTransparentGuide(group?.preprocessor);
         activeGroup = group;
         guideEditor?.update(group, currentFrame);
         const part = currentParts.has(group) ? currentParts.get(group) : group?.parts.at(-1);
@@ -1194,7 +1212,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         seek(slider.valueAsNumber);
     });
     frameInput.addEventListener("change", () => seek(frameInput.valueAsNumber - 1));
-    for (const toggle of [showSegmentation, showGuide]) toggle.addEventListener("change", draw);
+    for (const toggle of [showSelection, showGuide]) toggle.addEventListener("change", draw);
     if (withGuides) {
         for (const field of [expansion, fillHoles]) field.addEventListener("change", () => {
             if (!activeGroup || !expansion.checkValidity() || !Number.isInteger(expansion.valueAsNumber)) return;
@@ -1235,14 +1253,14 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
 
     const stage = element("div", "", "rp-stage");
     stage.append(canvas, spinner);
-    const guideEditor = withGuides ? createGuideEditor(stage, video) : null;
+    const guideEditor = withGuides ? createGuideEditor(stage, video, () => showGuide.checked) : null;
     const timeline = row(previous, slider, next, frameInput, time);
     timeline.classList.add("rp-timeline");
     const view = element("section", "", "rp-view");
     view.append(stage, timeline);
     if (withGuides) {
         const toggles = row();
-        for (const [toggle, name] of [[showSegmentation, "Segmentation"], [showGuide, "Guide"]]) {
+        for (const [toggle, name] of [[showSelection, "Selection"], [showGuide, "Guide"]]) {
             const control = element("label");
             control.append(toggle, name);
             toggles.append(control);
@@ -1268,7 +1286,6 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     const selectionRow = row(prompt, detect);
     draft.append(selectionRow, row(effect, color.wrapper),
         row(label("Expand (px)", expansion), label("Fill holes", fillHoles)));
-    if (guideEditor) draft.append(guideEditor.controls);
     draft.append(candidateList, status, settings);
     if (!withGuides) draft.append(element("hr", "", "rp-selection-divider"), row(add));
     const newButton = button("New group", () => {
@@ -1308,7 +1325,8 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         modal.close();
     }
     const apply = button("Apply selections", () => withGuides ? runPreparation(true) : saveAndClose(), "rp-primary");
-    footer.append(element("span", video, "rp-truncate"), row(button("Cancel", () => modal.close()), apply));
+    if (!withGuides) footer.append(element("span", video, "rp-truncate"));
+    footer.append(row(button("Cancel", () => modal.close()), apply));
     modal.append(element("style", withGuides ? editorStyle + guideStyle : editorStyle), header, layout, footer);
     modal.addEventListener("close", () => {
         life.abort();

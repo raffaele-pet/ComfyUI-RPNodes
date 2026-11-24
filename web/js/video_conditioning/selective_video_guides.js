@@ -1,7 +1,7 @@
 import { post } from "./selective_video_preview.js";
 
 export const guideModes = {
-    pose_guide: "OpenPose · Body, hands and face",
+    pose_guide: "OpenPose",
     face_guide: "OpenPose · Face only",
     rectangle_guide: "Tracked rectangle",
 };
@@ -24,11 +24,26 @@ export const guideStyle = `
         border-radius:50%; cursor:grab; }
     .rp-selective-editor .rp-guide-rotate::after { content:""; position:absolute; top:100%; left:50%;
         width:1px; height:17px; background:#fff; pointer-events:none; }
-    .rp-selective-editor .rp-guide-status { font-size:13px; opacity:.85; }
-    .rp-selective-editor .rp-guide-controls .rp-row { flex-wrap:wrap; }
-    .rp-selective-editor .rp-guide-controls { display:grid; gap:6px; }
+    .rp-selective-editor .rp-guide-controls { position:absolute; z-index:1; left:10px; top:10px;
+        display:grid; gap:8px; width:min(250px,calc(100% - 20px)); max-height:calc(100% - 20px);
+        overflow:auto; padding:9px; background:var(--comfy-menu-bg,#202125);
+        border:1px solid var(--border-color,#545761); border-radius:8px; box-shadow:0 2px 12px #0008; }
     .rp-selective-editor .rp-guide-controls[hidden] { display:none; }
-    .rp-selective-editor .rp-guide-controls input[type=number] { width:60px; }
+    .rp-selective-editor .rp-guide-controls .rp-guide-panel-handle { display:flex; align-items:center; gap:6px;
+        padding:0 2px 6px; color:inherit; background:transparent; border:0;
+        border-bottom:1px solid var(--border-color,#545761); border-radius:0;
+        cursor:grab; touch-action:none; font-weight:650; text-align:left; }
+    .rp-selective-editor .rp-guide-controls .rp-guide-panel-handle:active { cursor:grabbing; }
+    .rp-selective-editor .rp-guide-panel-grip { flex:none; width:10px; height:13px; opacity:.65;
+        background:radial-gradient(circle,currentColor 1px,transparent 1.4px) 0 0 / 5px 5px; }
+    .rp-selective-editor .rp-guide-fields,.rp-selective-editor .rp-guide-resets { display:grid; gap:6px; }
+    .rp-selective-editor .rp-guide-fields { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .rp-selective-editor .rp-guide-fields label { display:grid; gap:3px; font-size:12px; }
+    .rp-selective-editor .rp-guide-controls input[type=number] { width:100%; min-width:0; padding:4px 5px; }
+    .rp-selective-editor .rp-guide-resets { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .rp-selective-editor .rp-guide-resets button { white-space:normal; font-size:12px; padding:4px; }
+    .rp-selective-editor .rp-guide-status { font-size:12px; opacity:.85; }
+    .rp-selective-editor .rp-guide-status:empty { display:none; }
 `;
 
 const minScale = 0.1;
@@ -36,6 +51,7 @@ const maxScale = 4;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const radians = (degrees) => degrees * Math.PI / 180;
 const wrapAngle = (degrees) => ((degrees + 180) % 360 + 360) % 360 - 180;
+const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
 function element(tag, css, text) {
     const node = document.createElement(tag);
@@ -44,7 +60,7 @@ function element(tag, css, text) {
     return node;
 }
 
-export function createGuideEditor(stage, video) {
+export function createGuideEditor(stage, video, guideVisible) {
     const layer = element("div", "rp-guide-layer");
     const box = element("div", "rp-guide-box");
     const image = element("img", "rp-guide-art");
@@ -62,11 +78,18 @@ export function createGuideEditor(stage, video) {
     layer.append(box);
     stage.append(layer);
 
-    const controls = element("div", "rp-guide-controls");
-    const row = element("div", "rp-row");
+    const controls = element("section", "rp-guide-controls");
+    controls.setAttribute("aria-label", "Guide transform");
+    const fieldsRow = element("div", "rp-guide-fields");
+    const panelHandle = element("button", "rp-guide-panel-handle");
+    panelHandle.type = "button";
+    panelHandle.setAttribute("aria-label", "Move guide panel");
+    panelHandle.title = "Drag to move the panel. Use arrow keys to move it with the keyboard.";
+    const grip = element("span", "rp-guide-panel-grip");
+    grip.setAttribute("aria-hidden", "true");
+    panelHandle.append(grip, "Guide transform");
     const status = element("p", "rp-guide-status");
     status.setAttribute("role", "status");
-    const hint = "Drag the guide to move it, or the round handle to rotate. Hold Shift to resize freely.";
     const resetScale = element("button", "", "Reset scale");
     const resetPosition = element("button", "", "Reset position");
     resetPosition.title = "Reset offset and rotation";
@@ -83,7 +106,7 @@ export function createGuideEditor(stage, video) {
             setScale(scale);
         });
         label.append(field);
-        row.append(label);
+        fieldsRow.append(label);
         return field;
     });
     const angleLabel = element("label", "", "Rotation °");
@@ -94,12 +117,13 @@ export function createGuideEditor(stage, video) {
     angleField.step = 1;
     angleField.onchange = () => setRotation(Number.isFinite(angleField.valueAsNumber) ? angleField.valueAsNumber : getRotation());
     angleLabel.append(angleField);
-    row.append(angleLabel);
-    const resets = element("div", "rp-row");
+    fieldsRow.append(angleLabel);
+    const resets = element("div", "rp-guide-resets");
     resets.append(resetScale, resetPosition);
-    controls.append(row, resets, status);
+    controls.append(panelHandle, fieldsRow, resets, status);
     controls.hidden = true;
     box.hidden = true;
+    stage.append(controls);
 
     let group;
     let frameSize;
@@ -108,6 +132,38 @@ export function createGuideEditor(stage, video) {
     let requestedMask;
     let timer;
     let drag;
+    let panelDrag;
+
+    function placePanel(x = controls.offsetLeft, y = controls.offsetTop) {
+        if (controls.hidden) return;
+        const margin = 10;
+        const maxX = Math.max(margin, stage.clientWidth - controls.offsetWidth - margin);
+        const maxY = Math.max(margin, stage.clientHeight - controls.offsetHeight - margin);
+        controls.style.left = `${clamp(x, margin, maxX)}px`;
+        controls.style.top = `${clamp(y, margin, maxY)}px`;
+    }
+
+    panelHandle.onpointerdown = (event) => {
+        if (event.button !== 0) return;
+        panelHandle.setPointerCapture(event.pointerId);
+        panelDrag = [controls.offsetLeft - event.clientX, controls.offsetTop - event.clientY];
+    };
+    panelHandle.onpointermove = (event) => {
+        if (!panelDrag || !panelHandle.hasPointerCapture(event.pointerId)) return;
+        placePanel(event.clientX + panelDrag[0], event.clientY + panelDrag[1]);
+    };
+    panelHandle.onlostpointercapture = () => { panelDrag = null; };
+    panelHandle.onkeydown = (event) => {
+        const direction = arrows[event.key];
+        if (!direction) return;
+        event.preventDefault();
+        placePanel(controls.offsetLeft + direction[0] * 12, controls.offsetTop + direction[1] * 12);
+    };
+
+    function updatePanel() {
+        controls.hidden = !guideVisible() || !Object.hasOwn(guideModes, group?.preprocessor);
+        placePanel();
+    }
 
     function getScale() {
         return group?.guide_scale ?? [1, 1];
@@ -208,7 +264,7 @@ export function createGuideEditor(stage, video) {
         setRotation(drag.rotation + (after - before) * 180 / Math.PI);
     });
     move.onkeydown = (event) => {
-        const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+        const direction = arrows[event.key];
         if (!direction || !geometry) return;
         event.preventDefault();
         const step = event.shiftKey ? 10 : 1;
@@ -239,8 +295,12 @@ export function createGuideEditor(stage, video) {
         }
     }
 
-    const observer = new ResizeObserver(position);
+    const observer = new ResizeObserver(() => {
+        position();
+        placePanel();
+    });
     observer.observe(stage);
+    observer.observe(controls);
 
     function clear() {
         pending?.abort();
@@ -264,16 +324,14 @@ export function createGuideEditor(stage, video) {
     }
 
     return {
-        controls,
-        clear,
         showPrepared(activeGroup, size, artwork) {
             clear();
             group = activeGroup;
             frameSize = size;
-            controls.hidden = !Object.hasOwn(guideModes, group?.preprocessor);
+            updatePanel();
             updateFields();
-            showArtwork(artwork, group?.preprocessor === "rectangle_guide");
-            status.textContent = artwork ? hint : "";
+            showArtwork(controls.hidden ? null : artwork, group?.preprocessor === "rectangle_guide");
+            status.textContent = "";
         },
         disconnect() {
             clear();
@@ -285,10 +343,10 @@ export function createGuideEditor(stage, video) {
                 group = activeGroup;
             }
             const kind = group?.preprocessor;
-            controls.hidden = !Object.hasOwn(guideModes, kind);
+            updatePanel();
             if (controls.hidden || !mask) {
                 clear();
-                status.textContent = controls.hidden ? "" : "Detect on this frame or run Track & preview to edit the guide.";
+                status.textContent = controls.hidden ? "" : "Detect on this frame or run Track & preview.";
                 updateFields();
                 return;
             }
@@ -310,7 +368,7 @@ export function createGuideEditor(stage, video) {
                     }, controller.signal);
                     if (controller.signal.aborted) return;
                     showArtwork(result, isRectangle);
-                    status.textContent = geometry ? hint : isRectangle ? "No selection on this frame." : "No matching pose on this frame.";
+                    status.textContent = geometry ? "" : isRectangle ? "No selection on this frame." : "No matching pose on this frame.";
                 } catch (error) {
                     if (!controller.signal.aborted) {
                         requestedMask = null;

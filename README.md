@@ -282,17 +282,19 @@ Use the × on an anchor marker to remove the selections made on that frame.
 overlap.
 
 **Track & preview** tracks every selection and prepares the selected
-preprocessors at the node's output settings. Switch **Segmentation** and
-**Guide** independently while scrubbing. **Apply selections** prepares pending
+preprocessors at the node's output settings. Switch **Selection** and
+**Guide** independently while scrubbing. Choosing a transparent guide switches
+the preview to **Guide**. **Apply selections** prepares pending
 changes before closing the editor. The workflow reuses the prepared result
 while it is cached for the same video, selections and output settings.
 
-**OpenPose · Body, hands and face** and **OpenPose · Face only** render
+**OpenPose** and **OpenPose · Face only** render
 landmarks for people matched to the selected region. **Tracked rectangle**
 follows the tracked mask's main axis on each frame. Drag a guide to move it or
 drag the round handle to rotate it. Drag a corner to resize proportionally
-and hold **Shift** to resize each axis independently. Use **Reset scale** to
-restore 100% or **Reset position** to clear the manual offset and rotation.
+and hold **Shift** to resize each axis independently. The **Guide transform**
+panel can be moved anywhere within the preview. **Reset scale** restores
+100% and **Reset position** clears the manual offset and rotation.
 
 The loading controls work on the outputs. `force_rate` changes the sampling
 rate before `skip_first_frames` and `select_every_nth`. `frame_load_cap` limits
