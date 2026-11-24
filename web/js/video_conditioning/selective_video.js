@@ -5,6 +5,7 @@ import {
     loadPhoto, loadTrackedMasks, post, previewJob, releaseOverlays, request,
 } from "./selective_video_preview.js";
 const maps = { segmentation: "Segmentation", depth: "Depth", canny: "Canny", openpose: "OpenPose" };
+const guideMaps = { segmentation: maps.segmentation, depth: maps.depth, canny: maps.canny };
 const loadOptionDefaults = {
     force_rate: 0,
     custom_width: 0,
@@ -19,40 +20,106 @@ const selectiveVideoOutputs = Object.entries({
     video: "VIDEO", frames: "IMAGE", original_frames: "IMAGE", frame_count: "INT", audio: "AUDIO",
     video_info: "VHS_VIDEOINFO", MASK_IMAGE: "IMAGE", mask_video: "VIDEO", MASK: "MASK",
 });
+const selectiveGuidesOutputs = [
+    selectiveVideoOutputs[0], ["frames_map_guide", "IMAGE"], ["frames_transparent_guide", "IMAGE"],
+    ...selectiveVideoOutputs.slice(2),
+];
 
 function migrateSelectiveVideoOutputs(workflow) {
-    const canonical = selectiveVideoOutputs.map(([name]) => name);
     const remaps = new Map();
-    for (const node of workflow.nodes ?? []) {
-        if (node.type !== "RPSelectiveVideoInput" && node.type !== "RPSelectiveVideoEdgeFill") continue;
+    const guideVideoSlots = new Map();
+    const nodes = new Map((workflow.nodes ?? []).map((node) => [node.id, node]));
+    for (const node of nodes.values()) {
+        const guides = node.type === "RPSelectiveVideoGuides";
+        if (!guides && node.type !== "RPSelectiveVideoInput" && node.type !== "RPSelectiveVideoEdgeFill") continue;
+        const schema = guides ? selectiveGuidesOutputs : selectiveVideoOutputs;
+        const canonical = schema.map(([name]) => name);
         const outputs = node.outputs;
         if (!outputs?.length ||
             (outputs.length === canonical.length && outputs.every(({ name }, index) => name === canonical[index]))) continue;
 
-        const slots = outputs.map(({ name }) => canonical.indexOf(name === "video_mask" ? "mask_video" : name));
+        const aliases = guides ? {
+            video_mask: "mask_video", frames: "frames_map_guide", guide_video: "frames_transparent_guide",
+        } : { video_mask: "mask_video" };
+        const slots = outputs.map(({ name }) => canonical.indexOf(aliases[name] ?? name));
         if (slots.includes(-1) || new Set(slots).size !== slots.length) continue;
 
+        const removedVideo = outputs.findIndex(({ name }) => name === "guide_video");
+        if (guides && removedVideo >= 0) guideVideoSlots.set(node.id, removedVideo);
         const saved = new Map(slots.map((slot, index) => [slot, outputs[index]]));
-        node.outputs = selectiveVideoOutputs.map(([name, type], slot) => {
+        node.outputs = schema.map(([name, type], slot) => {
             const old = saved.get(slot);
             if (!old) return { name, type, links: null };
             if ("slot_index" in old) old.slot_index = slot;
             if (old.name !== name && "localized_name" in old) old.localized_name = name;
             old.name = name;
+            old.type = type;
             return old;
         });
         remaps.set(node.id, slots);
     }
     if (remaps.size) {
-        for (const link of [...(workflow.links ?? []), ...(workflow.floatingLinks ?? [])]) {
-            if (Array.isArray(link)) {
-                link[2] = remaps.get(link[1])?.[link[2]] ?? link[2];
-            } else {
-                link.origin_slot = remaps.get(link.origin_id)?.[link.origin_slot] ?? link.origin_slot;
+        const links = [...(workflow.links ?? []), ...(workflow.floatingLinks ?? [])];
+        const removed = new Set();
+        let lastId = links.reduce((max, link) => Math.max(max, (Array.isArray(link) ? link[0] : link.id) ?? 0),
+            Math.max(workflow.last_link_id ?? 0, workflow.state?.lastLinkId ?? 0));
+        for (const link of links) {
+            const array = Array.isArray(link);
+            const [id, sourceId, oldSlot, targetId, targetSlot] = array ? link
+                : [link.id, link.origin_id, link.origin_slot, link.target_id, link.target_slot];
+            const slot = remaps.get(sourceId)?.[oldSlot] ?? oldSlot;
+            if (guideVideoSlots.has(sourceId) && guideVideoSlots.get(sourceId) === oldSlot) {
+                const source = nodes.get(sourceId);
+                const target = nodes.get(targetId);
+                const input = target?.inputs?.[targetSlot];
+                const framesInput = target?.inputs?.find(({ name }) => name === "frames");
+                if (input?.link === id) input.link = null;
+                if (target?.type !== "RPSaveTransparentVideo" || input?.name !== "video" || framesInput?.link != null) {
+                    source.outputs[slot].links = (source.outputs[slot].links ?? []).filter((value) => value !== id);
+                    removed.add(link);
+                    continue;
+                }
+                const [frames, framesSlot] = ensureInput(target, "frames", "IMAGE");
+                frames.link = id;
+                if (array) {
+                    link[4] = framesSlot;
+                    link[5] = "IMAGE";
+                } else {
+                    link.target_slot = framesSlot;
+                    link.type = "IMAGE";
+                }
+                const [info, infoSlot] = ensureInput(target, "video_info", "VHS_VIDEOINFO");
+                if (info.link == null) {
+                    const rateSlot = selectiveGuidesOutputs.findIndex(([name]) => name === "video_info");
+                    info.link = ++lastId;
+                    (source.outputs[rateSlot].links ??= []).push(lastId);
+                    (workflow.links ??= []).push(array
+                        ? [lastId, sourceId, rateSlot, targetId, infoSlot, "VHS_VIDEOINFO"]
+                        : { id: lastId, origin_id: sourceId, origin_slot: rateSlot, target_id: targetId,
+                            target_slot: infoSlot, type: "VHS_VIDEOINFO" });
+                    if (workflow.state) workflow.state.lastLinkId = lastId;
+                    if (array || "last_link_id" in workflow) workflow.last_link_id = lastId;
+                }
+            }
+            if (array) link[2] = slot;
+            else link.origin_slot = slot;
+        }
+        if (removed.size) {
+            for (const key of ["links", "floatingLinks"]) {
+                if (workflow[key]) workflow[key] = workflow[key].filter((link) => !removed.has(link));
             }
         }
     }
     for (const graph of workflow.definitions?.subgraphs ?? []) migrateSelectiveVideoOutputs(graph);
+}
+
+function ensureInput(node, name, type) {
+    const inputs = (node.inputs ??= []);
+    const existing = inputs.findIndex((input) => input.name === name);
+    if (existing >= 0) return [inputs[existing], existing];
+    const port = { name, type, link: null };
+    inputs.push(port);
+    return [port, inputs.length - 1];
 }
 
 function loadOptionValue(value, fallback) {
@@ -275,8 +342,16 @@ const editorStyle = `
     .rp-selective-editor .rp-prepare-spinner::after { content:""; width:44px; height:44px; border:4px solid #fff5;
         border-top-color:#fff; border-radius:50%; animation:rp-prepare-spin .75s linear infinite; }
     @keyframes rp-prepare-spin { to { transform:rotate(360deg); } }
-    .rp-selective-editor .rp-preview-options { gap:16px; }
-    .rp-selective-editor .rp-preview-options + .rp-anchors:empty { display:none; }
+    .rp-selective-editor .rp-preview-toolbar { display:grid; gap:6px; padding:6px 10px;
+        border:1px solid var(--border-color,#545761); border-radius:8px; }
+    .rp-selective-editor .rp-preview-toolbar .rp-preview-top { flex-wrap:wrap; }
+    .rp-selective-editor .rp-preview-toolbar .rp-preview-options { column-gap:14px; flex-wrap:wrap; }
+    .rp-selective-editor .rp-preview-options input { margin:0; accent-color:#6792eb; }
+    .rp-selective-editor .rp-preview-toolbar .rp-anchors { flex:1 1 150px; min-width:0; padding-inline-start:10px;
+        border-inline-start:1px solid var(--border-color,#545761); }
+    .rp-selective-editor .rp-preview-toolbar .rp-anchors:empty { display:none; }
+    .rp-selective-editor .rp-preview-toolbar .rp-preview-actions { padding-top:6px; justify-content:space-between;
+        flex-wrap:wrap; border-top:1px solid var(--border-color,#545761); }
     .rp-selective-editor .rp-timeline input[type=range] { flex:1; min-width:48px; }
     .rp-selective-editor .rp-frame { width:70px; }
     .rp-selective-editor .rp-time { min-width:64px; text-align:right; font-variant-numeric:tabular-nums; }
@@ -319,6 +394,10 @@ const editorStyle = `
     .rp-selective-editor .rp-anchors button { padding:3px 8px; }
     .rp-selective-editor .rp-color-picker { position:relative; }
     .rp-selective-editor .rp-color-picker > button { display:grid; place-items:center; width:41px; height:34px; }
+    .rp-selective-guides .rp-selection-remove,.rp-selective-guides .rp-color-picker > button {
+        display:grid; place-items:center; width:40px; height:34px; padding:0; flex:none; }
+    .rp-selective-guides select.rp-guide-placeholder { color:var(--descrip-text,#a4a9b4); }
+    .rp-selective-guides select option,.rp-selective-guides select optgroup { color:var(--fg-color,#ebedf1); }
     .rp-selective-editor .rp-color-picker .rp-dot { width:19px; height:15px; border-radius:3px; }
     .rp-selective-editor .rp-color-panel:not([hidden]) { display:grid; gap:7px; position:absolute;
         top:calc(100% + 5px); right:0; z-index:1; width:214px; padding:9px; border-radius:8px;
@@ -340,11 +419,13 @@ const editorStyle = `
         .rp-selective-editor .rp-layout { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(245px,1fr) minmax(0,1fr); }
         .rp-selective-editor footer > span { display:none; }
         .rp-selective-editor footer { justify-content:flex-end; }
+        .rp-selective-editor .rp-preview-toolbar .rp-anchors { border:0; padding-inline-start:4px; }
     }
 `;
 
 function openEditor(video, groups, session, edgeFill, withGuides, loadingSettings, onSave) {
     const modal = element("dialog", "", "rp-selective-editor");
+    if (withGuides) modal.classList.add("rp-selective-guides");
     modal.setAttribute("aria-label", "Selective Video · Selection editor");
     const life = new AbortController();
     const canvas = element("canvas");
@@ -373,9 +454,10 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     } else {
         mode.setAttribute("aria-label", withGuides ? "Selection preprocessor" : "Group preprocessor");
         if (withGuides) {
+            mode.append(new Option("Select the guide", "none"));
             for (const [label, options] of [
-                ["Transparent guide · guide_video", guideModes],
-                ["Applied to source · video", { ...maps, openpose: "OpenPose · On source" }],
+                ["Map guide", guideMaps],
+                ["Transparent guide", guideModes],
             ]) {
                 const section = element("optgroup");
                 section.label = label;
@@ -388,6 +470,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         if (withGuides) mode.addEventListener("change", () => {
             if (!activeGroup) return;
             activeGroup.preprocessor = mode.value;
+            mode.classList.toggle("rp-guide-placeholder", mode.value === "none");
             guideEditor.update(activeGroup, currentFrame);
             draw();
         });
@@ -428,7 +511,6 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     const showSegmentation = input("checkbox", "", "Segmentation");
     const showGuide = input("checkbox", "", "Guide");
     showSegmentation.checked = true;
-    showGuide.checked = true;
     const spinner = element("div", "", "rp-prepare-spinner");
     spinner.hidden = true;
     spinner.setAttribute("role", "status");
@@ -446,7 +528,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         const unused = palette.filter((color) => !groups.some((selection) => selection.color === color));
         const available = unused.length ? unused : palette.filter((color) => color !== groups.at(-1)?.color);
         const color = available[Math.floor(Math.random() * available.length)];
-        return { name: "", color, expand: defaultExpansion, fill_holes: true, preprocessor: "segmentation", parts: [] };
+        return { name: "", color, expand: defaultExpansion, fill_holes: true, preprocessor: "none", parts: [] };
     }
     if (withGuides && !groups.length) groups.push(newSelection());
     let activeGroup = groups[0] ?? null;
@@ -675,7 +757,10 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         color.close();
         if (group) {
             if (edgeFill) mode.checked = group.fill_from_edges ?? true;
-            else mode.value = group.preprocessor ?? "segmentation";
+            else {
+                mode.value = group.preprocessor ?? (withGuides ? "none" : "segmentation");
+                mode.classList.toggle("rp-guide-placeholder", withGuides && mode.value === "none");
+            }
             color.setColor(group.color ?? colors[0]);
             expansion.value = group.expand ?? defaultExpansion;
             fillHoles.checked = group.fill_holes ?? true;
@@ -1035,7 +1120,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
                     if (selection.parts.length) invalidateTracking();
                     if (!groups.length) groups.push(newSelection());
                     openGroup(selection === activeGroup ? groups[Math.min(index, groups.length - 1)] : activeGroup);
-                });
+                }, "rp-selection-remove");
                 const open = selection === activeGroup ? null : button("", () => openGroup(selection), "rp-flex rp-truncate");
                 if (open) card.append(row(open, remove));
                 else {
@@ -1154,11 +1239,23 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     const view = element("section", "", "rp-view");
     view.append(stage, timeline);
     if (withGuides) {
-        const toggles = row(label("Segmentation", showSegmentation), label("Guide", showGuide));
+        const toggles = row();
+        for (const [toggle, name] of [[showSegmentation, "Segmentation"], [showGuide, "Guide"]]) {
+            const control = element("label");
+            control.append(toggle, name);
+            toggles.append(control);
+        }
         toggles.classList.add("rp-preview-options");
-        view.append(toggles);
-    }
-    view.append(anchors, row(track, clearCheckButton, viewStatus));
+        toggles.setAttribute("role", "group");
+        toggles.setAttribute("aria-label", "Preview layers");
+        const top = row(toggles, anchors);
+        top.classList.add("rp-preview-top");
+        const actions = row(track, viewStatus);
+        actions.classList.add("rp-preview-actions");
+        const toolbar = element("div", "", "rp-preview-toolbar");
+        toolbar.append(top, actions);
+        view.append(toolbar);
+    } else view.append(anchors, row(track, clearCheckButton, viewStatus));
 
     const settings = element("details");
     settings.append(element("summary", "Detection confidence and tracking range"),
@@ -1279,7 +1376,9 @@ app.registerExtension({
             const config = readConfig(selections, filename);
             const { trackingPreview } = config;
             const groups = withGuides ? config.groups.flatMap((group) => group.parts.map((part) => (
-                { ...group, name: part.text, parts: [part] }
+                { ...group, name: part.text, parts: [part],
+                    preprocessor: group.preprocessor === "openpose" ? "pose_guide"
+                        : group.preprocessor ?? (config.version === 3 ? "none" : "segmentation") }
             ))) : config.groups;
             const loadingSettings = Object.fromEntries(Object.entries(loadOptionDefaults).map(([name, fallback]) => [
                 name, loadOptionValue(loadOptions.find((widget) => widget.name === name)?.value, fallback),

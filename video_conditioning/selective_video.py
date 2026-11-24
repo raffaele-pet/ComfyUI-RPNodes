@@ -177,8 +177,10 @@ def parse_groups(data, filename, frame_count, *, edge_fill=False, guide_modes=Fa
                 raise ValueError("Fill inward from edges must be enabled or disabled.")
             effect = {"fill_from_edges": fill_from_edges}
         else:
-            kind = group.get("preprocessor", "segmentation")
-            if kind not in PREPROCESSORS and not (guide_modes and kind in GUIDE_MODES):
+            kind = group.get("preprocessor", "none" if guide_modes and "selections" in data else "segmentation")
+            if guide_modes and kind == "openpose":
+                kind = "pose_guide"
+            if kind not in PREPROCESSORS and not (guide_modes and (kind == "none" or kind in GUIDE_MODES)):
                 raise ValueError("Unknown group preprocessor.")
             effect = {"preprocessor": kind}
             if kind in GUIDE_MODES:
@@ -616,6 +618,8 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
                 fill[section][mask] = group["fill_from_edges"]
                 continue
             kind = group["preprocessor"]
+            if kind == "none":
+                continue
             if kind in GUIDE_MODES:
                 guide_items.append((group_id, group, section, mask.numpy()))
             elif kind == "segmentation":
@@ -728,7 +732,10 @@ class _SelectiveVideo(io.ComfyNode):
             ],
             outputs=[
                 io.Video.Output(display_name="video"),
-                io.Image.Output(display_name="frames"),
+                io.Image.Output(display_name="frames_map_guide" if cls.guide_modes else "frames"),
+                *([io.Image.Output(display_name="frames_transparent_guide",
+                                   tooltip="RGBA frames with the transparent guides. Use RP Save Transparent Video to export with alpha.")]
+                  if cls.guide_modes else []),
                 io.Image.Output(display_name="original_frames", tooltip="Sampled and resized source RGB frames before applying selections."),
                 io.Int.Output(display_name="frame_count"),
                 io.Audio.Output(display_name="audio"),
@@ -736,8 +743,6 @@ class _SelectiveVideo(io.ComfyNode):
                 io.Image.Output(display_name="MASK_IMAGE", tooltip="White selected regions on black as RGB frames."),
                 io.Video.Output(display_name="mask_video", tooltip="White selected regions on black, without audio."),
                 io.Mask.Output(display_name="MASK", tooltip="Binary mask batch with 1 for selected pixels and 0 elsewhere."),
-                *([io.Video.Output(display_name="guide_video", tooltip="Transparent, silent video containing only the selected guides. Use RP Save Transparent Video to export with alpha.")]
-                  if cls.guide_modes else []),
             ],
         )
 
@@ -778,7 +783,9 @@ class _SelectiveVideo(io.ComfyNode):
         )
         width, height = target_size(*timeline.size, custom_width, custom_height, format)
         guide_kinds = {group["preprocessor"] for group in groups} & set(GUIDE_MODES) if cls.guide_modes else set()
-        composite = bool(groups) and (cls.edge_fill or any(group["preprocessor"] not in GUIDE_MODES for group in groups))
+        composite = bool(groups) and (cls.edge_fill or any(
+            group["preprocessor"] in PREPROCESSORS for group in groups
+        ))
         if prepare:
             bytes_per_pixel = 16 + 12 * composite + 8 * bool(guide_kinds)
             reserve_prepared_memory(len(indices) * width * height * bytes_per_pixel)
@@ -825,13 +832,12 @@ class _SelectiveVideo(io.ComfyNode):
         }
         mask_images = masks[..., None].expand(-1, -1, -1, 3)
         mask_video = InputImpl.VideoFromComponents(VideoComponents(images=mask_images, frame_rate=components.frame_rate))
-        outputs = (output, components.images, original_frames, count, components.audio, info, mask_images, mask_video, masks)
+        outputs = (output, components.images)
         if cls.guide_modes:
             if guides is None:
-                guides = torch.zeros(1, 1, 1, 4).expand(count, height, width, 4)
-            outputs += (InputImpl.VideoFromComponents(VideoComponents(
-                images=guides[..., :3], alpha=guides[..., 3], frame_rate=components.frame_rate,
-            )),)
+                guides = torch.zeros((1, 1, 1, 4), dtype=torch.float16).expand(count, height, width, 4)
+            outputs += (guides,)
+        outputs += (original_frames, count, components.audio, info, mask_images, mask_video, masks)
         size_bytes = 0
         if prepare:
             storages = {value.untyped_storage().data_ptr(): value.untyped_storage().nbytes()
@@ -1019,7 +1025,7 @@ def prepared_frame(ready, frame, active, segmentation, guide):
     if slot == len(ready.indices) or ready.indices[slot] != frame:
         return {"skipped": True}
 
-    images = ready.result[1 if guide else 2]
+    images = ready.result[1 if guide else 3]
     height, width = images.shape[1:3]
     scale = min(1, 1008 / max(width, height))
     size = max(1, round(width * scale)), max(1, round(height * scale))

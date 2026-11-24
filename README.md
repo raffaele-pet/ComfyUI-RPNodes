@@ -352,7 +352,8 @@ also turns black because it has no visible pixels to copy.
 Open **Edit video selections** and describe a subject in the first card.
 Click **Detect** to save its anchor mask. **Add selection** opens another
 card with its own preprocessor, color and tracking range. The color picker
-offers a palette and manual color controls.
+offers a palette and manual color controls. **Select the guide** leaves the
+selection available as a mask. Choose a guide to add a preprocessor.
 
 **OpenPose · Body, hands and face** and **OpenPose · Face only** render
 landmarks for people matched to the selected region. **Tracked rectangle**
@@ -361,7 +362,8 @@ and a narrow fit across that axis.
 
 **Track & preview** tracks every selection and prepares the selected
 preprocessors at the node's output settings. Switch **Segmentation** and
-**Guide** independently while scrubbing. **Apply selections** prepares any
+**Guide** independently while scrubbing. The editor opens with **Segmentation**
+enabled. **Apply selections** prepares any
 pending changes before closing the editor. The workflow reuses the prepared
 result while it is cached for the same video, selections and output settings.
 
@@ -370,12 +372,12 @@ to resize proportionally and hold **Shift** to resize each axis independently.
 Use **Reset scale** to restore 100% or **Reset position** to clear the manual
 offset and rotation. These adjustments apply throughout the clip.
 
-`guide_video` combines the guides on a transparent canvas at the loaded
-resolution and frame rate. The original outputs still carry the source and
-any ordinary composite preprocessors. Connect `guide_video` to
-**RP Save Transparent Video** to export a ProRes 4444 MOV with alpha. The
-node plays a browser-compatible preview on a checkerboard and provides a
-download link for the original MOV. The two pose guides use
+`frames_map_guide` gives the source frames with the selected map guides
+applied. `frames_transparent_guide` is an RGBA image batch with the transparent
+guides. Connect it to **frames** on **RP Save Transparent Video** and connect
+`video_info` to keep the loaded frame rate. The saver exports a ProRes 4444
+MOV with alpha and plays a browser-compatible preview on a checkerboard.
+The two pose guides use
 `comfyui_controlnet_aux` and its OpenPose weights.
 
 ## Installation

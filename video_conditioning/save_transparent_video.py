@@ -1,4 +1,5 @@
 import logging
+from fractions import Fraction
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import uuid4
@@ -10,8 +11,9 @@ from PIL import Image
 import comfy.model_management as model_management
 import folder_paths
 from comfy.cli_args import args
-from comfy_api.latest import io, ui
+from comfy_api.latest import InputImpl, VideoComponents, io, ui
 
+from .selective_video import VideoInfo
 from .video_preview import preview_pixels
 
 
@@ -58,8 +60,12 @@ class RPSaveTransparentVideo(io.ComfyNode):
             category="RP/Video Conditioning",
             description="Save a ProRes 4444 MOV with alpha and play a checkerboard preview in ComfyUI.",
             inputs=[
-                io.Video.Input("video"),
+                io.Video.Input("video", optional=True),
                 io.String.Input("filename_prefix", default="video/RP_Guida_Trasparente"),
+                io.Image.Input("frames", optional=True, tooltip="RGBA frames from frames_transparent_guide."),
+                VideoInfo.Input("video_info", optional=True, tooltip="Use the frame rate from RP Selective Video Guides."),
+                io.Float.Input("fps", default=24, min=0.001, max=240, optional=True, force_input=True,
+                               tooltip="Frame rate for RGBA frames when video_info is absent."),
             ],
             outputs=[io.Video.Output("video")],
             hidden=[io.Hidden.prompt, io.Hidden.extra_pnginfo],
@@ -67,7 +73,14 @@ class RPSaveTransparentVideo(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, video, filename_prefix):
+    def execute(cls, filename_prefix, video=None, frames=None, video_info=None, fps=24):
+        if video is None:
+            if frames is None or frames.ndim != 4 or not len(frames) or frames.shape[-1] != 4:
+                raise ValueError("Connect a video or an RGBA image batch to export with transparency.")
+            rate = Fraction(video_info["loaded_fps"] if video_info is not None else fps).limit_denominator(100_000)
+            video = InputImpl.VideoFromComponents(VideoComponents(
+                images=frames[..., :3], alpha=frames[..., 3], frame_rate=rate,
+            ))
         width, height = video.get_dimensions()
         folder, name, counter, subfolder, _ = folder_paths.get_save_image_path(
             filename_prefix, folder_paths.get_output_directory(), width, height,

@@ -113,3 +113,36 @@ test("reordering original frames preserves all output links on both RP variants"
         }
     }
 });
+
+test("old Guides workflows rewire the transparent saver and preserve the other output links", () => {
+    const names = ["video", "frames", "original_frames", "frame_count", "audio", "video_info",
+        "MASK_IMAGE", "mask_video", "MASK", "guide_video"];
+    const guides = {
+        id: 1,
+        type: "RPSelectiveVideoGuides",
+        outputs: names.map((name, slot) => ({ name, type: "", links: [4, 8, 9].includes(slot) ? [slot + 1] : null })),
+    };
+    const saver = { id: 2, type: "RPSaveTransparentVideo", inputs: [{ name: "video", type: "VIDEO", link: 10 }] };
+    const workflow = {
+        last_link_id: 10,
+        nodes: [guides, saver],
+        links: [[5, 1, 4, 3, 0, "AUDIO"], [9, 1, 8, 4, 0, "MASK"], [10, 1, 9, 2, 0, "VIDEO"]],
+    };
+    extension.beforeConfigureGraph(workflow);
+    assert.deepEqual(Array.from(guides.outputs, ({ name }) => name), [
+        "video", "frames_map_guide", "frames_transparent_guide", ...names.slice(2, 9),
+    ]);
+    assert.equal(guides.outputs[2].type, "IMAGE");
+    assert.deepEqual(JSON.parse(JSON.stringify(saver.inputs)), [
+        { name: "video", type: "VIDEO", link: null },
+        { name: "frames", type: "IMAGE", link: 10 },
+        { name: "video_info", type: "VHS_VIDEOINFO", link: 11 },
+    ]);
+    assert.deepEqual(JSON.parse(JSON.stringify(workflow.links)), [
+        [5, 1, 5, 3, 0, "AUDIO"], [9, 1, 9, 4, 0, "MASK"],
+        [10, 1, 2, 2, 1, "IMAGE"], [11, 1, 6, 2, 2, "VHS_VIDEOINFO"],
+    ]);
+    const migrated = JSON.stringify(workflow);
+    extension.beforeConfigureGraph(workflow);
+    assert.equal(JSON.stringify(workflow), migrated);
+});
