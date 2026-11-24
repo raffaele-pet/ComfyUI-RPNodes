@@ -142,7 +142,7 @@ class FrameGraph:
     # A new loader signature invalidates every frame-dependent result before the next run.
     def __init__(self, graph, image_link, loader_id, prompt_id, extra_data):
         import execution
-        from comfy_execution.caching import CacheKeySetInputSignature, HierarchicalCache
+        from comfy_execution.caching import CacheKeySetID, CacheKeySetInputSignature, HierarchicalCache
 
         self.execution = execution
         self.graph = graph
@@ -151,6 +151,9 @@ class FrameGraph:
         self.prompt_id = prompt_id
         self.extra_data = extra_data
         self.outputs = HierarchicalCache(CacheKeySetInputSignature)
+        # Keep per-instance model caches alive for the clip. Output signatures
+        # still change with each input frame.
+        self.objects = HierarchicalCache(CacheKeySetID)
         self.asset_manager = execution.NoAssets(execution.args)
 
     # The enclosing prompt publishes the final result. Suppress intermediate node UI messages.
@@ -160,7 +163,6 @@ class FrameGraph:
         pass
 
     async def process(self, index):
-        from comfy_execution.caching import CacheKeySetID, HierarchicalCache
         from comfy_execution.graph import DynamicPrompt, ExecutionList
 
         execution = self.execution
@@ -169,7 +171,7 @@ class FrameGraph:
         loader["inputs"] = {**loader["inputs"], "_rp_frame": index}
         dynprompt = DynamicPrompt(prompt)
         outputs = self.outputs
-        objects = HierarchicalCache(CacheKeySetID)
+        objects = self.objects
         caches = SimpleNamespace(outputs=outputs, objects=objects, all=(outputs, objects))
         changed = execution.IsChangedCache(self.prompt_id, dynprompt, outputs)
         for cache in caches.all:
