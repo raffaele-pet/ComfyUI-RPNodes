@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import torch
 
-from .video_frames_workflow import VIDEO_EXTENSIONS, _available_videos, _input_directory
+from .video_files import VIDEO_EXTENSIONS, _available_videos, _input_directory
 from .video_stream import VideoEncoder, VideoSource, input_video, video_destination, write_audio
 
 

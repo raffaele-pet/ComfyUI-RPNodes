@@ -216,7 +216,7 @@ that prompt and image counts match.
 FFmpeg is provided through the package requirements. The video nodes are under
 `video/RPNodes` in the node menu.
 
-### RP Load Video (Upload)
+### RP Load Video
 
 Select a video from ComfyUI's input folder or upload it from the node. Set
 `force_rate` to resample the video before skipping or selecting frames.
@@ -255,19 +255,6 @@ Variable-rate sources are converted to a constant rate.
 
 Import [RP Streaming Video](example_workflows/RP%20Streaming%20Video.json) and
 choose a clip on the loader. The example processes each frame with Image Invert.
-
-### RP Video to Frames
-
-Extracts a video into PNG frames and starts the frame-processing loop. Connect
-`flow` and `video_context` directly to RP Frames to Video and place the
-image-processing chain between them. Extracted frames remain in the chosen
-folder.
-
-### RP Frames to Video
-
-Saves the processed frames and rebuilds the video with its original frame rate
-and optional source audio. It also provides an in-node preview. Existing videos
-receive a numbered filename unless `overwrite` is enabled.
 
 ## Video conditioning
 

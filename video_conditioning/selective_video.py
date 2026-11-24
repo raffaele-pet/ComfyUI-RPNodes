@@ -29,7 +29,7 @@ from comfy_api.latest import InputImpl, VideoComponents, io
 from nodes import MAX_RESOLUTION
 from server import PromptServer
 
-from ..video_frame_processing.video_frames_workflow import VIDEO_EXTENSIONS, _available_videos
+from ..video_frame_processing.video_files import VIDEO_EXTENSIONS, _available_videos
 from .video_guides import (
     GUIDE_MODES, POSE_GUIDES, guide_artwork, guide_detector, guide_placement, guide_scale,
     pose_geometry, rectangle_frame, render_guides,

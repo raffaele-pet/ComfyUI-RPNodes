@@ -30,66 +30,6 @@ function previewHeight(node, aspectRatio) {
 }
 
 
-function patchInputPreview(node, attempts = 180) {
-    const widget = node.widgets?.find((item) => item.name === "video-preview");
-    if (!widget) {
-        if (attempts > 0) {
-            requestAnimationFrame(() => patchInputPreview(node, attempts - 1));
-        }
-        return;
-    }
-    if (widget.rpPreviewPatched) return;
-    widget.rpPreviewPatched = true;
-
-    const applyMediaStyle = () => {
-        const videos = node.videoContainer?.querySelectorAll?.("video") ?? [];
-        for (const video of videos) {
-            Object.assign(video.style, {
-                width: "100%",
-                height: "auto",
-                maxHeight: `${MAX_PREVIEW_HEIGHT}px`,
-                objectFit: "contain",
-                display: "block",
-            });
-        }
-        if (node.videoContainer) {
-            node.videoContainer.style.maxHeight = `${MAX_PREVIEW_HEIGHT}px`;
-            node.videoContainer.style.overflow = "hidden";
-        }
-    };
-
-    widget.computeLayoutSize = () => {
-        const video = node.videoContainer?.querySelector?.("video");
-        const aspect = video?.videoWidth && video?.videoHeight
-            ? video.videoWidth / video.videoHeight
-            : 16 / 9;
-        return { minHeight: previewHeight(node, aspect), minWidth: 0 };
-    };
-    widget.computeSize = (width) => {
-        const video = node.videoContainer?.querySelector?.("video");
-        const aspect = video?.videoWidth && video?.videoHeight
-            ? video.videoWidth / video.videoHeight
-            : 16 / 9;
-        return [width, previewHeight(node, aspect)];
-    };
-
-    applyMediaStyle();
-    const observer = new MutationObserver(() => {
-        applyMediaStyle();
-        fitNodeHeight(node);
-    });
-    if (node.videoContainer) {
-        observer.observe(node.videoContainer, { childList: true, subtree: true });
-    }
-    const originalRemove = widget.onRemove;
-    widget.onRemove = function () {
-        observer.disconnect();
-        return originalRemove?.apply(this, arguments);
-    };
-    fitNodeHeight(node);
-}
-
-
 function addVideoPreview(node) {
     const container = document.createElement("div");
     container.style.width = "100%";
@@ -200,33 +140,13 @@ function addStreamingVideoUpload(node) {
 app.registerExtension({
     name: "RPNodes.VideoPreviews",
     async beforeRegisterNodeDef(nodeType, nodeData) {
-        if (nodeData.name === "RPVideoToFrames") {
-            chainCallback(nodeType.prototype, "onNodeCreated", function () {
-                const originalAddDOMWidget = this.addDOMWidget;
-                this.addDOMWidget = function (name) {
-                    const widget = originalAddDOMWidget.apply(this, arguments);
-                    if (name === "video-preview") {
-                        requestAnimationFrame(() => patchInputPreview(this));
-                    }
-                    return widget;
-                };
-                const videoWidget = this.widgets?.find((widget) => widget.name === "video");
-                if (videoWidget) {
-                    chainCallback(videoWidget, "callback", () => {
-                        requestAnimationFrame(() => patchInputPreview(this));
-                    });
-                }
-                requestAnimationFrame(() => patchInputPreview(this));
-            });
-        }
-
         if (nodeData.name === "RPLoadVideo") {
             chainCallback(nodeType.prototype, "onNodeCreated", function () {
                 addStreamingVideoUpload(this);
             });
         }
 
-        if (nodeData.name === "RPFramesToVideo" || nodeData.name === "RPPreviewVideo") {
+        if (nodeData.name === "RPPreviewVideo") {
             chainCallback(nodeType.prototype, "onNodeCreated", function () {
                 addVideoPreview(this);
             });

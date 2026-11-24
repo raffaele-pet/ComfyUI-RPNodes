@@ -11,7 +11,7 @@ from scipy.ndimage import binary_fill_holes, maximum_filter
 
 import folder_paths
 
-from ..video_frame_processing.video_frames_workflow import _find_executable, _run
+from ..video_frame_processing.video_files import _find_executable, _run
 
 
 PREVIEW_FILES = OrderedDict()

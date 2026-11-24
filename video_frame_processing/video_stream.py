@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import torch
 
-from .video_frames_workflow import VIDEO_EXTENSIONS, _find_executable, _input_directory, _probe_video
+from .video_files import VIDEO_EXTENSIONS, _find_executable, _input_directory, _probe_video
 
 
 MAX_PIXELS = 8192 * 8192
@@ -75,7 +75,7 @@ class VideoSource:
     def __init__(self, video, force_rate, custom_width, custom_height, frame_load_cap,
                  skip_first_frames, select_every_nth):
         self.path = input_video(video)
-        info = _probe_video(self.path, include_audio=True)
+        info = _probe_video(self.path)
         rate = Fraction(force_rate or info["fps"]).limit_denominator(100_000)
         self.fps = rate / select_every_nth
         self.has_audio = info["has_audio"]
