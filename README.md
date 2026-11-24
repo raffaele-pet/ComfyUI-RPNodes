@@ -290,7 +290,12 @@ while it is cached for the same video, selections and output settings.
 
 **OpenPose** and **OpenPose · Face only** render
 landmarks for people matched to the selected region. **Tracked rectangle**
-follows the tracked mask's main axis on each frame. Drag a guide to move it or
+fits a narrow rectangle to the selection and links its motion across frames.
+When OpenCV is available, it tracks image features inside the mask to estimate
+position, rotation and scale. The temporally filtered mask guides the fit
+whenever the feature tracking is uncertain. Use **Track & preview** to see
+the stabilized trajectory, including frames skipped by output sampling.
+Drag a guide to move it or
 drag the round handle to rotate it. Drag a corner to resize proportionally
 and hold **Shift** to resize each axis independently. The **Guide transform**
 panel can be moved anywhere within the preview. **Reset scale** restores

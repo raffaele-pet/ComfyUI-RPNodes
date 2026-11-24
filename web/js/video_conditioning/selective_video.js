@@ -300,6 +300,28 @@ function preparationSignature(groups, settings) {
     return JSON.stringify([settings, selections]);
 }
 
+function canShowPrepared(groups, settings, saved, activeGroup) {
+    const current = preparationSignature(groups, settings);
+    if (saved === current) return true;
+    if (activeGroup?.preprocessor !== "rectangle_guide") return false;
+    const index = groups.filter(({ parts }) => parts.length).indexOf(activeGroup);
+    if (index < 0) return false;
+    // The active rectangle is drawn from its stored trajectory. The editor can
+    // apply placement changes locally until the user prepares the output again.
+    const withoutPlacement = (key) => {
+        const data = JSON.parse(key);
+        for (const field of ["guide_scale", "guide_offset", "guide_rotation"]) {
+            delete data[1][index][field];
+        }
+        return JSON.stringify(data);
+    };
+    try {
+        return withoutPlacement(saved) === withoutPlacement(current);
+    } catch {
+        return false;
+    }
+}
+
 function withoutPreviews(groups) {
     return groups.filter((group) => group.parts.length).map((group) => ({
         ...group, parts: group.parts.map(({ preview, ...part }) => part),
@@ -597,7 +619,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         const frame = shownFrame;
         const version = ++drawVersion;
         preparedFetch?.abort();
-        if (withGuides && prepared && preparedSignature === preparationSignature(groups, loadingSettings)) {
+        if (withGuides && prepared && canShowPrepared(groups, loadingSettings, preparedSignature, activeGroup)) {
             const controller = new AbortController();
             preparedFetch = controller;
             const query = new URLSearchParams({

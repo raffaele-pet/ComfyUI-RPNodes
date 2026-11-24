@@ -30,6 +30,7 @@ from nodes import MAX_RESOLUTION
 from server import PromptServer
 
 from ..video_frame_processing.video_files import VIDEO_EXTENSIONS, _available_videos
+from .rectangle_tracking import is_shot_cut, sample_rectangle, stabilize_rectangles
 from .video_guides import (
     GUIDE_MODES, POSE_GUIDES, composite_guide, guide_artwork, guide_detector, guide_placement, guide_scale,
     pose_geometry, rectangle_frame, render_guides,
@@ -519,11 +520,16 @@ def target_size(width, height, custom_width, custom_height, format):
                  for value, step in ((target_width, width_step), (target_height, height_step)))
 
 
-def resize_selection_batch(batch, width, height, method):
-    source_height, source_width = batch.shape[1:3]
+def frame_crop(source_width, source_height, width, height):
     x = min((source_width - 1) // 2, max(0, round((source_width - source_height * width / height) / 2)))
     y = min((source_height - 1) // 2, max(0, round((source_height - source_width * height / width) / 2)))
-    cropped = batch[:, y:source_height - y, x:source_width - x]
+    return x, y, source_width - x, source_height - y
+
+
+def resize_selection_batch(batch, width, height, method):
+    source_height, source_width = batch.shape[1:3]
+    x0, y0, x1, y1 = frame_crop(source_width, source_height, width, height)
+    cropped = batch[:, y0:y1, x0:x1]
     return comfy.utils.common_upscale(cropped.movedim(-1, 1), width, height, method, "disabled").movedim(1, -1)
 
 
@@ -563,8 +569,73 @@ def fill_frame_from_edges(frame, selection, fill):
     region[selection & ~fill] = 0
 
 
+def rectangle_trajectories(source, groups, tracks, source_size, output_size, fps, check):
+    rectangles = [
+        (group_id, group, begin, masks.numpy()) for group_id, (group, (begin, masks)) in enumerate(zip(groups, tracks))
+        if group["preprocessor"] == "rectangle_guide"
+    ]
+    if not rectangles:
+        return {}
+    start = min(begin for _, _, begin, _ in rectangles)
+    end = max(begin + len(masks) for _, _, begin, masks in rectangles)
+    width, height = output_size
+    shrink = min(1, 512 / max(width, height))
+    size = max(1, round(width * shrink)), max(1, round(height * shrink))
+    samples = {group_id: [] for group_id, _, _, _ in rectangles}
+    previous_masks = {}
+    previous = None
+    cuts = set()
+    with av.open(str(source[0])) as container:
+        stream = container.streams.video[0]
+        stream.thread_type = "AUTO"
+        frames = (frame for frame in container.decode(stream) if frame.pts is not None and frame.pts >= 0)
+        for index, frame in enumerate(frames):
+            if index < start:
+                continue
+            if index >= end:
+                break
+            check()
+            original = preview_pixels(frame, max_size=512, pixel_format="gray")
+            raw_height, raw_width = original.shape
+            crop = frame_crop(raw_width, raw_height, width, height)
+            image = np.asarray(Image.fromarray(original).crop(crop).resize(size, Image.Resampling.BILINEAR))
+            if previous is not None and is_shot_cut(previous, image):
+                cuts.add(index)
+                previous_masks.clear()
+            for group_id, group, begin, packed in rectangles:
+                offset = index - begin
+                if not 0 <= offset < len(packed):
+                    continue
+                pixels = np.unpackbits(packed[offset], axis=-1, bitorder="little") * 255
+                mask = np.asarray(Image.fromarray(pixels).resize((raw_width, raw_height), Image.Resampling.BILINEAR)) > 127
+                if group["fill_holes"]:
+                    binary_fill_holes(mask, output=mask)
+                radius = round(group["expand"] * raw_width / source_size[0])
+                if radius:
+                    maximum_filter(mask, size=2 * radius + 1, mode="constant", output=mask)
+                mask = np.asarray(Image.fromarray(mask).crop(crop).resize(size, Image.Resampling.NEAREST))
+                samples[group_id].append(sample_rectangle(image, mask, previous, previous_masks.get(group_id)))
+                previous_masks[group_id] = mask
+            previous = image
+
+    scale_x, scale_y = width / size[0], height / size[1]
+    trajectories = {}
+    for group_id, group, begin, _ in rectangles:
+        anchors = sorted({part["frame"] - begin for part in group["parts"]})
+        placements = stabilize_rectangles(samples[group_id], anchors, {cut - begin for cut in cuts}, fps)
+        trajectories[group_id] = {
+            begin + slot: replace(
+                frame,
+                center=(frame.center[0] * scale_x, frame.center[1] * scale_y),
+                size=(frame.size[0] * scale_x, frame.size[1] * scale_y),
+            )
+            for slot, frame in placements.items()
+        }
+    return trajectories
+
+
 def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=False, guides=None, detector=None,
-                     artwork=None, check=model_management.throw_exception_if_processing_interrupted):
+                     artwork=None, rectangle_frames=None, check=model_management.throw_exception_if_processing_interrupted):
     kinds = set() if edge_fill else {group["preprocessor"] for group in groups} & {"depth", "canny"}
     processors = prepare_preprocessors(kinds) if kinds else {}
     progress = comfy.utils.ProgressBar(len(images)) if artwork is None else None
@@ -625,7 +696,8 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
             for frame, selection, fill_pixels in zip(chunk.numpy(), union.numpy(), fill.numpy()):
                 fill_frame_from_edges(frame, selection.astype(bool), fill_pixels)
         if guide_items:
-            render_guides(guides[start:start + len(chunk)], guide_items, rgb, detector, artwork, start)
+            render_guides(guides[start:start + len(chunk)], guide_items, rgb, detector, artwork, start,
+                          rectangle_frames, frame_indices)
         if progress:
             progress.update(len(chunk))
     return mask_frames
@@ -634,6 +706,7 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
 @dataclass
 class PreparedVideo:
     id: str
+    source: tuple
     tracking: str | None
     groups: list
     tracks: list
@@ -641,6 +714,7 @@ class PreparedVideo:
     source_size: tuple
     result: tuple
     artwork: dict
+    rectangles: dict
     size_bytes: int
 
 
@@ -793,16 +867,19 @@ class _SelectiveVideo(io.ComfyNode):
             resize_components(components, width, height, check)
         original_frames = components.images
         guides = torch.zeros((count, height, width, 4), dtype=torch.float16) if guide_kinds else None
-        tracking, tracks = None, []
+        tracking, tracks, rectangles = None, [], {}
         artwork = {} if prepare else None
         if groups:
             tracking, tracks = track_groups(source, groups, check if prepare else None)
+            if "rectangle_guide" in guide_kinds:
+                rectangles = rectangle_trajectories(source, groups, tracks, timeline.size, (width, height),
+                                                    float(timeline.rate), check)
             if composite:
                 components.images = original_frames.clone()
             with guide_detector() if guide_kinds & POSE_GUIDES else nullcontext() as detector:
                 masks = apply_selections(components.images, groups, tracks, indices, timeline.size,
                                          edge_fill=cls.edge_fill, guides=guides, detector=detector,
-                                         artwork=artwork, check=check)
+                                         artwork=artwork, rectangle_frames=rectangles, check=check)
         else:
             masks = torch.zeros(1, 1, 1).expand(count, height, width)
         output = original
@@ -839,7 +916,8 @@ class _SelectiveVideo(io.ComfyNode):
             size_bytes = sum(storages.values()) + sum(
                 len(png) for frame in artwork.values() for _, png in frame.values() if png
             )
-        return PreparedVideo(uuid4().hex, tracking, groups, tracks, indices, timeline.size, outputs, artwork, size_bytes)
+        return PreparedVideo(uuid4().hex, source, tracking, groups, tracks, indices, timeline.size,
+                             outputs, artwork, rectangles, size_bytes)
 
 
 class RPSelectiveVideoEdgeFill(_SelectiveVideo):
@@ -1010,15 +1088,25 @@ def prepare_guides(source, groups, options, key, check):
 
 def prepared_frame(ready, frame, active, segmentation, guide):
     slot = bisect_left(ready.indices, frame)
-    if slot == len(ready.indices) or ready.indices[slot] != frame:
-        return {"skipped": True}
-
+    skipped = slot == len(ready.indices) or ready.indices[slot] != frame
+    artwork = ready.artwork.get(slot, {}) if not skipped else {}
+    if skipped:
+        if active >= 0 and ready.groups[active]["preprocessor"] in POSE_GUIDES:
+            return {"skipped": True}
+        artwork = {selection: (track[frame], None) for selection, track in ready.rectangles.items() if frame in track}
+        if not guide or not artwork:
+            return {"skipped": True}
     images = ready.result[1 if guide else 3]
     height, width = images.shape[1:3]
     scale = min(1, 1008 / max(width, height))
     size = max(1, round(width * scale)), max(1, round(height * scale))
-    pixels = (images[slot].clamp(0, 1) * 255).round().to(torch.uint8).cpu().numpy()
-    photo = Image.fromarray(pixels).resize(size, Image.Resampling.BILINEAR)
+    if skipped:
+        source = Image.fromarray(preview_frame(ready.source, frame))
+        photo = source.crop(frame_crop(source.width, source.height, width, height))
+    else:
+        pixels = (images[slot].clamp(0, 1) * 255).round().to(torch.uint8).cpu().numpy()
+        photo = Image.fromarray(pixels)
+    photo = photo.resize(size, Image.Resampling.BILINEAR)
     if segmentation:
         pixels = np.array(photo)
         source_width, source_height = ready.source_size
@@ -1038,7 +1126,7 @@ def prepared_frame(ready, frame, active, segmentation, guide):
     if guide:
         photo = photo.convert("RGBA")
         scale_x, scale_y = size[0] / width, size[1] / height
-        for selection, (placement, png) in ready.artwork.get(slot, {}).items():
+        for selection, (placement, png) in artwork.items():
             group = ready.groups[selection]
             placement = replace(
                 placement,

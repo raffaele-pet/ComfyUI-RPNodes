@@ -71,15 +71,16 @@ def pose_geometry(detector, rgb, include_hands):
     return poses, prepared.shape[:2], unpad(prepared).shape[:2]
 
 
-def rectangle_frame(mask):
+def rectangle_measurement(mask):
     rows, columns = np.nonzero(mask)
     if not rows.size:
-        return None
+        return None, 0.0
     cx, cy = columns.mean() + 0.5, rows.mean() + 0.5
     x, y = columns + 0.5 - cx, rows + 0.5 - cy
     xx, xy, yy = (x * x).sum(), (x * y).sum(), (y * y).sum()
+    confidence = math.hypot(xx - yy, 2 * xy) / max(1.0, xx + yy)
     angle = 0.0
-    if math.hypot(xx - yy, 2 * xy) > 0.03 * (xx + yy):
+    if confidence > 0.03:
         major = math.degrees(math.atan2(2 * xy, xx - yy)) / 2
         angle = major % 180 - 90
     cos, sin = math.cos(math.radians(angle)), math.sin(math.radians(angle))
@@ -93,7 +94,11 @@ def rectangle_frame(mask):
     width = max(1, min(far - near + 1, length * 0.45))
     a, b = (near + far) / 2, (low + high) / 2
     center = float(cx + cos * a - sin * b), float(cy + sin * a + cos * b)
-    return GuideFrame(center, (float(width), float(length)), angle)
+    return GuideFrame(center, (float(width), float(length)), angle), confidence
+
+
+def rectangle_frame(mask):
+    return rectangle_measurement(mask)[0]
 
 
 def keypoints_overlap_mask(points, mask, padded, unpadded):
@@ -170,7 +175,7 @@ def composite_guide(canvas, artwork, scale, offset, rotation):
     canvas.alpha_composite(visible, (x0, y0))
 
 
-def render_guides(output, items, rgb, detector, prepared=None, start=0):
+def render_guides(output, items, rgb, detector, prepared=None, start=0, rectangle_frames=None, frame_indices=()):
     height, width = output.shape[1:3]
     for index in range(len(output)):
         visible = [
@@ -183,12 +188,19 @@ def render_guides(output, items, rgb, detector, prepared=None, start=0):
         geometry = pose_geometry(detector, rgb[index], "pose_guide" in kinds) if kinds & POSE_GUIDES else None
         canvas = Image.new("RGBA", (width, height))
         for group_id, group, mask in visible:
-            artwork = guide_artwork(group["preprocessor"], mask, group["color"], geometry)
+            kind = group["preprocessor"]
+            placement = None
+            if kind == "rectangle_guide" and rectangle_frames is not None:
+                placement = rectangle_frames.get(group_id, {}).get(frame_indices[index])
+            if placement is not None:
+                artwork = Image.new("RGBA", (1, 1), group["color"]), placement
+            else:
+                artwork = guide_artwork(kind, mask, group["color"], geometry)
             composite_guide(canvas, artwork, group["guide_scale"], group["guide_offset"], group["guide_rotation"])
             if prepared is not None and artwork:
                 image, placement = artwork
                 png = None
-                if group["preprocessor"] in POSE_GUIDES:
+                if kind in POSE_GUIDES:
                     with BytesIO() as buffer:
                         image.save(buffer, format="PNG")
                         png = buffer.getvalue()
