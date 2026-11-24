@@ -1,8 +1,8 @@
 {
   "id": "cddd54c8-2732-44eb-b74e-3490f5748d3e",
   "revision": 2,
-  "last_node_id": 588,
-  "last_link_id": 615,
+  "last_node_id": 591,
+  "last_link_id": 618,
   "nodes": [
     {
       "id": 446,
@@ -4035,7 +4035,156 @@
         "format": "mp4",
         "format.codec": "h264"
       }
-    }
+    },
+  {
+    "id": 589,
+    "type": "RPLoadVideo",
+    "pos": [
+      7980,
+      6920
+    ],
+    "size": [
+      340,
+      350
+    ],
+    "flags": {},
+    "order": 91,
+    "mode": 2,
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "images",
+        "type": "IMAGE",
+        "links": [
+          616
+        ]
+      },
+      {
+        "name": "fps",
+        "type": "FLOAT",
+        "links": null
+      },
+      {
+        "name": "frame_count",
+        "type": "INT",
+        "links": null
+      },
+      {
+        "name": "video_stream",
+        "type": "RP_VIDEO_STREAM",
+        "links": [
+          618
+        ]
+      }
+    ],
+    "properties": {
+      "Node name for S&R": "RPLoadVideo"
+    },
+    "widgets_values": [
+      "",
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      512
+    ]
+  },
+  {
+    "id": 590,
+    "type": "ImageInvert",
+    "pos": [
+      8400,
+      6920
+    ],
+    "size": [
+      200,
+      60
+    ],
+    "flags": {},
+    "order": 92,
+    "mode": 2,
+    "inputs": [
+      {
+        "name": "image",
+        "type": "IMAGE",
+        "link": 616
+      }
+    ],
+    "outputs": [
+      {
+        "name": "IMAGE",
+        "type": "IMAGE",
+        "links": [
+          617
+        ]
+      }
+    ],
+    "properties": {
+      "Node name for S&R": "ImageInvert"
+    },
+    "widgets_values": []
+  },
+  {
+    "id": 591,
+    "type": "RPPreviewVideo",
+    "pos": [
+      8680,
+      6920
+    ],
+    "size": [
+      330,
+      315
+    ],
+    "flags": {},
+    "order": 93,
+    "mode": 2,
+    "inputs": [
+      {
+        "name": "images",
+        "type": "IMAGE",
+        "link": 617
+      },
+      {
+        "name": "video_stream",
+        "type": "RP_VIDEO_STREAM",
+        "link": 618
+      },
+      {
+        "name": "audio",
+        "type": "AUDIO",
+        "link": null
+      }
+    ],
+    "outputs": [
+      {
+        "name": "video_path",
+        "type": "STRING",
+        "links": null
+      },
+      {
+        "name": "frame_count",
+        "type": "INT",
+        "links": null
+      },
+      {
+        "name": "fps",
+        "type": "FLOAT",
+        "links": null
+      }
+    ],
+    "properties": {
+      "Node name for S&R": "RPPreviewVideo"
+    },
+    "widgets_values": [
+      0,
+      false,
+      "RP_Video/Processed",
+      19,
+      true
+    ]
+  }
   ],
   "links": [
     [
@@ -4517,7 +4666,31 @@
       588,
       0,
       "VIDEO"
-    ]
+    ],
+  [
+    616,
+    589,
+    0,
+    590,
+    0,
+    "IMAGE"
+  ],
+  [
+    617,
+    590,
+    0,
+    591,
+    0,
+    "IMAGE"
+  ],
+  [
+    618,
+    589,
+    3,
+    591,
+    1,
+    "RP_VIDEO_STREAM"
+  ]
   ],
   "groups": [
     {
@@ -4735,7 +4908,19 @@
       ],
       "color": "#3f789e",
       "flags": {}
-    }
+    },
+  {
+    "id": 21,
+    "title": "RP Streaming Video",
+    "bounding": [
+      7950,
+      6860,
+      1090,
+      455
+    ],
+    "color": "#3f789e",
+    "flags": {}
+  }
   ],
   "config": {},
   "extra": {

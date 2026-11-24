@@ -213,15 +213,55 @@ that prompt and image counts match.
 
 ## Video frame processing
 
-Processes a video one frame at a time. The two nodes share `flow` and
-`video_context`, with the image-processing chain between them. Extracted and
-processed frames remain available in their output folders. FFmpeg is provided
-through the package requirements.
+FFmpeg is provided through the package requirements. The video nodes are under
+`video/RPNodes` in the node menu.
+
+### RP Load Video (Upload)
+
+Select a video from ComfyUI's input folder or upload it from the node. Set
+`force_rate` to resample the video before skipping or selecting frames.
+`skip_first_frames` skips that many frames at the chosen rate,
+`select_every_nth` keeps every Nth frame, and `frame_load_cap` limits how many
+selected frames are read. Zero leaves the rate or frame cap automatic. Set one
+custom dimension to preserve the aspect ratio, or set both for an exact size.
+Two zero dimensions keep the source size.
+
+Used on its own, the node returns a standard `IMAGE` batch, its effective FPS
+and frame count. `max_batch_mib` limits the standalone batch size. For a large
+video, use the connected mode or set a smaller cap or resolution.
+
+### RP Preview Video
+
+Connect an `IMAGE` batch and set `fps` (0 defaults to 24). An optional
+`AUDIO` input adds a soundtrack. The node previews a browser-playable H.264
+MP4 in ComfyUI's temporary directory. Enable `save_video` to keep the MP4
+under `ComfyUI/output` with the chosen `filename_prefix`.
+
+#### Process a video one frame at a time
+
+1. Connect the loader's `video_stream` directly to the preview's `video_stream`.
+2. Connect the loader's `images` through an image-processing chain to the
+   preview's `images`. The chain must return one image per frame at a fixed size.
+3. Run the workflow once. With `fps` at 0, the preview uses the effective
+   loader FPS. `keep_source_audio` keeps the source audio with matching timing.
+
+The paired mode decodes and encodes through FFmpeg pipes and releases
+frame-dependent workflow results between iterations. It reuses cached model
+loads and other frame-independent results. When preserving audio, it stages
+one compressed video on disk until the final duration is known, then removes
+it after muxing. Keep the streaming image branch connected to the video preview
+as its output. The workflow and its models must fit in memory for one frame.
+Variable-rate sources are converted to a constant rate.
+
+Import [RP Streaming Video](example_workflows/RP%20Streaming%20Video.json) and
+choose a clip on the loader. The example processes each frame with Image Invert.
 
 ### RP Video to Frames
 
-Extracts a video into PNG frames and starts the frame-processing loop. It
-preserves the source timing and audio information for rebuilding the video.
+Extracts a video into PNG frames and starts the frame-processing loop. Connect
+`flow` and `video_context` directly to RP Frames to Video and place the
+image-processing chain between them. Extracted frames remain in the chosen
+folder.
 
 ### RP Frames to Video
 

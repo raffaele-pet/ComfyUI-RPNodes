@@ -136,7 +136,7 @@ def _run(command, operation):
     return process
 
 
-def _probe_video(video):
+def _probe_video(video, include_audio=False):
     try:
         ffprobe = _find_executable("ffprobe")
     except RuntimeError:
@@ -147,10 +147,9 @@ def _probe_video(video):
             ffprobe,
             "-v",
             "error",
-            "-select_streams",
-            "v:0",
+            *(["-select_streams", "v:0"] if not include_audio else []),
             "-show_entries",
-            "stream=avg_frame_rate,r_frame_rate,nb_frames,width,height",
+            "stream=codec_type,avg_frame_rate,r_frame_rate,nb_frames,width,height",
             "-show_entries",
             "format=duration",
             "-of",
@@ -161,9 +160,9 @@ def _probe_video(video):
     )
     data = json.loads(process.stdout)
     streams = data.get("streams") or []
-    if not streams:
+    stream = next((stream for stream in streams if stream.get("codec_type") == "video"), None)
+    if stream is None:
         raise ValueError(f"No video stream found in: {video}")
-    stream = streams[0]
     rate_text = stream.get("avg_frame_rate") or stream.get("r_frame_rate") or "24/1"
     try:
         fps = float(Fraction(rate_text))
@@ -176,6 +175,7 @@ def _probe_video(video):
         "width": int(stream.get("width") or 0),
         "height": int(stream.get("height") or 0),
         "duration": float((data.get("format") or {}).get("duration") or 0.0),
+        "has_audio": any(stream.get("codec_type") == "audio" for stream in streams),
     }
 
 
@@ -218,6 +218,7 @@ def _probe_video_with_ffmpeg(video):
         "width": int(dimensions.group(1)) if dimensions else 0,
         "height": int(dimensions.group(2)) if dimensions else 0,
         "duration": duration,
+        "has_audio": bool(re.search(r"Stream #.*Audio:", details)),
     }
 
 

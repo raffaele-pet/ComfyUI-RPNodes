@@ -90,7 +90,7 @@ function patchInputPreview(node, attempts = 180) {
 }
 
 
-function addOutputPreview(node) {
+function addVideoPreview(node) {
     const container = document.createElement("div");
     container.style.width = "100%";
     container.style.display = "none";
@@ -131,13 +131,69 @@ function addOutputPreview(node) {
 
     video.addEventListener("loadedmetadata", () => fitNodeHeight(node));
     node.rpShowOutputVideo = (params) => {
-        if (!params?.filename) return;
-        const query = new URLSearchParams({ ...params, timestamp: Date.now() });
-        video.src = api.apiURL(`/view?${query}`);
-        container.style.display = "block";
+        if (params?.filename) {
+            const query = new URLSearchParams({ ...params, timestamp: Date.now() });
+            video.src = api.apiURL(`/view?${query}`);
+            container.style.display = "block";
+        } else {
+            video.removeAttribute("src");
+            container.style.display = "none";
+        }
         video.load();
         fitNodeHeight(node);
     };
+    chainCallback(widget, "onRemove", () => {
+        video.removeAttribute("src");
+        video.load();
+    });
+}
+
+
+function addStreamingVideoUpload(node) {
+    const widget = node.widgets?.find((item) => item.name === "video");
+    if (!widget) return;
+    addVideoPreview(node);
+
+    const updatePreview = () => {
+        const parts = String(widget.value ?? "").replaceAll("\\", "/").split("/");
+        const filename = parts.pop();
+        node.rpShowOutputVideo({ filename, subfolder: parts.join("/"), type: "input" });
+    };
+    chainCallback(widget, "callback", updatePreview);
+    chainCallback(node, "onConfigure", updatePreview);
+    queueMicrotask(updatePreview);
+
+    const picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = ".avi,.m2ts,.m4v,.mkv,.mov,.mp4,.mpeg,.mpg,.mts,.webm,.wmv";
+    const upload = node.addWidget(
+        "button", "choose video to upload", null, () => picker.click(), { serialize: false },
+    );
+    picker.addEventListener("change", async () => {
+        const file = picker.files?.[0];
+        picker.value = "";
+        if (!file) return;
+
+        upload.name = "uploading video…";
+        node.graph?.setDirtyCanvas(true, true);
+        picker.disabled = true;
+        try {
+            const query = new URLSearchParams({ filename: file.name });
+            const response = await api.fetchApi(`/rp/video/upload?${query}`, { method: "POST", body: file });
+            if (!response.ok) throw new Error(await response.text());
+            const { video } = await response.json();
+            const values = widget.options.values;
+            if (!values.includes(video)) widget.options.values = [...values, video];
+            widget.value = video;
+            widget.callback?.(video);
+        } catch (error) {
+            app.extensionManager.toast.add({ severity: "error", summary: "RP video upload", detail: error.message });
+        } finally {
+            picker.disabled = false;
+            upload.name = "choose video to upload";
+            node.graph?.setDirtyCanvas(true, true);
+        }
+    });
 }
 
 
@@ -164,9 +220,15 @@ app.registerExtension({
             });
         }
 
-        if (nodeData.name === "RPFramesToVideo") {
+        if (nodeData.name === "RPLoadVideo") {
             chainCallback(nodeType.prototype, "onNodeCreated", function () {
-                addOutputPreview(this);
+                addStreamingVideoUpload(this);
+            });
+        }
+
+        if (nodeData.name === "RPFramesToVideo" || nodeData.name === "RPPreviewVideo") {
+            chainCallback(nodeType.prototype, "onNodeCreated", function () {
+                addVideoPreview(this);
             });
             chainCallback(nodeType.prototype, "onExecuted", function (message) {
                 const preview = message?.rp_video?.[0];
