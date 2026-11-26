@@ -71,34 +71,18 @@ def pose_geometry(detector, rgb, include_hands):
     return poses, prepared.shape[:2], unpad(prepared).shape[:2]
 
 
-def rectangle_measurement(mask):
+def rectangle_frame(mask):
     rows, columns = np.nonzero(mask)
     if not rows.size:
-        return None, 0.0
-    cx, cy = columns.mean() + 0.5, rows.mean() + 0.5
-    x, y = columns + 0.5 - cx, rows + 0.5 - cy
-    xx, xy, yy = (x * x).sum(), (x * y).sum(), (y * y).sum()
-    confidence = math.hypot(xx - yy, 2 * xy) / max(1.0, xx + yy)
-    angle = 0.0
-    if confidence > 0.03:
-        major = math.degrees(math.atan2(2 * xy, xx - yy)) / 2
-        angle = major % 180 - 90
-    cos, sin = math.cos(math.radians(angle)), math.sin(math.radians(angle))
-    across = cos * x + sin * y
-    along = -sin * x + cos * y
-    # Fit the length to the silhouette. Use the central half of its area
-    # across the axis so extended arms and other side details don't set the width.
-    low, high = np.percentile(along, (1, 99))
-    near, far = np.percentile(across, (25, 75))
-    length = high - low + 1
-    width = max(1, min(far - near + 1, length * 0.45))
-    a, b = (near + far) / 2, (low + high) / 2
-    center = float(cx + cos * a - sin * b), float(cy + sin * a + cos * b)
-    return GuideFrame(center, (float(width), float(length)), angle), confidence
-
-
-def rectangle_frame(mask):
-    return rectangle_measurement(mask)[0]
+        return None
+    # Keep the proxy upright and measure the middle of the mask horizontally
+    # so ears and outstretched arms contribute less than the body.
+    top, bottom = np.percentile(rows, (1, 99))
+    left, right = np.percentile(columns, (25, 75))
+    height = bottom - top + 1
+    width = max(1, min(right - left + 1, height * 0.45))
+    center = float((left + right + 1) / 2), float((top + bottom + 1) / 2)
+    return GuideFrame(center, (float(width), float(height)))
 
 
 def keypoints_overlap_mask(points, mask, padded, unpadded):
@@ -158,11 +142,25 @@ def composite_guide(canvas, artwork, scale, offset, rotation):
     cy = frame.center[1] + offset[1] * canvas.height
     angle = math.radians(frame.angle + rotation)
     cos, sin = math.cos(angle), math.sin(angle)
-    extent_x = (abs(cos) * width + abs(sin) * height) / 2
-    extent_y = (abs(sin) * width + abs(cos) * height) / 2
+    solid = image.size == (1, 1)
+    margin = 1 if solid else 0
+    extent_x = (abs(cos) * width + abs(sin) * height) / 2 + margin
+    extent_y = (abs(sin) * width + abs(cos) * height) / 2 + margin
     x0, y0 = max(0, math.floor(cx - extent_x)), max(0, math.floor(cy - extent_y))
     x1, y1 = min(canvas.width, math.ceil(cx + extent_x)), min(canvas.height, math.ceil(cy + extent_y))
     if x0 >= x1 or y0 >= y1:
+        return
+    if solid:
+        # Fractional edge coverage keeps slow subpixel moves from flashing
+        # between fully opaque and fully transparent pixels.
+        x = np.arange(x0, x1, dtype=np.float32)[None, :] + 0.5 - cx
+        y = np.arange(y0, y1, dtype=np.float32)[:, None] + 0.5 - cy
+        across = np.clip(width / 2 + 0.5 - np.abs(cos * x + sin * y), 0, 1)
+        along = np.clip(height / 2 + 0.5 - np.abs(-sin * x + cos * y), 0, 1)
+        color = image.getpixel((0, 0))
+        tile = Image.new("RGBA", (x1 - x0, y1 - y0), color)
+        tile.putalpha(Image.fromarray(np.rint(across * along * color[3]).astype(np.uint8)))
+        canvas.alpha_composite(tile, (x0, y0))
         return
     # Pillow expects the inverse map from the clipped destination to the artwork.
     sx, sy = image.width / width, image.height / height
