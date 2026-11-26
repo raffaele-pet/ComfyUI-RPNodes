@@ -372,7 +372,8 @@ const editorStyle = `
     .rp-selective-editor .rp-stage video[hidden] { display:none; }
     .rp-selective-editor .rp-stage.rp-playing .rp-guide-layer,
     .rp-selective-editor .rp-stage.rp-playing .rp-guide-controls { visibility:hidden; }
-    .rp-selective-editor .rp-timeline .rp-play { min-width:34px; }
+    .rp-selective-editor .rp-timeline .rp-play { min-width:34px; display:grid; place-items:center; }
+    .rp-selective-editor .rp-play svg { width:14px; height:14px; fill:currentColor; }
     .rp-selective-editor .rp-prepare-spinner:not([hidden]) { position:absolute; inset:0; z-index:2;
         display:grid; place-items:center; background:#0006; }
     .rp-selective-editor .rp-prepare-spinner::after { content:""; width:44px; height:44px; border:4px solid #fff5;
@@ -480,6 +481,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     const player = element("video");
     player.hidden = true;
     player.playsInline = true;
+    player.loop = true;
     const paint = createPainter(canvas);
     const slider = input("range", 0, "Video frame timeline");
     slider.min = slider.max = 0;
@@ -902,6 +904,13 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         return Object.hasOwn(guideModes, activeGroup.preprocessor) ? "transparent" : "map";
     }
 
+    function updatePlayButton(playing) {
+        playIcon.setAttribute("d", playing ? "M4 3h4v14H4z M12 3h4v14h-4z" : "M5 2l12 8-12 8z");
+        const label = playing ? "Pause video" : "Play video";
+        play.setAttribute("aria-label", label);
+        play.title = label;
+    }
+
     function stopPlayback(sync = true) {
         if (!playback) return;
         const state = playback;
@@ -913,9 +922,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         player.removeAttribute("src");
         player.load();
         stage.classList.remove("rp-playing");
-        play.textContent = "▶";
-        play.setAttribute("aria-label", "Play video");
-        play.title = "Play video";
+        updatePlayButton(false);
         updateButtons();
         if (sync) seek(state.frame);
     }
@@ -930,9 +937,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         const { signal } = controller;
         const state = { controller, frame: slider.valueAsNumber };
         playback = state;
-        play.textContent = "Ⅱ";
-        play.setAttribute("aria-label", "Pause video");
-        play.title = "Pause video";
+        updatePlayButton(true);
         updateButtons();
         try {
             let url = sourceVideoURL(video);
@@ -956,7 +961,6 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
             player.style.background = transparent ? checkerboard : "";
             player.muted = false;
             player.addEventListener("loadedmetadata", () => { player.currentTime = start; }, { once: true, signal });
-            player.addEventListener("ended", () => stopPlayback(), { once: true, signal });
             player.src = url;
             try {
                 await player.play();
@@ -1373,9 +1377,14 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         updateButtons();
     }
 
-    const play = button("▶", startPlayback, "rp-play");
-    play.setAttribute("aria-label", "Play video");
-    play.title = "Play video";
+    const play = button("", startPlayback, "rp-play");
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const playIcon = document.createElementNS(icon.namespaceURI, "path");
+    icon.setAttribute("viewBox", "0 0 20 20");
+    icon.setAttribute("aria-hidden", "true");
+    icon.append(playIcon);
+    play.append(icon);
+    updatePlayButton(false);
     const previous = button("‹", () => seek(slider.valueAsNumber - 1));
     const next = button("›", () => seek(slider.valueAsNumber + 1));
     previous.setAttribute("aria-label", "Previous frame");

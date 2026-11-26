@@ -1082,7 +1082,7 @@ def prepared_video_preview(ready, mode, frame, check):
     slot = min(bisect_left(ready.indices, frame), len(ready.indices) - 1)
     return {
         "video": {"filename": filename, "type": "temp", "time": slot / float(rate), "transparent": transparent},
-        "indices": list(ready.indices), "fps": float(rate),
+        "indices": [int(index) for index in ready.indices], "fps": float(rate),
     }
 
 
