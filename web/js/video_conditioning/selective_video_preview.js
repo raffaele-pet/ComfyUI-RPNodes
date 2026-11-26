@@ -3,6 +3,16 @@ import { api } from "/scripts/api.js";
 const route = "/rp/selective-video";
 export const colors = ["#1678ff", "#ff6d32", "#58d58c", "#ec56ad", "#ffd650", "#9c83ff"];
 export const defaultExpansion = 10;
+export const checkerboard = "repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 0 / 16px 16px";
+
+export function videoURL({ filename, type, subfolder = "" }) {
+    return api.apiURL(`/view?${new URLSearchParams({ filename, type, subfolder })}`);
+}
+
+export function sourceVideoURL(video) {
+    const parts = video.replaceAll("\\", "/").split("/");
+    return videoURL({ filename: parts.pop(), subfolder: parts.join("/"), type: "input" });
+}
 
 export async function request(path, options) {
     const response = await api.fetchApi(route + path, options);
@@ -167,7 +177,8 @@ export async function loadGroupOverlays(groups, frame, tracked, activeGroup, sca
         return {
             bitmaps: bitmaps.filter(Boolean),
             color: group.color ?? colors[0],
-            opacity: index === activeGroup ? 0.55 : 0.38,
+            preprocessor: group.preprocessor,
+            opacity: group.segmentation_opacity ?? (index === activeGroup ? 0.55 : 0.38),
             radius: Math.round((group.expand ?? defaultExpansion) * scale),
             fillHoles: group.fill_holes ?? true,
             owned,
@@ -200,8 +211,9 @@ export function attachNativePreview(node, setStatus) {
 
     function restore() {
         if (!replaced) return;
-        const { player, original, url } = replaced;
+        const { player, original, url, background } = replaced;
         replaced = null;
+        player.style.background = background;
         if (player.getAttribute("src") !== url) return;
         player.pause();
         if (original) player.setAttribute("src", original);
@@ -211,10 +223,18 @@ export function attachNativePreview(node, setStatus) {
     function show() {
         const player = node.videoContainer?.querySelector("video");
         if (!target || !player || player.getAttribute("src") === target.url) return;
-        const { url, time } = target;
-        replaced = { player, original: player.getAttribute("src"), url };
+        const { url, time, transparent } = target;
+        if (replaced && replaced.player !== player) restore();
+        replaced = { player, original: player.getAttribute("src"), url, background: player.style.background };
+        if (transparent) player.style.background = checkerboard;
         player.addEventListener("loadedmetadata", () => {
             if (player.getAttribute("src") === url) player.currentTime = time;
+        }, { once: true, signal: controller.signal });
+        player.addEventListener("error", () => {
+            if (player.getAttribute("src") !== url) return;
+            target = null;
+            restore();
+            setStatus("Preview expired or unavailable. Apply selections to rebuild it.");
         }, { once: true, signal: controller.signal });
         player.pause();
         player.setAttribute("src", url);
@@ -240,7 +260,9 @@ export function attachNativePreview(node, setStatus) {
     return {
         async update(video, groups, preview) {
             watch(node.videoContainer);
-            const nextKey = preview?.ticket ? JSON.stringify([video, groups, preview]) : null;
+            const asset = preview?.asset;
+            const nextKey = asset?.filename ? JSON.stringify([video, asset])
+                : preview?.ticket ? JSON.stringify([video, groups, preview]) : null;
             if (nextKey === key) return;
             key = nextKey;
             controller?.abort();
@@ -253,12 +275,17 @@ export function attachNativePreview(node, setStatus) {
 
             controller = new AbortController();
             const { signal } = controller;
+            if (asset?.filename) {
+                target = { url: videoURL(asset), time: asset.time, transparent: asset.transparent };
+                show();
+                setStatus("");
+                return;
+            }
             setStatus("Preparing preview…");
             try {
                 const result = await previewJob("/preview-video", { video, groups, ...preview }, signal);
                 if (signal.aborted) return;
-                const { time, ...params } = result.video;
-                target = { url: api.apiURL(`/view?${new URLSearchParams(params)}`), time };
+                target = { url: videoURL(result.video), time: result.video.time };
                 show();
                 setStatus("");
             } catch (error) {

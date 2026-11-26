@@ -30,12 +30,11 @@ from nodes import MAX_RESOLUTION
 from server import PromptServer
 
 from ..video_frame_processing.video_files import VIDEO_EXTENSIONS, _available_videos
-from .rectangle_tracking import is_shot_cut, sample_rectangle, stabilize_rectangles
 from .video_guides import (
     GUIDE_MODES, POSE_GUIDES, composite_guide, guide_artwork, guide_detector, guide_placement, guide_scale,
-    pose_geometry, rectangle_frame, render_guides,
+    pose_geometry, render_guides,
 )
-from .video_preview import cached_preview, preview_pixels
+from .video_preview import cached_preview, cached_prepared_preview, preview_pixels
 
 
 CATEGORY = "RP/Video Conditioning"
@@ -157,7 +156,10 @@ def parse_groups(data, filename, frame_count, *, edge_fill=False):
         for layer in layers:
             if not isinstance(layer, dict):
                 raise ValueError("Invalid video selection.")
-            groups.append({**layer, "name": layer.get("text"), "parts": [layer]})
+            if "parts" in layer:
+                groups.append(layer)
+            else:
+                groups.append({**layer, "name": layer.get("text"), "parts": [layer]})
     if not isinstance(groups, list):
         raise ValueError("Use the editor to configure selection groups.")
     if groups and data.get("video") != filename:
@@ -179,11 +181,15 @@ def parse_groups(data, filename, frame_count, *, edge_fill=False):
             effect = {"fill_from_edges": fill_from_edges}
         else:
             kind = group.get("preprocessor", "none" if "selections" in data else "segmentation")
-            if kind == "openpose":
-                kind = "pose_guide"
+            # Old workflows keep their saved masks when the rectangle is removed.
+            kind = {"openpose": "pose_guide", "rectangle_guide": "none"}.get(kind, kind)
             if kind not in ("none", *MAP_PREPROCESSORS, *GUIDE_MODES):
                 raise ValueError("Unknown group preprocessor.")
             effect = {"preprocessor": kind}
+            opacity = group.get("segmentation_opacity", 0.5)
+            if type(opacity) not in (int, float) or not 0 <= opacity <= 1:
+                raise ValueError("Segmentation opacity must be between 0 and 1.")
+            effect["segmentation_opacity"] = opacity
             if kind in GUIDE_MODES:
                 effect["guide_scale"] = guide_scale(group.get("guide_scale", [1, 1]))
                 effect["guide_offset"], effect["guide_rotation"] = guide_placement(
@@ -388,14 +394,31 @@ def union_tracks(tracks):
 
 
 def track_groups(source, groups, check=None):
-    key = source, json.dumps([group["parts"] for group in groups], sort_keys=True)
+    key = source, json.dumps([group["parts"] for group in groups], sort_keys=True), any(
+        "preprocessor" in group for group in groups
+    )
     with TRACK_CACHE_LOCK:
         cached = next((entry for entry in TRACK_CACHE.values() if entry[0] == key), None)
         if cached is not None:
             TRACK_CACHE.move_to_end(cached[1])
             return cached[1], cached[2]
 
-    parts = [part for group in groups for part in group["parts"]]
+    parts = []
+    for group in groups:
+        anchors = [part.copy() for part in group["parts"]]
+        if "preprocessor" in group:
+            by_prompt = defaultdict(list)
+            for part in anchors:
+                by_prompt[part["text"].casefold(), part["start"], part["end"]].append(part)
+            # Detections of the same subject share the interval between anchors.
+            # Different descriptions can still contribute at the same time.
+            for matches in by_prompt.values():
+                matches.sort(key=lambda part: part["frame"])
+                for left, right in zip(matches, matches[1:]):
+                    if left["frame"] < right["frame"]:
+                        boundary = (left["frame"] + right["frame"]) // 2
+                        left["end"], right["start"] = boundary, boundary + 1
+        parts.extend(anchors)
     tracks = track_parts(source, parts, check)
     grouped = []
     offset = 0
@@ -569,78 +592,26 @@ def fill_frame_from_edges(frame, selection, fill):
     region[selection & ~fill] = 0
 
 
-def rectangle_trajectories(source, groups, tracks, source_size, output_size, fps, check):
-    rectangles = [
-        (group_id, group, begin, masks.numpy()) for group_id, (group, (begin, masks)) in enumerate(zip(groups, tracks))
-        if group["preprocessor"] == "rectangle_guide"
-    ]
-    if not rectangles:
-        return {}
-    start = min(begin for _, _, begin, _ in rectangles)
-    end = max(begin + len(masks) for _, _, begin, masks in rectangles)
-    width, height = output_size
-    shrink = min(1, 512 / max(width, height))
-    size = max(1, round(width * shrink)), max(1, round(height * shrink))
-    samples = {group_id: [] for group_id, _, _, _ in rectangles}
-    previous_masks = {}
-    previous = None
-    cuts = set()
-    with av.open(str(source[0])) as container:
-        stream = container.streams.video[0]
-        stream.thread_type = "AUTO"
-        frames = (frame for frame in container.decode(stream) if frame.pts is not None and frame.pts >= 0)
-        for index, frame in enumerate(frames):
-            if index < start:
-                continue
-            if index >= end:
-                break
-            check()
-            original = preview_pixels(frame, max_size=512, pixel_format="gray")
-            raw_height, raw_width = original.shape
-            crop = frame_crop(raw_width, raw_height, width, height)
-            image = np.asarray(Image.fromarray(original).crop(crop).resize(size, Image.Resampling.BILINEAR))
-            if previous is not None and is_shot_cut(previous, image):
-                cuts.add(index)
-                previous_masks.clear()
-            for group_id, group, begin, packed in rectangles:
-                offset = index - begin
-                if not 0 <= offset < len(packed):
-                    continue
-                pixels = np.unpackbits(packed[offset], axis=-1, bitorder="little") * 255
-                mask = np.asarray(Image.fromarray(pixels).resize((raw_width, raw_height), Image.Resampling.BILINEAR)) > 127
-                if group["fill_holes"]:
-                    binary_fill_holes(mask, output=mask)
-                radius = round(group["expand"] * raw_width / source_size[0])
-                if radius:
-                    maximum_filter(mask, size=2 * radius + 1, mode="constant", output=mask)
-                mask = np.asarray(Image.fromarray(mask).crop(crop).resize(size, Image.Resampling.NEAREST))
-                samples[group_id].append(sample_rectangle(image, mask, previous, previous_masks.get(group_id)))
-                previous_masks[group_id] = mask
-            previous = image
+def selection_mask(packed, group, source_size, output_size):
+    source_width, source_height = source_size
+    mask = expanded_masks(packed, source_height, source_width, group["expand"], group["fill_holes"])
+    if output_size != source_size:
+        mask = resize_selection_batch(mask[..., None].float(), *output_size, "nearest-exact")[..., 0].bool()
+    return mask
 
-    scale_x, scale_y = width / size[0], height / size[1]
-    trajectories = {}
-    for group_id, group, begin, _ in rectangles:
-        anchors = sorted({part["frame"] - begin for part in group["parts"]})
-        placements = stabilize_rectangles(samples[group_id], anchors, {cut - begin for cut in cuts}, fps)
-        trajectories[group_id] = {
-            begin + slot: replace(
-                frame,
-                center=(frame.center[0] * scale_x, frame.center[1] * scale_y),
-                size=(frame.size[0] * scale_x, frame.size[1] * scale_y),
-            )
-            for slot, frame in placements.items()
-        }
-    return trajectories
+
+def tint_selection(images, mask, group):
+    value = group["color"]
+    color = images.new_tensor([int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)])
+    images[mask] = torch.lerp(images[mask], color, group["segmentation_opacity"])
 
 
 def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=False, guides=None, detector=None,
-                     artwork=None, rectangle_frames=None, check=model_management.throw_exception_if_processing_interrupted):
+                     artwork=None, check=model_management.throw_exception_if_processing_interrupted):
     kinds = set() if edge_fill else {group["preprocessor"] for group in groups} & {"depth", "canny"}
     processors = prepare_preprocessors(kinds) if kinds else {}
     progress = comfy.utils.ProgressBar(len(images)) if artwork is None else None
     height, width = images.shape[1:3]
-    source_width, source_height = source_size
     mask_frames = torch.zeros((len(images), height, width), dtype=torch.float32)
     for start in range(0, len(images), 4):
         check()
@@ -674,9 +645,7 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
             fill = torch.zeros_like(union, dtype=torch.bool)
         guide_items = []
         for group_id, group, section, packed in active:
-            mask = expanded_masks(packed, source_height, source_width, group["expand"], group["fill_holes"])
-            if (width, height) != source_size:
-                mask = resize_selection_batch(mask[..., None].float(), width, height, "nearest-exact")[..., 0].bool()
+            mask = selection_mask(packed, group, source_size, (width, height))
             union[section][mask] = 1
             if edge_fill:
                 fill[section][mask] = group["fill_from_edges"]
@@ -687,17 +656,14 @@ def apply_selections(images, groups, tracks, indices, source_size, *, edge_fill=
             if kind in GUIDE_MODES:
                 guide_items.append((group_id, group, section, mask.numpy()))
             elif kind == "segmentation":
-                value = group["color"]
-                color = chunk.new_tensor([int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)])
-                chunk[section][mask] = color
+                tint_selection(chunk[section], mask, group)
             else:
                 chunk[section][mask] = maps[kind][section][mask]
         if edge_fill and active:
             for frame, selection, fill_pixels in zip(chunk.numpy(), union.numpy(), fill.numpy()):
                 fill_frame_from_edges(frame, selection.astype(bool), fill_pixels)
         if guide_items:
-            render_guides(guides[start:start + len(chunk)], guide_items, rgb, detector, artwork, start,
-                          rectangle_frames, frame_indices)
+            render_guides(guides[start:start + len(chunk)], guide_items, rgb, detector, artwork, start)
         if progress:
             progress.update(len(chunk))
     return mask_frames
@@ -714,7 +680,6 @@ class PreparedVideo:
     source_size: tuple
     result: tuple
     artwork: dict
-    rectangles: dict
     size_bytes: int
 
 
@@ -867,19 +832,16 @@ class _SelectiveVideo(io.ComfyNode):
             resize_components(components, width, height, check)
         original_frames = components.images
         guides = torch.zeros((count, height, width, 4), dtype=torch.float16) if guide_kinds else None
-        tracking, tracks, rectangles = None, [], {}
+        tracking, tracks = None, []
         artwork = {} if prepare else None
         if groups:
             tracking, tracks = track_groups(source, groups, check if prepare else None)
-            if "rectangle_guide" in guide_kinds:
-                rectangles = rectangle_trajectories(source, groups, tracks, timeline.size, (width, height),
-                                                    float(timeline.rate), check)
             if composite:
                 components.images = original_frames.clone()
             with guide_detector() if guide_kinds & POSE_GUIDES else nullcontext() as detector:
                 masks = apply_selections(components.images, groups, tracks, indices, timeline.size,
                                          edge_fill=cls.edge_fill, guides=guides, detector=detector,
-                                         artwork=artwork, rectangle_frames=rectangles, check=check)
+                                         artwork=artwork, check=check)
         else:
             masks = torch.zeros(1, 1, 1).expand(count, height, width)
         output = original
@@ -917,7 +879,7 @@ class _SelectiveVideo(io.ComfyNode):
                 len(png) for frame in artwork.values() for _, png in frame.values() if png
             )
         return PreparedVideo(uuid4().hex, source, tracking, groups, tracks, indices, timeline.size,
-                             outputs, artwork, rectangles, size_bytes)
+                             outputs, artwork, size_bytes)
 
 
 class RPSelectiveVideoEdgeFill(_SelectiveVideo):
@@ -929,9 +891,9 @@ class RPSelectiveVideoEdgeFill(_SelectiveVideo):
 
 class RPSelectiveVideoGuides(_SelectiveVideo):
     title = "RP Selective Video Guides"
-    description = "Track selections, prepare selective maps and export resizable pose, face or rectangle guides with alpha."
+    description = "Track selections and prepare selective maps or resizable OpenPose guides with alpha."
     aliases = ["SAM3 video", "selective depth", "video segmentation", "video restoration",
-               "transparent guide", "OpenPose face", "tracked rectangle", "video blockout"]
+               "transparent guide", "OpenPose face"]
     guide_modes = True
 
 
@@ -966,11 +928,8 @@ def preview_guide(source, frame, kind, encoded_mask):
         if max(image.size) > 1280 or "A" not in image.getbands():
             raise ValueError("Invalid guide preview mask.")
         mask = np.asarray(image.getchannel("A")) > 127
-    if kind == "rectangle_guide":
-        rectangle = rectangle_frame(mask)
-        return {"geometry": asdict(rectangle) if rectangle else None}
     geometry = preview_pose_geometry(source, frame, kind == "pose_guide") if mask.any() else None
-    artwork = guide_artwork(kind, mask, None, geometry)
+    artwork = guide_artwork(kind, mask, geometry)
     if artwork is None:
         return {"geometry": None}
     image, placement = artwork
@@ -1086,47 +1045,61 @@ def prepare_guides(source, groups, options, key, check):
     return ready_response(ready)
 
 
-def prepared_frame(ready, frame, active, segmentation, guide):
-    slot = bisect_left(ready.indices, frame)
-    skipped = slot == len(ready.indices) or ready.indices[slot] != frame
-    artwork = ready.artwork.get(slot, {}) if not skipped else {}
-    if skipped:
-        if active >= 0 and ready.groups[active]["preprocessor"] in POSE_GUIDES:
-            return {"skipped": True}
-        artwork = {selection: (track[frame], None) for selection, track in ready.rectangles.items() if frame in track}
-        if not guide or not artwork:
-            return {"skipped": True}
-    images = ready.result[1 if guide else 3]
-    height, width = images.shape[1:3]
-    scale = min(1, 1008 / max(width, height))
-    size = max(1, round(width * scale)), max(1, round(height * scale))
-    if skipped:
-        source = Image.fromarray(preview_frame(ready.source, frame))
-        photo = source.crop(frame_crop(source.width, source.height, width, height))
-    else:
-        pixels = (images[slot].clamp(0, 1) * 255).round().to(torch.uint8).cpu().numpy()
-        photo = Image.fromarray(pixels)
-    photo = photo.resize(size, Image.Resampling.BILINEAR)
-    if segmentation:
-        pixels = np.array(photo)
-        source_width, source_height = ready.source_size
+def prepared_photo(ready, slot, *, segmentation=False, guide=False):
+    # Segmentation-only previews and the map output use the same prepared RGB.
+    only_segmentation = bool(ready.groups) and all(group["preprocessor"] == "segmentation" for group in ready.groups)
+    use_map = guide or (segmentation and only_segmentation)
+    pixels = ready.result[1 if use_map else 3][slot]
+    if segmentation and not only_segmentation:
+        pixels = pixels.clone()
+        height, width = pixels.shape[:2]
+        frame = ready.indices[slot]
         for group, (first, packed) in zip(ready.groups, ready.tracks):
             offset = frame - first
-            if not 0 <= offset < len(packed) or not packed[offset].any():
+            if (use_map and group["preprocessor"] == "segmentation"
+                    or not 0 <= offset < len(packed) or not packed[offset].any()):
                 continue
-            mask = expanded_masks(packed[offset:offset + 1], source_height, source_width, group["expand"], group["fill_holes"])
-            if (width, height) != ready.source_size:
-                mask = resize_selection_batch(mask[..., None].float(), width, height, "nearest-exact")[..., 0].bool()
-            mask = np.asarray(Image.fromarray(mask[0].numpy()).resize(size, Image.Resampling.NEAREST))
-            color = np.array(tuple(bytes.fromhex(group["color"][1:])))
-            pixels[mask] = np.rint(pixels[mask] * 0.52 + color * 0.48).astype(np.uint8)
-        photo = Image.fromarray(pixels)
+            mask = selection_mask(packed[offset:offset + 1], group, ready.source_size, (width, height))
+            tint_selection(pixels, mask[0], group)
+    return Image.fromarray((pixels.clamp(0, 1) * 255).round().to(torch.uint8).cpu().numpy())
 
+
+def prepared_video_preview(ready, mode, frame, check):
+    transparent = mode == "transparent"
+    guides = ready.result[2]
+    audio, info = ready.result[5:7]
+    rate = Fraction(info["loaded_fps"]).limit_denominator(100_000)
+
+    def draw(slot):
+        if transparent:
+            rgba = (guides[slot].clamp(0, 1) * 255).round().to(torch.uint8).cpu().numpy()
+            return Image.fromarray(rgba)
+        return prepared_photo(ready, slot, segmentation=mode == "selection", guide=mode == "map")
+
+    if mode == "selection" and all(group["preprocessor"] == "segmentation" for group in ready.groups):
+        mode = "map"
+    filename = cached_prepared_preview(ready.id, mode, len(ready.indices), rate, audio, draw, check)
+    slot = min(bisect_left(ready.indices, frame), len(ready.indices) - 1)
+    return {
+        "video": {"filename": filename, "type": "temp", "time": slot / float(rate), "transparent": transparent},
+        "indices": list(ready.indices), "fps": float(rate),
+    }
+
+
+def prepared_frame(ready, frame, active, segmentation, guide):
+    slot = bisect_left(ready.indices, frame)
+    if slot == len(ready.indices) or ready.indices[slot] != frame:
+        return {"skipped": True}
+    photo = prepared_photo(ready, slot, segmentation=segmentation, guide=guide)
+    width, height = photo.size
+    scale = min(1, 1008 / max(width, height))
+    size = max(1, round(width * scale)), max(1, round(height * scale))
+    photo = photo.resize(size, Image.Resampling.BILINEAR)
     editable = None
     if guide:
         photo = photo.convert("RGBA")
         scale_x, scale_y = size[0] / width, size[1] / height
-        for selection, (placement, png) in artwork.items():
+        for selection, (placement, png) in ready.artwork.get(slot, {}).items():
             group = ready.groups[selection]
             placement = replace(
                 placement,
@@ -1134,10 +1107,9 @@ def prepared_frame(ready, frame, active, segmentation, guide):
                 size=(placement.size[0] * scale_x, placement.size[1] * scale_y),
             )
             if selection == active:
-                editable = {"geometry": asdict(placement), "image": base64.b64encode(png).decode("ascii") if png else None}
+                editable = {"geometry": asdict(placement), "image": base64.b64encode(png).decode("ascii")}
                 continue
-            image = Image.open(buffer_io.BytesIO(png)) if png else Image.new("RGBA", (1, 1), group["color"])
-            with image:
+            with Image.open(buffer_io.BytesIO(png)) as image:
                 composite_guide(photo, (image, placement), group["guide_scale"], group["guide_offset"], group["guide_rotation"])
         photo = photo.convert("RGB")
     return {
@@ -1353,13 +1325,29 @@ if getattr(PromptServer, "instance", None) is not None:
         except (OSError, ValueError, av.error.FFmpegError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
 
+    @routes.post("/rp/selective-video/prepared-video")
+    async def selective_video_prepared_video(request):
+        data = await request.json()
+        if not isinstance(data, dict):
+            return web.json_response({"error": "Invalid preview request."}, status=400)
+        ticket = data.get("ticket")
+        ready = find_prepared(ticket=ticket) if isinstance(ticket, str) else None
+        if ready is None:
+            return web.json_response({"error": "The prepared preview expired. Run Track & preview again."}, status=404)
+        mode, frame = data.get("mode"), data.get("frame", 0)
+        if mode not in ("selection", "map", "transparent") or type(frame) is not int or frame < 0:
+            return web.json_response({"error": "Invalid preview mode or frame."}, status=400)
+        return start_preview_job(prepared_video_preview, ready, mode, frame, inference=False)
+
     @routes.get("/rp/selective-video/track-status")
     async def selective_video_track_status(request):
         job = PREVIEW_JOBS.get(request.query.get("job", ""))
         if job is None:
             return web.json_response({"error": "Tracking preview expired. Run Track & preview again."}, status=404)
         job["last_seen"] = monotonic()
-        return web.json_response({key: job[key] for key in ("done", "ticket", "prepared", "detection", "video", "error") if key in job})
+        return web.json_response({key: job[key] for key in (
+            "done", "ticket", "prepared", "detection", "video", "indices", "fps", "error",
+        ) if key in job})
 
     @routes.delete("/rp/selective-video/track")
     async def selective_video_track_cancel(request):

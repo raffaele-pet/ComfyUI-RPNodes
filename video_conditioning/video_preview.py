@@ -92,12 +92,11 @@ def render_video(source, output_path, tracks, styles, source_width, check):
         return bool(original.streams.audio)
 
 
-def cached_preview(ticket, source, tracks, styles, source_width, check):
+def cached_preview_file(key, suffix, render, check):
     while not RENDER_LOCK.acquire(timeout=0.25):
         check()
     try:
         check()
-        key = ticket, styles
         existing = PREVIEW_FILES.get(key)
         if existing is not None and existing.is_file():
             PREVIEW_FILES.move_to_end(key)
@@ -105,19 +104,9 @@ def cached_preview(ticket, source, tracks, styles, source_width, check):
 
         temp = Path(folder_paths.get_temp_directory())
         temp.mkdir(parents=True, exist_ok=True)
-        path = temp / f"rp-selective-{uuid4().hex}.mp4"
+        path = temp / f"rp-selective-{uuid4().hex}.{suffix}"
         with TemporaryDirectory(dir=temp, prefix="rp-selective-") as folder:
-            video = Path(folder) / "video.mp4"
-            has_audio = render_video(source, video, tracks, styles, source_width, check)
-            if has_audio:
-                check()
-                muxed = Path(folder) / "preview.mp4"
-                _run([
-                    _find_executable("ffmpeg"), "-nostdin", "-hide_banner", "-loglevel", "error",
-                    "-i", str(video), "-i", str(source), "-map", "0:v:0", "-map", "1:a:0?",
-                    "-c:v", "copy", "-c:a", "aac", "-movflags", "+faststart", str(muxed),
-                ], "adding source audio to the selective video preview")
-                video = muxed
+            video = render(Path(folder))
             check()
             video.replace(path)
         PREVIEW_FILES[key] = path
@@ -131,3 +120,69 @@ def cached_preview(ticket, source, tracks, styles, source_width, check):
         return path.name
     finally:
         RENDER_LOCK.release()
+
+
+def cached_preview(ticket, source, tracks, styles, source_width, check):
+    def render(folder):
+        video = folder / "video.mp4"
+        if not render_video(source, video, tracks, styles, source_width, check):
+            return video
+        check()
+        muxed = folder / "preview.mp4"
+        _run([
+            _find_executable("ffmpeg"), "-nostdin", "-hide_banner", "-loglevel", "error",
+            "-i", str(video), "-i", str(source), "-map", "0:v:0", "-map", "1:a:0?",
+            "-c:v", "copy", "-c:a", "aac", "-movflags", "+faststart", str(muxed),
+        ], "adding source audio to the selective video preview")
+        return muxed
+
+    return cached_preview_file((ticket, styles), "mp4", render, check)
+
+
+def cached_prepared_preview(ticket, mode, count, rate, audio, draw, check):
+    transparent = mode == "transparent"
+    suffix = "webm" if transparent else "mp4"
+
+    def render(folder):
+        path = folder / f"video.{suffix}"
+        options = {} if transparent else {"movflags": "+faststart"}
+        with av.open(str(path), "w", options=options) as output:
+            if transparent:
+                encoder = output.add_stream("libvpx-vp9", rate=rate, options={
+                    "deadline": "realtime", "cpu-used": "6", "crf": "23", "b": "0", "auto-alt-ref": "0",
+                })
+                encoder.pix_fmt = "yuva420p"
+            else:
+                encoder = output.add_stream("libx264", rate=rate, options={"preset": "ultrafast", "crf": "20"})
+                encoder.pix_fmt = "yuv420p"
+            if audio is not None and not transparent:
+                samples = audio["waveform"][0, :2].float().cpu().numpy()
+                soundtrack = output.add_stream("aac", rate=audio["sample_rate"])
+                soundtrack.layout = "mono" if len(samples) == 1 else "stereo"
+            for index in range(count):
+                check()
+                pixels = draw(index)
+                if index == 0:
+                    scale = min(1, 640 / max(pixels.size))
+                    encoder.width, encoder.height = (2 * max(1, round(side * scale / 2)) for side in pixels.size)
+                pixels = pixels.resize((encoder.width, encoder.height), Image.Resampling.BILINEAR)
+                frame = av.VideoFrame.from_ndarray(np.asarray(pixels), format="rgba" if transparent else "rgb24")
+                for packet in encoder.encode(frame):
+                    output.mux(packet)
+            for packet in encoder.encode():
+                output.mux(packet)
+            if audio is not None and not transparent:
+                for start in range(0, samples.shape[-1], 4096):
+                    check()
+                    frame = av.AudioFrame.from_ndarray(
+                        np.ascontiguousarray(samples[:, start:start + 4096]), format="fltp", layout=soundtrack.layout,
+                    )
+                    frame.sample_rate = soundtrack.rate
+                    frame.pts = start
+                    for packet in soundtrack.encode(frame):
+                        output.mux(packet)
+                for packet in soundtrack.encode():
+                    output.mux(packet)
+        return path
+
+    return cached_preview_file((ticket, mode), suffix, render, check)

@@ -271,31 +271,29 @@ one still image; images can be fitted by centered cropping or stretching.
 ### RP Selective Video Guides
 
 Open **Edit video selections** and describe a subject in the first card.
-Click **Detect** to save its anchor mask. **Add selection** opens another
-card with its own preprocessor, color and tracking range. The color picker
+Click **Detect** to save an anchor. Detect again on another frame or with a
+different description to add to the same card. **Add selection** opens another
+card with its own preprocessor, color and anchors. The color picker
 offers a palette and manual color controls. **Select the guide** leaves the
 selection available as a mask. Choose a guide to add a preprocessor.
 
-Use the × on an anchor marker to remove the selections made on that frame.
+Anchor markers use the card's color. Use × to remove that card's detections
+from the marked frame.
 **Fill holes** closes enclosed gaps before expansion, which defaults to
 10 source pixels. Lower selections take precedence where their map guides
 overlap.
 
 **Track & preview** tracks every selection and prepares the selected
-preprocessors at the node's output settings. Switch **Selection** and
-**Guide** independently while scrubbing. Choosing a transparent guide switches
-the preview to **Guide**. **Apply selections** prepares pending
-changes before closing the editor. The workflow reuses the prepared result
-while it is cached for the same video, selections and output settings.
+preprocessors at the node's output settings. Use the timeline to scrub or
+play the preview. The **Segmentation** panel controls the mask opacity,
+starting at 50%, for both the selection preview and the segmentation map.
+**Apply selections** prepares pending changes and updates the node's player
+with the selected view. Transparent guides are shown with alpha on a
+checkerboard. The workflow reuses the prepared result while it is cached for
+the same video, selections and output settings.
 
 **OpenPose** and **OpenPose · Face only** render
-landmarks for people matched to the selected region. **Tracked rectangle**
-fits a narrow rectangle to the selection and links its motion across frames.
-When OpenCV is available, it tracks image features inside the mask to estimate
-position, rotation and scale. The temporally filtered mask guides the fit
-whenever the feature tracking is uncertain. Use **Track & preview** to see
-the stabilized trajectory, including frames skipped by output sampling.
-Drag a guide to move it or
+landmarks for people matched to the selected region. Drag a guide to move it or
 drag the round handle to rotate it. Drag a corner to resize proportionally
 and hold **Shift** to resize each axis independently. The **Guide transform**
 panel can be moved anywhere within the preview. **Reset scale** restores

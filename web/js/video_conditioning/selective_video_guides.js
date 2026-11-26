@@ -3,7 +3,6 @@ import { post } from "./selective_video_preview.js";
 export const guideModes = {
     pose_guide: "OpenPose",
     face_guide: "OpenPose · Face only",
-    rectangle_guide: "Tracked rectangle",
 };
 
 export const guideStyle = `
@@ -44,6 +43,9 @@ export const guideStyle = `
     .rp-selective-editor .rp-guide-resets button { white-space:normal; font-size:12px; padding:4px; }
     .rp-selective-editor .rp-guide-status { font-size:12px; opacity:.85; }
     .rp-selective-editor .rp-guide-status:empty { display:none; }
+    .rp-selective-editor .rp-guide-controls [hidden] { display:none; }
+    .rp-selective-editor .rp-guide-opacity { flex-wrap:wrap; justify-content:space-between; }
+    .rp-selective-editor .rp-guide-opacity input { flex:0 0 100%; }
 `;
 
 const minScale = 0.1;
@@ -60,11 +62,10 @@ function element(tag, css, text) {
     return node;
 }
 
-export function createGuideEditor(stage, video, guideVisible) {
+export function createGuideEditor(stage, video, guideVisible, onOpacity) {
     const layer = element("div", "rp-guide-layer");
     const box = element("div", "rp-guide-box");
     const image = element("img", "rp-guide-art");
-    const rectangle = element("div", "rp-guide-art");
     const move = element("button", "rp-guide-move");
     const rotate = element("button", "rp-guide-rotate");
     move.setAttribute("aria-label", "Move guide");
@@ -74,7 +75,7 @@ export function createGuideEditor(stage, video, guideVisible) {
     rotate.tabIndex = -1;
     image.alt = "";
     image.draggable = false;
-    box.append(image, rectangle, move, rotate);
+    box.append(image, move, rotate);
     layer.append(box);
     stage.append(layer);
 
@@ -87,7 +88,8 @@ export function createGuideEditor(stage, video, guideVisible) {
     panelHandle.title = "Drag to move the panel. Use arrow keys to move it with the keyboard.";
     const grip = element("span", "rp-guide-panel-grip");
     grip.setAttribute("aria-hidden", "true");
-    panelHandle.append(grip, "Guide transform");
+    const panelTitle = element("span", "", "Guide transform");
+    panelHandle.append(grip, panelTitle);
     const status = element("p", "rp-guide-status");
     status.setAttribute("role", "status");
     const resetScale = element("button", "", "Reset scale");
@@ -120,7 +122,19 @@ export function createGuideEditor(stage, video, guideVisible) {
     fieldsRow.append(angleLabel);
     const resets = element("div", "rp-guide-resets");
     resets.append(resetScale, resetPosition);
-    controls.append(panelHandle, fieldsRow, resets, status);
+    const opacityLabel = element("label", "rp-guide-opacity", "Opacity");
+    const opacityValue = element("output");
+    const opacity = element("input");
+    Object.assign(opacity, { type: "range", min: 0, max: 100, step: 1 });
+    opacity.setAttribute("aria-label", "Opacity");
+    opacityValue.setAttribute("aria-hidden", "true");
+    opacity.oninput = () => {
+        group.segmentation_opacity = opacity.valueAsNumber / 100;
+        opacityValue.value = `${opacity.value}%`;
+        onOpacity();
+    };
+    opacityLabel.append(opacityValue, opacity);
+    controls.append(panelHandle, opacityLabel, fieldsRow, resets, status);
     controls.hidden = true;
     box.hidden = true;
     stage.append(controls);
@@ -161,7 +175,14 @@ export function createGuideEditor(stage, video, guideVisible) {
     };
 
     function updatePanel() {
-        controls.hidden = !guideVisible() || !Object.hasOwn(guideModes, group?.preprocessor);
+        const segmentation = group?.preprocessor === "segmentation";
+        controls.hidden = !segmentation && (!guideVisible() || !Object.hasOwn(guideModes, group?.preprocessor));
+        panelTitle.textContent = segmentation ? "Segmentation" : "Guide transform";
+        controls.setAttribute("aria-label", panelTitle.textContent);
+        fieldsRow.hidden = resets.hidden = segmentation;
+        opacityLabel.hidden = !segmentation;
+        opacity.value = Math.round((group?.segmentation_opacity ?? 0.5) * 100);
+        opacityValue.value = `${opacity.value}%`;
         placePanel();
     }
 
@@ -311,14 +332,11 @@ export function createGuideEditor(stage, video, guideVisible) {
         box.hidden = true;
     }
 
-    function showArtwork(artwork, isRectangle) {
+    function showArtwork(artwork) {
         geometry = artwork?.geometry;
-        rectangle.hidden = !isRectangle;
-        image.hidden = isRectangle;
         box.hidden = !geometry;
         if (geometry) {
-            if (isRectangle) rectangle.style.background = group.color;
-            else image.src = `data:image/png;base64,${artwork.image}`;
+            image.src = `data:image/png;base64,${artwork.image}`;
             position();
         }
     }
@@ -330,7 +348,7 @@ export function createGuideEditor(stage, video, guideVisible) {
             frameSize = size;
             updatePanel();
             updateFields();
-            showArtwork(controls.hidden ? null : artwork, group?.preprocessor === "rectangle_guide");
+            showArtwork(controls.hidden ? null : artwork);
             status.textContent = "";
         },
         disconnect() {
@@ -344,22 +362,20 @@ export function createGuideEditor(stage, video, guideVisible) {
             }
             const kind = group?.preprocessor;
             updatePanel();
-            if (controls.hidden || !mask) {
+            if (controls.hidden || !mask || kind === "segmentation") {
                 clear();
-                status.textContent = controls.hidden ? "" : "Detect on this frame or run Track & preview.";
+                status.textContent = controls.hidden || kind === "segmentation" ? "" : "Detect on this frame or run Track & preview.";
                 updateFields();
                 return;
             }
             frameSize = [mask.width, mask.height];
-            const isRectangle = kind === "rectangle_guide";
-            if (isRectangle) rectangle.style.background = group.color;
             const encoded = mask.toDataURL("image/png").slice("data:image/png;base64,".length);
             if (requestedMask?.frame === frame && requestedMask.kind === kind && requestedMask.encoded === encoded) return;
             clear();
             requestedMask = { frame, kind, encoded };
             const controller = new AbortController();
             pending = controller;
-            status.textContent = isRectangle ? "" : "Finding pose…";
+            status.textContent = "Finding pose…";
             updateFields();
             timer = setTimeout(async () => {
                 try {
@@ -367,15 +383,15 @@ export function createGuideEditor(stage, video, guideVisible) {
                         video, frame, kind, mask: encoded,
                     }, controller.signal);
                     if (controller.signal.aborted) return;
-                    showArtwork(result, isRectangle);
-                    status.textContent = geometry ? "" : isRectangle ? "No selection on this frame." : "No matching pose on this frame.";
+                    showArtwork(result);
+                    status.textContent = geometry ? "" : "No matching pose on this frame.";
                 } catch (error) {
                     if (!controller.signal.aborted) {
                         requestedMask = null;
                         status.textContent = error.message;
                     }
                 }
-            }, isRectangle ? 0 : 120);
+            }, 120);
         },
     };
 }

@@ -11,8 +11,8 @@ import comfy.model_management as model_management
 import torch
 
 
-GUIDE_MODES = ("pose_guide", "face_guide", "rectangle_guide")
-POSE_GUIDES = frozenset(GUIDE_MODES[:2])
+GUIDE_MODES = ("pose_guide", "face_guide")
+POSE_GUIDES = frozenset(GUIDE_MODES)
 GUIDE_SCALE_MIN = 0.1
 GUIDE_SCALE_MAX = 4.0
 
@@ -71,20 +71,6 @@ def pose_geometry(detector, rgb, include_hands):
     return poses, prepared.shape[:2], unpad(prepared).shape[:2]
 
 
-def rectangle_frame(mask):
-    rows, columns = np.nonzero(mask)
-    if not rows.size:
-        return None
-    # Keep the proxy upright and measure the middle of the mask horizontally
-    # so ears and outstretched arms contribute less than the body.
-    top, bottom = np.percentile(rows, (1, 99))
-    left, right = np.percentile(columns, (25, 75))
-    height = bottom - top + 1
-    width = max(1, min(right - left + 1, height * 0.45))
-    center = float((left + right + 1) / 2), float((top + bottom + 1) / 2)
-    return GuideFrame(center, (float(width), float(height)))
-
-
 def keypoints_overlap_mask(points, mask, padded, unpadded):
     height, width = mask.shape
     scale_x = padded[1] * width / unpadded[1]
@@ -100,10 +86,7 @@ def keypoints_overlap_mask(points, mask, padded, unpadded):
     return hits > 0 and hits * 2 >= visible
 
 
-def guide_artwork(kind, mask, color, geometry=None):
-    if kind == "rectangle_guide":
-        frame = rectangle_frame(mask)
-        return (Image.new("RGBA", (1, 1), color), frame) if frame else None
+def guide_artwork(kind, mask, geometry):
     if geometry is None:
         return None
 
@@ -142,25 +125,11 @@ def composite_guide(canvas, artwork, scale, offset, rotation):
     cy = frame.center[1] + offset[1] * canvas.height
     angle = math.radians(frame.angle + rotation)
     cos, sin = math.cos(angle), math.sin(angle)
-    solid = image.size == (1, 1)
-    margin = 1 if solid else 0
-    extent_x = (abs(cos) * width + abs(sin) * height) / 2 + margin
-    extent_y = (abs(sin) * width + abs(cos) * height) / 2 + margin
+    extent_x = (abs(cos) * width + abs(sin) * height) / 2
+    extent_y = (abs(sin) * width + abs(cos) * height) / 2
     x0, y0 = max(0, math.floor(cx - extent_x)), max(0, math.floor(cy - extent_y))
     x1, y1 = min(canvas.width, math.ceil(cx + extent_x)), min(canvas.height, math.ceil(cy + extent_y))
     if x0 >= x1 or y0 >= y1:
-        return
-    if solid:
-        # Fractional edge coverage keeps slow subpixel moves from flashing
-        # between fully opaque and fully transparent pixels.
-        x = np.arange(x0, x1, dtype=np.float32)[None, :] + 0.5 - cx
-        y = np.arange(y0, y1, dtype=np.float32)[:, None] + 0.5 - cy
-        across = np.clip(width / 2 + 0.5 - np.abs(cos * x + sin * y), 0, 1)
-        along = np.clip(height / 2 + 0.5 - np.abs(-sin * x + cos * y), 0, 1)
-        color = image.getpixel((0, 0))
-        tile = Image.new("RGBA", (x1 - x0, y1 - y0), color)
-        tile.putalpha(Image.fromarray(np.rint(across * along * color[3]).astype(np.uint8)))
-        canvas.alpha_composite(tile, (x0, y0))
         return
     # Pillow expects the inverse map from the clipped destination to the artwork.
     sx, sy = image.width / width, image.height / height
@@ -173,7 +142,7 @@ def composite_guide(canvas, artwork, scale, offset, rotation):
     canvas.alpha_composite(visible, (x0, y0))
 
 
-def render_guides(output, items, rgb, detector, prepared=None, start=0, rectangle_frames=None, frame_indices=()):
+def render_guides(output, items, rgb, detector, prepared=None, start=0):
     height, width = output.shape[1:3]
     for index in range(len(output)):
         visible = [
@@ -187,20 +156,11 @@ def render_guides(output, items, rgb, detector, prepared=None, start=0, rectangl
         canvas = Image.new("RGBA", (width, height))
         for group_id, group, mask in visible:
             kind = group["preprocessor"]
-            placement = None
-            if kind == "rectangle_guide" and rectangle_frames is not None:
-                placement = rectangle_frames.get(group_id, {}).get(frame_indices[index])
-            if placement is not None:
-                artwork = Image.new("RGBA", (1, 1), group["color"]), placement
-            else:
-                artwork = guide_artwork(kind, mask, group["color"], geometry)
+            artwork = guide_artwork(kind, mask, geometry)
             composite_guide(canvas, artwork, group["guide_scale"], group["guide_offset"], group["guide_rotation"])
             if prepared is not None and artwork:
                 image, placement = artwork
-                png = None
-                if kind in POSE_GUIDES:
-                    with BytesIO() as buffer:
-                        image.save(buffer, format="PNG")
-                        png = buffer.getvalue()
-                prepared.setdefault(start + index, {})[group_id] = (placement, png)
+                with BytesIO() as buffer:
+                    image.save(buffer, format="PNG")
+                    prepared.setdefault(start + index, {})[group_id] = (placement, buffer.getvalue())
         output[index] = torch.from_numpy(np.array(canvas)).to(output.dtype).div_(255)

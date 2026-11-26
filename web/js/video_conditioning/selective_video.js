@@ -2,7 +2,7 @@ import { app } from "/scripts/app.js";
 import { createGuideEditor, guideModes, guideStyle } from "./selective_video_guides.js";
 import {
     attachNativePreview, colors, createPainter, decodeMask, defaultExpansion, loadGroupOverlays,
-    loadPhoto, loadTrackedMasks, post, previewJob, releaseOverlays, request,
+    checkerboard, loadPhoto, loadTrackedMasks, post, previewJob, releaseOverlays, request, sourceVideoURL, videoURL,
 } from "./selective_video_preview.js";
 const guideMaps = { segmentation: "Segmentation", depth: "Depth", canny: "Canny" };
 const loadOptionDefaults = {
@@ -276,13 +276,17 @@ function readConfig(widget, video) {
         const data = JSON.parse(widget.value);
         if (data.video !== video) return { groups: [] };
         if (Array.isArray(data.groups)) return data;
-        const groups = (data.selections ?? data.layers ?? []).map(({
-            text, preprocessor, color, expand = defaultExpansion, fill_holes = true, guide_scale, guide_offset,
-            guide_rotation, ...selection
-        }) => ({
-            name: text, preprocessor, color, expand, fill_holes, guide_scale, guide_offset, guide_rotation,
-            parts: [{ text, ...selection }],
-        }));
+        const groups = (data.selections ?? data.layers ?? []).map((layer) => {
+            if (Array.isArray(layer.parts)) return layer;
+            const {
+                text, preprocessor, color, expand = defaultExpansion, fill_holes = true, guide_scale, guide_offset,
+                guide_rotation, segmentation_opacity, ...selection
+            } = layer;
+            return {
+                name: text, preprocessor, color, expand, fill_holes, guide_scale, guide_offset, guide_rotation,
+                segmentation_opacity, parts: [{ text, ...selection }],
+            };
+        });
         return { ...data, groups };
     } catch {
         return { groups: [] };
@@ -290,7 +294,7 @@ function readConfig(widget, video) {
 }
 
 function guideSelections(groups) {
-    return groups.flatMap(({ name, parts, ...style }) => parts.map((part) => ({ ...style, ...part })));
+    return groups.filter(({ parts }) => parts.length);
 }
 
 function preparationSignature(groups, settings) {
@@ -303,11 +307,10 @@ function preparationSignature(groups, settings) {
 function canShowPrepared(groups, settings, saved, activeGroup) {
     const current = preparationSignature(groups, settings);
     if (saved === current) return true;
-    if (activeGroup?.preprocessor !== "rectangle_guide") return false;
+    if (!Object.hasOwn(guideModes, activeGroup?.preprocessor)) return false;
     const index = groups.filter(({ parts }) => parts.length).indexOf(activeGroup);
     if (index < 0) return false;
-    // The active rectangle is drawn from its stored trajectory. The editor can
-    // apply placement changes locally until the user prepares the output again.
+    // The editor draws the active pose with the current transform.
     const withoutPlacement = (key) => {
         const data = JSON.parse(key);
         for (const field of ["guide_scale", "guide_offset", "guide_rotation"]) {
@@ -365,6 +368,11 @@ const editorStyle = `
     .rp-selective-editor .rp-stage { position:relative; flex:1; min-height:120px; overflow:hidden;
         background:#101115; border-radius:8px; }
     .rp-selective-editor .rp-stage canvas { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; }
+    .rp-selective-editor .rp-stage video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+    .rp-selective-editor .rp-stage video[hidden] { display:none; }
+    .rp-selective-editor .rp-stage.rp-playing .rp-guide-layer,
+    .rp-selective-editor .rp-stage.rp-playing .rp-guide-controls { visibility:hidden; }
+    .rp-selective-editor .rp-timeline .rp-play { min-width:34px; }
     .rp-selective-editor .rp-prepare-spinner:not([hidden]) { position:absolute; inset:0; z-index:2;
         display:grid; place-items:center; background:#0006; }
     .rp-selective-editor .rp-prepare-spinner::after { content:""; width:44px; height:44px; border:4px solid #fff5;
@@ -429,6 +437,9 @@ const editorStyle = `
         font-size:12px; line-height:1; }
     .rp-selective-guides .rp-anchor .rp-anchor-remove { width:12px; height:12px; top:-4px; right:-4px; }
     .rp-selective-guides .rp-anchor-remove::before,.rp-selective-guides .rp-anchor-remove::after { width:5px; }
+    .rp-selective-guides .rp-anchor button:first-child { border-color:var(--rp-anchor-color); }
+    .rp-selective-guides .rp-anchor button[aria-pressed="true"]:first-child {
+        background:color-mix(in srgb,var(--rp-anchor-color) 24%,var(--comfy-input-bg,#202125)); }
     .rp-selective-editor .rp-color-picker { position:relative; }
     .rp-selective-editor .rp-color-picker > button { display:grid; place-items:center; width:41px; height:34px; }
     .rp-selective-guides .rp-selection-remove,.rp-selective-guides .rp-color-picker > button {
@@ -466,6 +477,9 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     modal.setAttribute("aria-label", "Selective Video · Selection editor");
     const life = new AbortController();
     const canvas = element("canvas");
+    const player = element("video");
+    player.hidden = true;
+    player.playsInline = true;
     const paint = createPainter(canvas);
     const slider = input("range", 0, "Video frame timeline");
     slider.min = slider.max = 0;
@@ -512,6 +526,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     const color = colorPicker((value) => {
         activeGroup.color = value;
         syncGroupCard(activeGroup);
+        if (withGuides) renderAnchors();
         draw();
     }, withGuides ? selectionColors : undefined);
     const expansion = input("number", defaultExpansion, "Mask expansion in source pixels");
@@ -562,7 +577,8 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         const unused = palette.filter((color) => !groups.some((selection) => selection.color === color));
         const available = unused.length ? unused : palette.filter((color) => color !== groups.at(-1)?.color);
         const color = available[Math.floor(Math.random() * available.length)];
-        return { name: "", color, expand: defaultExpansion, fill_holes: true, preprocessor: "none", parts: [] };
+        return { name: "", color, expand: defaultExpansion, fill_holes: true, preprocessor: "none",
+            segmentation_opacity: 0.5, parts: [] };
     }
     if (withGuides && !groups.length) groups.push(newSelection());
     let activeGroup = groups[0] ?? null;
@@ -585,9 +601,14 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     let draftVersion = 0;
     let drawVersion = 0;
     let scheduledSeek;
+    let playback;
     let ticket = session.signature === signature(groups) ? session.ticket : null;
     let prepared = session.prepared;
     let preparedSignature = session.preparedSignature;
+    if (withGuides && session.previewMode === "guide") {
+        showSelection.checked = false;
+        showGuide.checked = true;
+    }
 
     function getName(group) {
         return (group.name.trim() || group.parts[0]?.text || `Group ${groups.indexOf(group) + 1}`).toUpperCase();
@@ -674,7 +695,9 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
 
     function paintFrame(overlays, activeOverlay) {
         if (withGuides && !showSelection.checked) {
-            for (const overlay of overlays) overlay.opacity = 0;
+            for (const overlay of overlays) {
+                if (!showGuide.checked || overlay.preprocessor !== "segmentation") overlay.opacity = 0;
+            }
         }
         if (!guideEditor || !showGuide.checked || !Object.hasOwn(guideModes, activeGroup?.preprocessor)) {
             guideEditor?.update(activeGroup, shownFrame);
@@ -704,7 +727,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     function updateButtons() {
         const ready = shownFrame === currentFrame && shownFrame >= 0;
         const busy = detecting || restoring || tracking || Boolean(checkRun);
-        detect.disabled = busy || !ready || !activeGroup || !prompt.value.trim();
+        detect.disabled = busy || !!playback || !ready || !activeGroup || !prompt.value.trim();
         add.disabled = busy || (!withGuides && !currentPart);
         track.disabled = !tracking && (!groups.some(({ parts }) => parts.length) || !ready || busy);
         for (const [group, { check }] of groupHeaders) {
@@ -714,11 +737,13 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         track.textContent = tracking ? (withGuides ? "Cancel preparation" : "Cancel tracking") : "Track & preview";
         const paused = withGuides && tracking;
         spinner.hidden = !paused;
-        side.inert = anchors.inert = paused;
+        side.inert = paused || !!playback;
+        anchors.inert = paused;
         apply.disabled = withGuides && (busy || !ready);
         slider.disabled = frameInput.disabled = paused || !timestamps.length;
         previous.disabled = paused || !timestamps.length || !currentFrame;
         next.disabled = paused || !timestamps.length || currentFrame >= timestamps.length - 1;
+        play.disabled = paused || !timestamps.length || detecting || restoring;
     }
 
     function clearDetection() {
@@ -862,12 +887,115 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         }
     }
 
+    function updateTimeline(frame) {
+        frameInput.value = frame + 1;
+        slider.value = frame;
+        time.textContent = `${timestamps[frame].toFixed(2)} s`;
+    }
+
+    function previewMode() {
+        if (!showGuide.checked) return "selection";
+        if (activeGroup?.preprocessor === "none" || !activeGroup?.parts.length) {
+            const selected = groups.find(({ preprocessor, parts }) => parts.length && preprocessor !== "none");
+            return Object.hasOwn(guideModes, selected?.preprocessor) ? "transparent" : "map";
+        }
+        return Object.hasOwn(guideModes, activeGroup.preprocessor) ? "transparent" : "map";
+    }
+
+    function stopPlayback(sync = true) {
+        if (!playback) return;
+        const state = playback;
+        playback = null;
+        state.controller.abort();
+        cancelAnimationFrame(state.tick);
+        player.pause();
+        player.hidden = true;
+        player.removeAttribute("src");
+        player.load();
+        stage.classList.remove("rp-playing");
+        play.textContent = "▶";
+        play.setAttribute("aria-label", "Play video");
+        play.title = "Play video";
+        updateButtons();
+        if (sync) seek(state.frame);
+    }
+
+    async function startPlayback() {
+        if (playback) {
+            stopPlayback();
+            return;
+        }
+        clearTimeout(scheduledSeek);
+        const controller = new AbortController();
+        const { signal } = controller;
+        const state = { controller, frame: slider.valueAsNumber };
+        playback = state;
+        play.textContent = "Ⅱ";
+        play.setAttribute("aria-label", "Pause video");
+        play.title = "Pause video";
+        updateButtons();
+        try {
+            let url = sourceVideoURL(video);
+            let start = timestamps[state.frame];
+            let transparent = false;
+            if (prepared && preparedSignature === preparationSignature(groups, loadingSettings)) {
+                try {
+                    const result = await previewJob("/prepared-video", {
+                        ticket: prepared, mode: previewMode(), frame: state.frame,
+                    }, signal);
+                    ({ indices: state.indices, fps: state.fps } = result);
+                    url = videoURL(result.video);
+                    start = result.video.time;
+                    transparent = result.video.transparent;
+                } catch (error) {
+                    if (error.status !== 404) throw error;
+                    prepared = session.prepared = null;
+                }
+            }
+            signal.throwIfAborted();
+            player.style.background = transparent ? checkerboard : "";
+            player.muted = false;
+            player.addEventListener("loadedmetadata", () => { player.currentTime = start; }, { once: true, signal });
+            player.addEventListener("ended", () => stopPlayback(), { once: true, signal });
+            player.src = url;
+            try {
+                await player.play();
+            } catch (error) {
+                if (error.name !== "NotAllowedError") throw error;
+                player.muted = true;
+                await player.play();
+            }
+            signal.throwIfAborted();
+            player.hidden = false;
+            stage.classList.add("rp-playing");
+            let sourceIndex = state.frame;
+            function tick() {
+                const time = player.currentTime;
+                if (state.indices) {
+                    const index = Math.min(state.indices.length - 1, Math.floor(time * state.fps + 0.001));
+                    state.frame = state.indices[index];
+                } else {
+                    while (sourceIndex > 0 && timestamps[sourceIndex] > time + 0.001) sourceIndex--;
+                    while (sourceIndex + 1 < timestamps.length && timestamps[sourceIndex + 1] <= time + 0.001) sourceIndex++;
+                    state.frame = sourceIndex;
+                }
+                updateTimeline(state.frame);
+                state.tick = requestAnimationFrame(tick);
+            }
+            tick();
+        } catch (error) {
+            if (!signal.aborted) {
+                stopPlayback();
+                viewStatus.textContent = error.message;
+            }
+        }
+    }
+
     async function seek(index) {
         if (!timestamps.length || !Number.isInteger(index)) return;
+        stopPlayback(false);
         const target = Math.min(timestamps.length - 1, Math.max(0, index));
-        frameInput.value = target + 1;
-        slider.value = target;
-        time.textContent = `${timestamps[target].toFixed(2)} s`;
+        updateTimeline(target);
         if (target === shownFrame && target === currentFrame) {
             restoreAnchors(target);
             return;
@@ -923,6 +1051,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
             trackFetch.abort();
             return;
         }
+        stopPlayback();
         clearCheck();
         const requestSignature = signature(groups);
         const readyKey = withGuides ? preparationSignature(groups, loadingSettings) : null;
@@ -946,7 +1075,11 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
                 preparedSignature = readyKey;
                 Object.assign(session, { prepared, preparedSignature });
                 if (applyAfter) {
-                    saveAndClose();
+                    const mode = previewMode();
+                    const { video: asset } = await previewJob("/prepared-video", {
+                        ticket: prepared, mode, frame: currentFrame,
+                    }, signal);
+                    if (!signal.aborted) saveAndClose(asset);
                     return;
                 }
                 draw();
@@ -992,7 +1125,9 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         if (end !== null) part.end = end;
         const groupSettings = { expand: radius, fill_holes: fillHoles.checked };
         if (!edgeFill) groupSettings.preprocessor = mode.value;
-        const previous = currentPart;
+        const previous = withGuides ? group.parts.find((saved) => (
+            saved.frame === frame && saved.text.toLowerCase() === text.toLowerCase()
+        )) : currentPart;
         clearCheck();
         clearDetection();
         const version = draftVersion;
@@ -1050,7 +1185,9 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
             preview: mergedPreview(candidates, checked),
         };
         if (!group.name.trim()) group.name = part.text.toUpperCase();
-        const index = group.parts.indexOf(currentPart);
+        const index = withGuides ? group.parts.findIndex((saved) => (
+            saved.frame === part.frame && saved.text.toLowerCase() === part.text.toLowerCase()
+        )) : group.parts.indexOf(currentPart);
         if (index < 0) group.parts.push(part);
         else group.parts[index] = part;
         currentPart = part;
@@ -1106,17 +1243,32 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
 
     function renderAnchors() {
         anchors.replaceChildren();
-        const frames = [...new Set(groups.flatMap(({ parts }) => parts.map(({ frame }) => frame)))].sort((a, b) => a - b);
-        if (!frames.length) return;
+        const entries = withGuides ? groups.flatMap((group) => (
+            [...new Set(group.parts.map(({ frame }) => frame))].map((frame) => ({ frame, group }))
+        )) : [...new Set(groups.flatMap(({ parts }) => parts.map(({ frame }) => frame)))].map((frame) => ({ frame }));
+        if (!entries.length) return;
         anchors.append(element("span", "Anchors"));
-        for (const frame of frames) {
-            const jump = button(`#${frame + 1}`, () => seek(frame));
+        entries.sort((a, b) => a.frame - b.frame);
+        for (const { frame, group } of entries) {
+            const name = group?.parts.filter((part) => part.frame === frame).map(({ text }) => text).join(", ");
+            const jump = button(`#${frame + 1}`, () => {
+                if (group) {
+                    if (activeGroup !== group) openGroup(group);
+                    openSelection(group.parts.filter((part) => part.frame === frame).at(-1));
+                }
+                seek(frame);
+            });
             jump.setAttribute("aria-label", `Go to anchor frame ${frame + 1}`);
+            if (name) jump.title = name;
             jump.setAttribute("aria-pressed", String(frame === currentFrame));
             jump.disabled = !timestamps.length;
             const remove = button("", () => {
-                for (const group of groups) group.parts = group.parts.filter((part) => part.frame !== frame);
-                if (currentPart?.frame === frame) openSelection(null);
+                for (const target of group ? [group] : groups) {
+                    target.parts = target.parts.filter((part) => part.frame !== frame);
+                }
+                if ((!group || group === activeGroup) && currentPart?.frame === frame) {
+                    openSelection(withGuides ? group.parts.at(-1) : null);
+                }
                 else clearCheck();
                 invalidateTracking();
                 for (const group of groups) syncGroupCard(group);
@@ -1125,9 +1277,11 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
                 updateButtons();
             }, "rp-anchor-remove");
             remove.setAttribute("aria-label", `Remove anchor frame ${frame + 1}`);
-            remove.title = "Remove all selections anchored to this frame";
+            remove.title = group ? `Remove this card’s detections on frame ${frame + 1}`
+                : "Remove all selections anchored to this frame";
             remove.disabled = !timestamps.length;
             const chip = element("span", "", "rp-anchor");
+            if (group) chip.style.setProperty("--rp-anchor-color", group.color);
             chip.append(jump, remove);
             anchors.append(chip);
         }
@@ -1219,22 +1373,29 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
         updateButtons();
     }
 
-    const previous = button("‹", () => seek(currentFrame - 1));
-    const next = button("›", () => seek(currentFrame + 1));
+    const play = button("▶", startPlayback, "rp-play");
+    play.setAttribute("aria-label", "Play video");
+    play.title = "Play video";
+    const previous = button("‹", () => seek(slider.valueAsNumber - 1));
+    const next = button("›", () => seek(slider.valueAsNumber + 1));
     previous.setAttribute("aria-label", "Previous frame");
     next.setAttribute("aria-label", "Next frame");
     slider.addEventListener("input", () => {
         clearTimeout(scheduledSeek);
-        frameInput.value = slider.valueAsNumber + 1;
-        time.textContent = `${timestamps[slider.valueAsNumber].toFixed(2)} s`;
-        scheduledSeek = setTimeout(() => seek(slider.valueAsNumber), 75);
+        const frame = slider.valueAsNumber;
+        stopPlayback(false);
+        updateTimeline(frame);
+        scheduledSeek = setTimeout(() => seek(frame), 75);
     });
     slider.addEventListener("change", () => {
         clearTimeout(scheduledSeek);
         seek(slider.valueAsNumber);
     });
     frameInput.addEventListener("change", () => seek(frameInput.valueAsNumber - 1));
-    for (const toggle of [showSelection, showGuide]) toggle.addEventListener("change", draw);
+    for (const toggle of [showSelection, showGuide]) toggle.addEventListener("change", () => {
+        stopPlayback();
+        draw();
+    });
     if (withGuides) {
         for (const field of [expansion, fillHoles]) field.addEventListener("change", () => {
             if (!activeGroup || !expansion.checkValidity() || !Number.isInteger(expansion.valueAsNumber)) return;
@@ -1274,9 +1435,9 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     });
 
     const stage = element("div", "", "rp-stage");
-    stage.append(canvas, spinner);
-    const guideEditor = withGuides ? createGuideEditor(stage, video, () => showGuide.checked) : null;
-    const timeline = row(previous, slider, next, frameInput, time);
+    stage.append(canvas, player, spinner);
+    const guideEditor = withGuides ? createGuideEditor(stage, video, () => showGuide.checked, draw) : null;
+    const timeline = row(...(withGuides ? [play] : []), previous, slider, next, frameInput, time);
     timeline.classList.add("rp-timeline");
     const view = element("section", "", "rp-view");
     view.append(stage, timeline);
@@ -1335,13 +1496,14 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     close.setAttribute("aria-label", "Close editor");
     header.append(element("h2", "Video selections"), close);
     const footer = element("footer");
-    function saveAndClose() {
+    function saveAndClose(asset) {
         const saved = groups.map((group) => ({
             ...group, name: group.parts.length ? getName(group) : group.name,
         }));
-        const preview = ticket || prepared ? {
+        const preview = ticket || prepared || asset ? {
             ticket, frame: currentFrame, prepared, preparedSignature,
             activeGroup: groups.filter(({ parts }) => parts.length).indexOf(activeGroup),
+            previewMode: showGuide.checked ? "guide" : "selection", asset,
         } : null;
         onSave(saved, preview);
         modal.close();
@@ -1352,6 +1514,7 @@ function openEditor(video, groups, session, edgeFill, withGuides, loadingSetting
     modal.append(element("style", withGuides ? editorStyle + guideStyle : editorStyle), header, layout, footer);
     modal.addEventListener("close", () => {
         life.abort();
+        stopPlayback(false);
         guideEditor?.disconnect();
         frameFetch?.abort();
         preparedFetch?.abort();
@@ -1417,11 +1580,12 @@ app.registerExtension({
             const filename = video.value;
             const config = readConfig(selections, filename);
             const { trackingPreview } = config;
-            const groups = withGuides ? config.groups.flatMap((group) => group.parts.map((part) => (
-                { ...group, name: part.text, parts: [part],
-                    preprocessor: group.preprocessor === "openpose" ? "pose_guide"
-                        : group.preprocessor ?? (config.version === 3 ? "none" : "segmentation") }
-            ))) : config.groups;
+            const groups = withGuides ? config.groups.map((group) => ({
+                ...group,
+                preprocessor: ({ openpose: "pose_guide", rectangle_guide: "none" })[group.preprocessor]
+                    ?? group.preprocessor ?? (config.version >= 3 ? "none" : "segmentation"),
+                segmentation_opacity: group.segmentation_opacity ?? 0.5,
+            })) : config.groups;
             const loadingSettings = Object.fromEntries(Object.entries(loadOptionDefaults).map(([name, fallback]) => [
                 name, loadOptionValue(loadOptions.find((widget) => widget.name === name)?.value, fallback),
             ]));
@@ -1430,15 +1594,17 @@ app.registerExtension({
                     video: filename, ticket: trackingPreview?.ticket, frame: trackingPreview?.frame,
                     signature: signature(groups),
                     prepared: trackingPreview?.prepared, preparedSignature: trackingPreview?.preparedSignature,
+                    previewMode: trackingPreview?.previewMode,
                 };
             }
             modal = openEditor(filename, groups, session, edgeFill, withGuides, loadingSettings, (savedGroups, preview) => {
                 app.graph?.beforeChange?.();
                 const data = withGuides
-                    ? { version: 3, video: filename, selections: guideSelections(savedGroups) }
+                    ? { version: 4, video: filename, selections: guideSelections(savedGroups) }
                     : { version: 2, video: filename, groups: savedGroups };
                 if (preview) data.trackingPreview = preview;
                 selections.value = JSON.stringify(data);
+                session.previewMode = preview?.previewMode;
                 selections.callback?.(selections.value);
                 refresh();
                 app.graph?.afterChange?.();
